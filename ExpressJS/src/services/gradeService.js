@@ -3,6 +3,7 @@ const { gradeRepo } = require('../repositories');
 const { getGradeStrategy } = require('../patterns/gradeStrategy');
 const { ROLES } = require('../constants/roles');
 const { buildExportScope } = require('./exportScopeService');
+const { academicReferences } = require('./writeScope');
 
 const listGrades = async (actor, query = {}) => {
   const { filter } = await buildExportScope(actor, 'grades', query);
@@ -29,11 +30,12 @@ const upsertGrade = async (actor, data) => {
   }
 
   const calc = getGradeStrategy(strategy);
+  const cls = await academicReferences(actor, data);
   const average = calc.calculateAverage(scores);
   const classification = calc.classify(average);
 
   const filter = {
-    schoolId: actor.schoolId,
+    schoolId: cls.schoolId,
     academicYearId,
     classId,
     subjectId,
@@ -63,6 +65,7 @@ const upsertGrade = async (actor, data) => {
 const addScore = async (actor, gradeId, scoreItem) => {
   const grade = await gradeRepo.findById(gradeId);
   if (!grade) throw new ApiError(404, 'Không tìm thấy bảng điểm');
+  await academicReferences(actor, grade);
   if (actor.role !== ROLES.SUPER_ADMIN && String(grade.schoolId) !== String(actor.schoolId)) {
     throw new ApiError(403, 'Ngoài phạm vi');
   }

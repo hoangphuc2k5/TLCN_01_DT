@@ -92,7 +92,7 @@ const createSubject = asyncHandler(async (req, res) => {
   return success(res, await academicService.createSubject(req.user, req.body), 'Tạo môn thành công', 201);
 });
 const updateSubject = asyncHandler(async (req, res) => {
-  return success(res, await academicService.updateSubject(req.params.id, req.body), 'Cập nhật môn thành công');
+  return success(res, await academicService.updateSubject(req.user, req.params.id, req.body), 'Cập nhật môn thành công');
 });
 const listAssignments = asyncHandler(async (req, res) => {
   return success(res, await academicService.listAssignments(req.user, req.query));
@@ -101,11 +101,11 @@ const createAssignment = asyncHandler(async (req, res) => {
   return success(res, await academicService.createAssignment(req.user, req.body), 'Phân công thành công', 201);
 });
 const deleteAssignment = asyncHandler(async (req, res) => {
-  await academicService.deleteAssignment(req.params.id);
+  await academicService.deleteAssignment(req.user, req.params.id);
   return success(res, true, 'Xóa phân công thành công');
 });
 const listStudentsInClass = asyncHandler(async (req, res) => {
-  return success(res, await academicService.listStudentsInClass(req.params.id));
+  return success(res, await academicService.listStudentsInClass(req.user, req.params.id));
 });
 
 // Attendance / Grades / Fees / etc.

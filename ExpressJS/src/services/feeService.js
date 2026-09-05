@@ -3,6 +3,9 @@ const { feeRepo, paymentRepo } = require('../repositories');
 const { FEE_STATUS } = require('../constants/status');
 const { ROLES } = require('../constants/roles');
 const { buildExportScope } = require('./exportScopeService');
+const { targetSchool, reference } = require('./writeScope');
+const User = require('../models/User');
+const AcademicYear = require('../models/AcademicYear');
 
 const refreshStatus = (invoice) => {
   if (invoice.paidAmount <= 0) {
@@ -29,8 +32,11 @@ const createInvoice = async (actor, data) => {
   if (!data.studentId || !data.academicYearId || !data.title || data.amount == null || !data.dueDate) {
     throw new ApiError(400, 'Thiếu thông tin hóa đơn');
   }
+  const schoolId = await targetSchool(actor, data.schoolId);
+  await reference(User, data.studentId, schoolId, { role: ROLES.STUDENT });
+  await reference(AcademicYear, data.academicYearId, schoolId);
   const invoice = await feeRepo.create({
-    schoolId: actor.schoolId,
+    schoolId,
     studentId: data.studentId,
     academicYearId: data.academicYearId,
     title: data.title,
@@ -46,6 +52,7 @@ const createInvoice = async (actor, data) => {
 const recordPayment = async (actor, data) => {
   const { invoiceId, amount, method = 'CASH', note = '' } = data;
   if (!invoiceId || amount == null) throw new ApiError(400, 'Thiếu invoiceId/amount');
+  if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) throw new ApiError(400, 'Số tiền phải lớn hơn 0');
 
   const invoice = await feeRepo.findById(invoiceId);
   if (!invoice) throw new ApiError(404, 'Không tìm thấy hóa đơn');

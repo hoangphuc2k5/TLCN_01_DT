@@ -1,6 +1,6 @@
 # Tiến trình triển khai
 
-Cập nhật: 05/09/2026. Đang thực hiện Đợt 0: phân quyền, tenant và kiểm thử.
+Cập nhật: 06/09/2026. Đang thực hiện Đợt 0: phân quyền, tenant và kiểm thử.
 
 ## Quy trình bàn giao
 
@@ -85,6 +85,16 @@ Cập nhật: 05/09/2026. Đang thực hiện Đợt 0: phân quyền, tenant v�
 - Push: thành công lên origin, commit `3fd8973`.
 
 ## Điểm tiếp tục chính xác
+
+### Bàn giao tiếp: ghi dữ liệu học vụ
+
+- Nhánh `feat/phase0-academic-write-scope`, nền `feat/phase0-academic-read-scope` (79f3e1f).
+- Thêm writeScope: resolve trường, lấy document trong scope, xác minh quan hệ lớp/môn/năm/HS và phân công GV; whitelist trường được sửa.
+- Ghi điểm, thêm cột điểm, điểm danh, tạo invoice kiểm tra quan hệ trước ghi. Số tiền thu phải hữu hạn và > 0.
+- Sửa môn/xóa phân công/truy cập danh sách HS nhận actor từ controller; kiểm tra tenant. Không còn tự đổi role một user bất kỳ khi gán GVCN; chỉ nhận giáo viên hợp lệ.
+- Academic year/class/subject/assignment tạo mới dùng whitelist; đổi schoolId qua payload không chuyển dữ liệu sang trường khác.
+- Kiểm thử `npm test` backend: **61/61 đạt**, thêm ca ghi đúng phân công, ghi sai lớp/HS/trường, nâng role qua gán GVCN, thu tiền âm/0 và danh sách HS của PH.
+- Không migration. Tiếp theo: quyền ghi các module tài nguyên, thi, user/role và UI còn lại. Chưa đánh dấu hoàn tất 0.5b.
 
 1. Hoàn thành **0.2b**: các trang FeesPage, GradesPage, AttendancePage, MaterialsPage, ExamsPage, LibraryPage, FacilitiesPage, TemplatesPage còn dùng role/canManage để bật nhiều action chung. Tách từng create/update/delete/execute; đối chiếu route mới trước khi sửa.
 2. Hoàn thành **0.5b**: scope export, JSON điểm/phí/điểm danh và workflow đã được sửa. Các module khác chưa được kiểm tra toàn bộ. Không coi kiểm thử 51 case là chứng minh toàn ứng dụng đã đúng tenant.

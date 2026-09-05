@@ -8,38 +8,44 @@ const {
 } = require('../repositories');
 const { ROLES } = require('../constants/roles');
 const User = require('../models/User');
+const { schoolScope, personalStudentIds, objectId } = require('./dataScope');
+const { targetSchool, reference, scopedDocument, pick, teaching } = require('./writeScope');
 
-const requireSchoolId = (actor, bodySchoolId) => {
-  if (actor.role === ROLES.SUPER_ADMIN) {
-    if (!bodySchoolId) throw new ApiError(400, 'Cần schoolId');
-    return bodySchoolId;
-  }
-  return actor.schoolId;
+const requireSchoolId = targetSchool;
+const classFields = ['name', 'gradeLevel', 'academicYearId', 'homeroomTeacherId', 'room', 'maxStudents', 'status'];
+const classReferences = async (data, schoolId) => {
+  await reference(academicYearRepo.model, data.academicYearId, schoolId);
+  if (data.homeroomTeacherId) await reference(User, data.homeroomTeacherId, schoolId, { role: { $in: [ROLES.SUBJECT_TEACHER, ROLES.HOMEROOM_TEACHER] } });
 };
 
 // Academic years
 const listAcademicYears = async (actor, query = {}) => {
-  const schoolId = query.schoolId || actor.schoolId;
-  if (!schoolId && actor.role === ROLES.SUPER_ADMIN) {
-    return academicYearRepo.find({}, { limit: 100 });
-  }
-  return academicYearRepo.find({ schoolId });
+  const scope = await schoolScope(actor);
+  return academicYearRepo.find({ $and: [scope, query.schoolId ? { schoolId: objectId(query.schoolId) } : {}] });
 };
 
 const createAcademicYear = async (actor, data) => {
-  const schoolId = requireSchoolId(actor, data.schoolId);
+  const schoolId = await requireSchoolId(actor, data.schoolId);
+  const payload = pick(data, ['name', 'startDate', 'endDate', 'isCurrent', 'status']);
+  await new academicYearRepo.model({ ...payload, schoolId }).validate();
   if (data.isCurrent) {
     await require('../models/AcademicYear').updateMany({ schoolId }, { isCurrent: false });
   }
-  return academicYearRepo.create({ ...data, schoolId });
+  return academicYearRepo.create({ ...payload, schoolId });
 };
 
 // Classes
 const listClasses = async (actor, query = {}) => {
-  const filter = {};
-  if (actor.role === ROLES.SUPER_ADMIN && query.schoolId) filter.schoolId = query.schoolId;
-  else if (actor.schoolId) filter.schoolId = actor.schoolId;
+  const filter = await schoolScope(actor);
   if (query.academicYearId) filter.academicYearId = query.academicYearId;
+  const personal = await personalStudentIds(actor);
+  if (personal !== null) {
+    const students = await User.find({ _id: { $in: personal } }).select('classId');
+    filter._id = { $in: students.map(s => s.classId).filter(Boolean) };
+  } else if ([ROLES.SUBJECT_TEACHER, ROLES.HOMEROOM_TEACHER].includes(actor.role)) {
+    const assignments = await assignmentRepo.find({ schoolId: actor.schoolId, teacherId: actor._id }, { limit: 10000 });
+    filter.$or = [{ _id: { $in: assignments.map(a => a.classId) } }, { homeroomTeacherId: actor._id }];
+  }
   return classRepo.find(filter, {
     populate: 'homeroomTeacherId academicYearId',
     limit: 200,
@@ -47,31 +53,28 @@ const listClasses = async (actor, query = {}) => {
 };
 
 const createClass = async (actor, data) => {
-  const schoolId = requireSchoolId(actor, data.schoolId);
+  const schoolId = await requireSchoolId(actor, data.schoolId);
   if (!data.name || !data.academicYearId || data.gradeLevel == null) {
     throw new ApiError(400, 'Thiếu name/academicYearId/gradeLevel');
   }
-  return classRepo.create({ ...data, schoolId });
+  await classReferences(data, schoolId);
+  return classRepo.create({ ...pick(data, classFields), schoolId });
 };
 
 const updateClass = async (actor, id, data) => {
-  const cls = await classRepo.findById(id);
+  const cls = await scopedDocument(classRepo.model, actor, id);
   if (!cls) throw new ApiError(404, 'Không tìm thấy lớp');
   if (actor.role !== ROLES.SUPER_ADMIN && String(cls.schoolId) !== String(actor.schoolId)) {
     throw new ApiError(403, 'Ngoài phạm vi');
   }
-  const updated = await classRepo.updateById(id, data);
-  if (data.homeroomTeacherId) {
-    await User.findByIdAndUpdate(data.homeroomTeacherId, {
-      role: ROLES.HOMEROOM_TEACHER,
-      classId: id,
-    });
-  }
+  const payload = pick(data, classFields);
+  await classReferences({ ...cls.toObject(), ...payload }, cls.schoolId);
+  const updated = await classRepo.updateById(id, payload);
   return updated;
 };
 
 const deleteClass = async (actor, id) => {
-  const cls = await classRepo.findById(id);
+  const cls = await scopedDocument(classRepo.model, actor, id);
   if (!cls) throw new ApiError(404, 'Không tìm thấy lớp');
   if (actor.role !== ROLES.SUPER_ADMIN && String(cls.schoolId) !== String(actor.schoolId)) {
     throw new ApiError(403, 'Ngoài phạm vi');
@@ -82,33 +85,30 @@ const deleteClass = async (actor, id) => {
 
 // Subjects
 const listSubjects = async (actor, query = {}) => {
-  const filter = {};
-  if (actor.schoolId) filter.schoolId = actor.schoolId;
-  if (query.schoolId && actor.role === ROLES.SUPER_ADMIN) filter.schoolId = query.schoolId;
+  const filter = { $and: [await schoolScope(actor), query.schoolId ? { schoolId: objectId(query.schoolId) } : {}] };
   return subjectRepo.find(filter);
 };
 
 const createSubject = async (actor, data) => {
-  const schoolId = requireSchoolId(actor, data.schoolId);
+  const schoolId = await requireSchoolId(actor, data.schoolId);
   if (!data.name || !data.code) throw new ApiError(400, 'Thiếu name/code');
-  return subjectRepo.create({ ...data, schoolId });
+  return subjectRepo.create({ ...pick(data, ['name', 'code', 'gradeLevels', 'status']), schoolId });
 };
 
-const updateSubject = async (id, data) => {
-  const subject = await subjectRepo.updateById(id, data);
+const updateSubject = async (actor, id, data) => {
+  await scopedDocument(subjectRepo.model, actor, id);
+  const subject = await subjectRepo.updateById(id, pick(data, ['name', 'code', 'gradeLevels', 'status']));
   if (!subject) throw new ApiError(404, 'Không tìm thấy môn');
   return subject;
 };
 
 // Assignments
 const listAssignments = async (actor, query = {}) => {
-  const filter = {};
-  if (actor.schoolId) filter.schoolId = actor.schoolId;
+  const filter = await schoolScope(actor);
   if (query.teacherId) filter.teacherId = query.teacherId;
   if (query.classId) filter.classId = query.classId;
   if (
-    [ROLES.SUBJECT_TEACHER, ROLES.HOMEROOM_TEACHER].includes(actor.role) &&
-    !query.teacherId
+    [ROLES.SUBJECT_TEACHER, ROLES.HOMEROOM_TEACHER].includes(actor.role)
   ) {
     filter.teacherId = actor._id;
   }
@@ -118,11 +118,15 @@ const listAssignments = async (actor, query = {}) => {
 };
 
 const createAssignment = async (actor, data) => {
-  const schoolId = requireSchoolId(actor, data.schoolId);
+  const schoolId = await requireSchoolId(actor, data.schoolId);
   const { teacherId, classId, subjectId, academicYearId } = data;
   if (!teacherId || !classId || !subjectId || !academicYearId) {
     throw new ApiError(400, 'Thiếu thông tin phân công');
   }
+  await reference(User, teacherId, schoolId, { role: { $in: [ROLES.SUBJECT_TEACHER, ROLES.HOMEROOM_TEACHER] } });
+  await reference(classRepo.model, classId, schoolId, { academicYearId: objectId(academicYearId) });
+  await reference(subjectRepo.model, subjectId, schoolId);
+  await reference(academicYearRepo.model, academicYearId, schoolId);
   return assignmentRepo.create({
     schoolId,
     teacherId,
@@ -132,14 +136,18 @@ const createAssignment = async (actor, data) => {
   });
 };
 
-const deleteAssignment = async (id) => {
+const deleteAssignment = async (actor, id) => {
+  await scopedDocument(assignmentRepo.model, actor, id);
   await assignmentRepo.deleteById(id);
   return true;
 };
 
-const listStudentsInClass = async (classId) => {
+const listStudentsInClass = async (actor, classId) => {
+  const cls = await scopedDocument(classRepo.model, actor, classId);
+  await teaching(actor, cls, null, true);
+  const personal = await personalStudentIds(actor);
   return userRepo.find(
-    { classId, role: ROLES.STUDENT },
+    { schoolId: cls.schoolId, classId, role: ROLES.STUDENT, ...(personal !== null ? { _id: { $in: personal } } : {}) },
     { select: '-password', sort: { name: 1 }, limit: 100 }
   );
 };
