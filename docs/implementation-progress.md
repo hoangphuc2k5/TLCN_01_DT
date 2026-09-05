@@ -14,7 +14,7 @@ Cập nhật: 05/09/2026. Đang thực hiện Đợt 0: phân quyền, tenant v�
 - [x] 0.1 Quyền API theo hành động ở các route dùng MANAGE_*, từ chối role vô hiệu hóa; kiểm thử hồi quy.
 - [ ] 0.2 Menu/route/nút thao tác theo permission, role tùy chỉnh.
 - [x] 0.3 Scope báo cáo Excel: tenant, lớp/môn, bản thân/con em, lọc records điểm danh.
-- [ ] 0.4 Scope duyệt đơn, TKB, gửi tin nhắn; chống tự duyệt/duyệt lặp.
+- [x] 0.4 Scope duyệt đơn, TKB, gửi tin nhắn; chống tự duyệt/duyệt lặp.
 - [ ] 0.5 Rà các service còn lại theo ID và quan hệ: học vụ, thi, học liệu, thư viện, CSVC, user/role, template.
 - [ ] 0.6 Kiểm thử API nhiều cụm/trường/role, frontend build và ghi hạn chế còn lại.
 
@@ -51,4 +51,14 @@ Cập nhật: 05/09/2026. Đang thực hiện Đợt 0: phân quyền, tenant v�
 - Kiểm thử: `cd ExpressJS; npm test` — 38/38 đạt, gồm 27 test export đọc file XLSX thật với 2 cụm/3 trường và 11 test quyền API.
 - `cd ReactJS; npm run build` — đạt; còn cảnh báo chunk trên 500 kB từ ứng dụng hiện tại.
 - Không migration. Giới hạn 1.000 dòng điểm/phí và 200 buổi điểm danh vẫn giữ; xử lý export lớn thuộc đợt báo cáo sau. Phạm vi lớp điểm danh của GV là các lớp được phân công.
+- Push: thành công lên origin, commit `5d4d30a`.
+
+## Bàn giao 0.4 — Đơn, TKB và tin nhắn
+
+- Nhánh: `feat/phase0-workflow-scope`, kế thừa `feat/phase0-export-scope` (`5d4d30a`).
+- Đơn: kiểm tra trường/cụm; GVCN chỉ xem/duyệt nghỉ học của lớp chủ nhiệm; không tự duyệt, không duyệt lặp; cập nhật PENDING có điều kiện nguyên tử; kiểm tra khoảng ngày và trường của HS khi tạo.
+- TKB: giới hạn lớp HS/con PH/GV; HS/PH chỉ xem bản APPROVED; duyệt đúng trường và chỉ từ DRAFT. API lưu không nhận APPROVED; sửa đưa về nháp và xóa người duyệt cũ; xác minh lớp/năm học/GV/môn thuộc trường.
+- Tin nhắn: chỉ trong trường hoặc liên lạc quản trị cấp trên thuộc cụm/Super Admin; reply phải thuộc đúng cặp người gửi/nhận. Đây là chính sách phạm vi ban đầu, chưa thêm quan hệ GV-PH theo lớp.
+- Test: `cd ExpressJS; npm test` — 48/48 đạt; có duyệt đồng thời (một 200, một 409), đối chiếu DB không đổi khi bị chặn, TKB/reply giả và khoảng ngày sai.
+- Không migration. Chưa tự cập nhật lịch bù hoặc kiểm tra xung đột TKB giữa các lớp (Đợt 2). Giữ quy tắc người duyệt theo role hệ thống hiện có, đồng thời kiểm tra permission execute; custom approver cần thiết kế riêng để không vô tình cho GV tự có quyền duyệt.
 - Push: kiểm tra nhánh remote sau commit.

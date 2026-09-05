@@ -20,6 +20,9 @@ const FeeInvoice = require('../src/models/FeeInvoice');
 const Assignment = require('../src/models/TeacherAssignment');
 const Subject = require('../src/models/Subject');
 const Year = require('../src/models/AcademicYear');
+const Leave = require('../src/models/LeaveRequest');
+const Timetable = require('../src/models/Timetable');
+const Message = require('../src/models/Message');
 const id = () => new mongoose.Types.ObjectId();
 let mongo, server, origin, schools, students, actors, classes, year, subjects;
 
@@ -88,3 +91,65 @@ test('teacher grade export checks class, subject and academic year assignment', 
 });
 test('teacher attendance export only contains assigned classes', async () => assert.deepEqual(codes(await rows('attendance', actors.teacher)), ['ST0', 'ST1']));
 test('teacher cannot export fees without finance/report permission', async () => assert.equal((await request('fees', actors.teacher)).status, 403));
+
+const write = (path, actor, data, method = 'PATCH') => fetch(`${origin}/v1/api${path}`, {
+  method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${jwt.sign({ _id: actor._id }, process.env.JWT_SECRET)}` }, body: JSON.stringify(data),
+});
+const makeLeave = (overrides = {}) => Leave.create({ schoolId: schools[0]._id, requesterId: students[0]._id, studentId: students[0]._id, type: 'STUDENT_ABSENCE', reason: 'Test', fromDate: new Date(), toDate: new Date(), ...overrides });
+
+test('school cannot review another school leave', async () => {
+  const leave = await makeLeave({ schoolId: schools[1]._id });
+  assert.equal((await write(`/leave-requests/${leave._id}/review`, actors.school, { status: 'APPROVED' })).status, 404);
+  assert.equal((await Leave.findById(leave._id)).status, 'PENDING');
+});
+test('cluster can review its school but cannot review another cluster', async () => {
+  const own = await makeLeave({ schoolId: schools[1]._id });
+  const foreign = await makeLeave({ schoolId: schools[2]._id });
+  assert.equal((await write(`/leave-requests/${own._id}/review`, actors.cluster, { status: 'APPROVED' })).status, 200);
+  assert.equal((await write(`/leave-requests/${foreign._id}/review`, actors.cluster, { status: 'APPROVED' })).status, 404);
+});
+test('cannot self-approve leave', async () => {
+  const leave = await makeLeave({ requesterId: actors.school._id, studentId: null, type: 'TEACHER_ABSENCE' });
+  assert.equal((await write(`/leave-requests/${leave._id}/review`, actors.school, { status: 'APPROVED' })).status, 403);
+});
+test('concurrent leave reviews produce exactly one success', async () => {
+  const leave = await makeLeave();
+  const responses = await Promise.all(['APPROVED', 'REJECTED'].map(status => write(`/leave-requests/${leave._id}/review`, actors.school, { status })));
+  assert.deepEqual(responses.map(r => r.status).sort(), [200, 409]);
+});
+test('homeroom teacher can review only student absence from own class', async () => {
+  const home = await User.create({ name: 'Home', email: 'home@test.invalid', role: 'HOMEROOM_TEACHER', schoolId: schools[0]._id });
+  await Class.updateOne({ _id: classes[0]._id }, { homeroomTeacherId: home._id });
+  const own = await makeLeave();
+  const other = await makeLeave({ studentId: students[2]._id, requesterId: students[2]._id });
+  const teacher = await makeLeave({ type: 'TEACHER_ABSENCE', studentId: null, requesterId: actors.teacher._id });
+  assert.equal((await write(`/leave-requests/${own._id}/review`, home, { status: 'APPROVED' })).status, 200);
+  for (const leave of [other, teacher]) assert.equal((await write(`/leave-requests/${leave._id}/review`, home, { status: 'APPROVED' })).status, 403);
+});
+test('invalid leave date interval is rejected', async () => {
+  const result = await write('/leave-requests', students[0], { type: 'STUDENT_ABSENCE', reason: 'Test', fromDate: '2026-09-07', toDate: '2026-09-05' }, 'POST');
+  assert.equal(result.status, 400);
+});
+test('timetable approval enforces school scope and draft state', async () => {
+  const own = await Timetable.create({ schoolId: schools[0]._id, classId: classes[0]._id, academicYearId: year._id, slots: [] });
+  const foreign = await Timetable.create({ schoolId: schools[1]._id, classId: classes[2]._id, academicYearId: year._id, slots: [] });
+  assert.equal((await write(`/timetables/${foreign._id}/approve`, actors.school, {})).status, 404);
+  assert.equal((await write(`/timetables/${own._id}/approve`, actors.school, {})).status, 200);
+  assert.equal((await write(`/timetables/${own._id}/approve`, actors.school, {})).status, 409);
+});
+test('saving timetable cannot bypass approval or inject a foreign class', async () => {
+  assert.equal((await write('/timetables', actors.school, { academicYearId: year._id, classId: classes[1]._id, status: 'APPROVED', slots: [] }, 'POST')).status, 400);
+  assert.equal((await write('/timetables', actors.school, { academicYearId: year._id, classId: classes[2]._id, slots: [] }, 'POST')).status, 403);
+});
+test('parent timetable query cannot override children scope', async () => {
+  const token = jwt.sign({ _id: actors.parent._id }, process.env.JWT_SECRET);
+  const response = await fetch(`${origin}/v1/api/timetables?classId=${classes[2]._id}`, { headers: { Authorization: `Bearer ${token}` } });
+  assert.equal(response.status, 200);
+  assert.deepEqual((await response.json()).data, []);
+});
+test('cross-school message and unrelated reply are rejected without creating messages', async () => {
+  const initial = await Message.countDocuments();
+  assert.equal((await write('/messages', students[0], { receiverId: students[3]._id, body: 'Test' }, 'POST')).status, 403);
+  assert.equal((await write('/messages', students[0], { receiverId: students[1]._id, body: 'Test', parentMessageId: id() }, 'POST')).status, 403);
+  assert.equal(await Message.countDocuments(), initial);
+});

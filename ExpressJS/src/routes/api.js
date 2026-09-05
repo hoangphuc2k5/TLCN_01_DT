@@ -100,12 +100,12 @@ router.delete('/announcements/:id', authorizePermissionAction('delete', PERMISSI
 // Leave
 router.get('/leave-requests', c.listLeaves);
 router.post('/leave-requests', authorizePermissionAction('create', PERMISSIONS.MANAGE_LEAVE), c.createLeave);
-router.patch('/leave-requests/:id/review', authorizeRoles(ROLES.SCHOOL_ADMIN, ROLES.ACADEMIC_AFFAIRS, ROLES.HOMEROOM_TEACHER, ROLES.CLUSTER_ADMIN), audit('REVIEW', 'LeaveRequest'), c.reviewLeave);
+router.patch('/leave-requests/:id/review', authorizePermissionAction('execute', PERMISSIONS.MANAGE_LEAVE), authorizeRoles(ROLES.SCHOOL_ADMIN, ROLES.ACADEMIC_AFFAIRS, ROLES.HOMEROOM_TEACHER, ROLES.CLUSTER_ADMIN), audit('REVIEW', 'LeaveRequest'), c.reviewLeave);
 
 // Timetable
 router.get('/timetables', c.listTimetables);
 router.post('/timetables', authorizePermissionAction(['create', 'update'], PERMISSIONS.MANAGE_TIMETABLE), audit('UPSERT', 'Timetable'), c.upsertTimetable);
-router.patch('/timetables/:id/approve', authorizeRoles(ROLES.SCHOOL_ADMIN), c.approveTimetable);
+router.patch('/timetables/:id/approve', authorizePermissionAction('execute', PERMISSIONS.MANAGE_TIMETABLE), authorizeRoles(ROLES.SCHOOL_ADMIN), c.approveTimetable);
 
 // Subscriptions
 router.get('/subscriptions', authorizePermissionAction('view', PERMISSIONS.MANAGE_SUBSCRIPTIONS, PERMISSIONS.VIEW_REPORTS), a.listSubscriptions);
