@@ -11,6 +11,7 @@ const FeeInvoice = require('../models/FeeInvoice');
 const Attendance = require('../models/Attendance');
 const { buildExportScope } = require('./exportScopeService');
 const { schoolScope, objectId } = require('./dataScope');
+const { scopedDocument, academicReferences, targetSchool } = require('./writeScope');
 
 // ——— Messaging ———
 const listMessages = async (actor, query = {}) => {
@@ -84,8 +85,7 @@ const markMessageRead = async (actor, id) => {
 
 // ——— Calendar ———
 const listEvents = async (actor, query = {}) => {
-  const filter = {};
-  if (actor.schoolId) filter.schoolId = actor.schoolId;
+  const filter = await schoolScope(actor);
   if (query.from || query.to) {
     filter.startAt = {};
     if (query.from) filter.startAt.$gte = new Date(query.from);
@@ -102,8 +102,11 @@ const createEvent = async (actor, data) => {
   if (!data.title || !data.startAt || !data.endAt) {
     throw new ApiError(400, 'Thiếu title/startAt/endAt');
   }
+  if (data.classId) await academicReferences(actor, data, { homeroomAllowed: true });
+  if (!Number.isFinite(new Date(data.startAt).getTime()) || !Number.isFinite(new Date(data.endAt).getTime()) || new Date(data.startAt) > new Date(data.endAt)) throw new ApiError(400, 'Thời gian sự kiện không hợp lệ');
+  const schoolId = await targetSchool(actor, data.schoolId);
   return CalendarEvent.create({
-    schoolId: actor.schoolId || null,
+    schoolId,
     title: data.title,
     description: data.description || '',
     type: data.type || 'EVENT',
@@ -116,7 +119,7 @@ const createEvent = async (actor, data) => {
 };
 
 const deleteEvent = async (actor, id) => {
-  const ev = await CalendarEvent.findById(id);
+  const ev = await scopedDocument(CalendarEvent, actor, id);
   if (!ev) throw new ApiError(404, 'Không tìm thấy sự kiện');
   if (
     String(ev.createdBy) !== String(actor._id) &&
@@ -207,12 +210,10 @@ const globalSearch = async (actor, q) => {
   const userFilter = {
     $or: [{ name: regex }, { email: regex }, { code: regex }],
   };
-  if (actor.schoolId) userFilter.schoolId = actor.schoolId;
-  if (actor.role === ROLES.CLUSTER_ADMIN) userFilter.clusterId = actor.clusterId;
+  Object.assign(userFilter, await schoolScope(actor));
 
   const Class = require('../models/Class');
-  const classFilter = { name: regex };
-  if (actor.schoolId) classFilter.schoolId = actor.schoolId;
+  const classFilter = { name: regex, ...await schoolScope(actor) };
 
   const [users, classes] = await Promise.all([
     User.find(userFilter).select('name email role code').limit(20),

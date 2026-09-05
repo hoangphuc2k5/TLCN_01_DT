@@ -30,7 +30,8 @@ const authenticate = async (req, res, next) => {
       throw new ApiError(401, 'Tài khoản không hợp lệ hoặc đã bị khóa', 401);
     }
 
-    if (!(await roleCache.getRole(user.role))) {
+    const role = await roleCache.getRole(user.role);
+    if (!role || !(require('../services/roleService').visibleRole(user, role))) {
       throw new ApiError(403, 'Vai trò không tồn tại hoặc đã bị vô hiệu hóa', 403);
     }
     req.user = user;

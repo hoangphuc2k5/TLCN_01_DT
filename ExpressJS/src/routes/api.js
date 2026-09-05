@@ -1,6 +1,6 @@
 const express = require('express');
 const validate = require('../middleware/validate');
-const { authorizeRoles, authorizePermissionAction } = require('../middleware/rbac');
+const { authorizeRoles, authorizePermissionAction, authorizeRead } = require('../middleware/rbac');
 const { PERMISSIONS } = require('../constants/permissions');
 const { ROLES } = require('../constants/roles');
 const audit = require('../middleware/audit');
@@ -115,41 +115,41 @@ router.post('/subscription-invoices', authorizePermissionAction('create', PERMIS
 router.patch('/subscription-invoices/:id/paid', authorizePermissionAction('execute', PERMISSIONS.MANAGE_SUBSCRIPTIONS), a.markSubInvoicePaid);
 
 // Exams
-router.get('/exams', a.listExams);
-router.get('/exams/:id', a.getExam);
+router.get('/exams', authorizeRead('exams', { personal: true }), a.listExams);
+router.get('/exams/:id', authorizeRead('exams', { personal: true }), a.getExam);
 router.post('/exams', authorizePermissionAction('create', PERMISSIONS.MANAGE_EXAMS), audit('CREATE', 'Exam'), a.createExam);
 router.put('/exams/:id', authorizePermissionAction('update', PERMISSIONS.MANAGE_EXAMS), audit('UPDATE', 'Exam'), a.updateExam);
 router.post('/exams/:id/attempts', authorizePermissionAction('execute', PERMISSIONS.TAKE_EXAMS), a.startAttempt);
 router.post('/exam-attempts/:attemptId/submit', authorizePermissionAction('execute', PERMISSIONS.TAKE_EXAMS), a.submitAttempt);
 router.post('/exam-attempts/:attemptId/grade', authorizePermissionAction('update', PERMISSIONS.MANAGE_EXAMS), a.gradeAttempt);
-router.get('/exam-attempts', a.listAttempts);
+router.get('/exam-attempts', authorizeRead('exams', { personal: true }), a.listAttempts);
 
 // Materials
-router.get('/materials', a.listMaterials);
+router.get('/materials', authorizeRead('materials', { personal: true }), a.listMaterials);
 router.post('/materials', authorizePermissionAction('create', PERMISSIONS.MANAGE_MATERIALS), audit('CREATE', 'LearningMaterial'), a.createMaterial);
 router.delete('/materials/:id', authorizePermissionAction('delete', PERMISSIONS.MANAGE_MATERIALS), a.deleteMaterial);
 
 // Library
-router.get('/library/books', a.listBooks);
+router.get('/library/books', authorizeRead('library', { personal: true }), a.listBooks);
 router.post('/library/books', authorizePermissionAction('create', PERMISSIONS.MANAGE_LIBRARY), audit('CREATE', 'LibraryBook'), a.createBook);
 router.put('/library/books/:id', authorizePermissionAction('update', PERMISSIONS.MANAGE_LIBRARY), a.updateBook);
-router.get('/library/loans', a.listLoans);
+router.get('/library/loans', authorizeRead('library', { personal: true }), a.listLoans);
 router.post('/library/loans', authorizePermissionAction('create', PERMISSIONS.MANAGE_LIBRARY), audit('CREATE', 'BookLoan'), a.borrowBook);
 router.patch('/library/loans/:id/return', authorizePermissionAction('execute', PERMISSIONS.MANAGE_LIBRARY), a.returnBook);
 
 // Facilities
-router.get('/facilities', a.listFacilities);
+router.get('/facilities', authorizeRead('facilities', { personal: false }), a.listFacilities);
 router.post('/facilities', authorizePermissionAction('create', PERMISSIONS.MANAGE_FACILITIES), audit('CREATE', 'FacilityRequest'), a.createFacility);
-router.patch('/facilities/:id/review', authorizeRoles(ROLES.LIBRARIAN, ROLES.SCHOOL_ADMIN, ROLES.ACADEMIC_AFFAIRS), audit('REVIEW', 'FacilityRequest'), a.reviewFacility);
+router.patch('/facilities/:id/review', authorizePermissionAction('execute', PERMISSIONS.MANAGE_FACILITIES), authorizeRoles(ROLES.LIBRARIAN, ROLES.SCHOOL_ADMIN, ROLES.ACADEMIC_AFFAIRS), audit('REVIEW', 'FacilityRequest'), a.reviewFacility);
 
 // Audit / Support / Conduct / Templates
 router.get('/audit-logs', authorizePermissionAction('view', PERMISSIONS.VIEW_AUDIT), a.listAuditLogs);
 router.get('/support-tickets', authorizePermissionAction('view', PERMISSIONS.MANAGE_SUPPORT), a.listTickets);
 router.post('/support-tickets', authorizePermissionAction('create', PERMISSIONS.MANAGE_SUPPORT), audit('CREATE', 'SupportTicket'), a.createTicket);
 router.patch('/support-tickets/:id', authorizePermissionAction('update', PERMISSIONS.MANAGE_SUPPORT), a.updateTicket);
-router.get('/conduct', a.listConduct);
+router.get('/conduct', authorizeRead('conduct', { personal: true }), a.listConduct);
 router.post('/conduct', authorizePermissionAction(['create', 'update'], PERMISSIONS.MANAGE_CONDUCT), audit('UPSERT', 'ConductRecord'), a.upsertConduct);
-router.get('/templates', a.listTemplates);
+router.get('/templates', authorizeRead('templates', { personal: false }), a.listTemplates);
 router.post('/templates', authorizePermissionAction('create', PERMISSIONS.MANAGE_TEMPLATES), audit('CREATE', 'SharedTemplate'), a.createTemplate);
 router.put('/templates/:id', authorizePermissionAction('update', PERMISSIONS.MANAGE_TEMPLATES), a.updateTemplate);
 router.post('/schools/:schoolId/apply-template', authorizePermissionAction('execute', PERMISSIONS.MANAGE_TEMPLATES), a.applyTemplate);
@@ -160,8 +160,8 @@ router.get('/messages', x.listMessages);
 router.post('/messages', audit('CREATE', 'Message'), x.sendMessage);
 router.patch('/messages/:id/read', x.markMessageRead);
 router.get('/calendar', x.listEvents);
-router.post('/calendar', audit('CREATE', 'CalendarEvent'), x.createEvent);
-router.delete('/calendar/:id', x.deleteEvent);
+router.post('/calendar', authorizePermissionAction('create', PERMISSIONS.MANAGE_ANNOUNCEMENTS), audit('CREATE', 'CalendarEvent'), x.createEvent);
+router.delete('/calendar/:id', authorizePermissionAction('delete', PERMISSIONS.MANAGE_ANNOUNCEMENTS), x.deleteEvent);
 router.get('/search', x.search);
 router.get('/export/grades', x.exportGrades);
 router.get('/export/fees', x.exportFees);

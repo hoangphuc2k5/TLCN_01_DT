@@ -86,6 +86,17 @@ Cập nhật: 06/09/2026. Đang thực hiện Đợt 0: phân quyền, tenant v�
 
 ## Điểm tiếp tục chính xác
 
+### Bàn giao tiếp: thi online và các đường truy cập còn hở
+
+- Nhánh `feat/phase0-exam-access`, kế thừa `feat/phase0-resource-role-ownership` (9176122).
+- Thi: giới hạn theo trường/lớp/phân công; che đáp án với HS/PH và tài khoản chỉ xem; chỉ chủ bài được nộp, không nhận câu hỏi trùng/ngoài đề. Chấm lại tự luận tính lại tổng, kiểm tra trần điểm. Không sửa câu hỏi sau khi đã có bài làm.
+- Lượt thi mới có attemptNumber và unique partial index để chặn tạo trùng đồng thời. Bản ghi cũ không bắt buộc backfill; khi triển khai cần bảo đảm index được tạo trước khi nhận lượt thi mới.
+- Các API đọc thi/học liệu/thư viện/CSVC/hạnh kiểm/mẫu kiểm tra quyền view (HS/PH có ngoại lệ own_data). Lịch tạo/xóa dùng quyền announcements tương ứng; duyệt CSVC cần execute và vai trò nghiệp vụ.
+- Subscription invoice, audit, tìm kiếm/lịch áp dụng tenant scope; tạo thông báo/lịch kiểm tra tham chiếu lớp. Tạo trường chỉ nhận trường dữ liệu được phép, xác minh cụm.
+- Xác thực chặn role thuộc tenant khác. Danh bạ chỉ trả thông tin liên hệ tối thiểu; mật khẩu mặc định bị loại khỏi truy vấn/populate, đăng nhập chọn lại trường mật khẩu một cách tường minh.
+- Kiểm thử backend `npm test`: **78/78 đạt** trên MongoDB tạm, gồm đăng nhập mật khẩu, không lộ hash, role sai tenant, đồng thời tạo lượt thi và chấm lại.
+- Chưa coi đây là kiểm thử toàn bộ nghiệp vụ thi: thời lượng tự nộp, UI chấm tự luận và các chức năng mới vẫn ở đợt riêng. Tiếp tục 0.2b và 0.6 trước khi đóng Đợt 0.
+
 ### Bàn giao tiếp: ghi dữ liệu học vụ
 
 - Nhánh `feat/phase0-academic-write-scope`, nền `feat/phase0-academic-read-scope` (79f3e1f).
