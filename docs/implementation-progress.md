@@ -82,7 +82,7 @@ Cập nhật: 05/09/2026. Đang thực hiện Đợt 0: phân quyền, tenant v�
 - Điểm danh lọc records trước trả JSON, không mutate dữ liệu lưu; kiểm tra ngày không hợp lệ. Query status học phí chỉ nhận enum hợp lệ.
 - Test: `cd ExpressJS; npm test` — 51/51 đạt; thêm đối chiếu JSON điểm/phí/điểm danh cho HS, PH và quản lý cụm. Bộ frontend 7/7 và build đã đạt ở 0.2a.
 - Không migration. Chưa bao gồm scope khi ghi điểm/điểm danh/tạo invoice; xử lý ở 0.5b.
-- Push: kiểm tra nhánh remote sau commit.
+- Push: thành công lên origin, commit `3fd8973`.
 
 ## Điểm tiếp tục chính xác
 
