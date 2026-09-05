@@ -17,6 +17,8 @@ const roleSchema = new mongoose.Schema(
     description: { type: String, default: '' },
     level: { type: Number, required: true, min: 0, default: 100 },
     isSystem: { type: Boolean, default: false },
+    schoolId: { type: mongoose.Schema.Types.ObjectId, ref: 'School', default: null },
+    clusterId: { type: mongoose.Schema.Types.ObjectId, ref: 'Cluster', default: null },
     status: { type: String, enum: Object.values(STATUS), default: STATUS.ACTIVE },
     permissions: { type: [rolePermissionSchema], default: [] },
   },

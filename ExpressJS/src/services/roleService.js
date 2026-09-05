@@ -12,6 +12,31 @@ const {
 const { ROLE_PERMISSIONS } = require('../constants/permissions');
 const { ROLE_LABELS, ROLES } = require('../constants/roles');
 const { STATUS } = require('../constants/status');
+const { objectId } = require('./dataScope');
+
+const visibleRole = (actor, role) => actor.role === ROLES.SUPER_ADMIN ||
+  (!role.schoolId && !role.clusterId) ||
+  (role.schoolId && String(role.schoolId) === String(actor.schoolId)) ||
+  (!role.schoolId && role.clusterId && String(role.clusterId) === String(actor.clusterId));
+
+const assertRoleOwnership = (actor, role) => {
+  if (actor.role === ROLES.SUPER_ADMIN) return;
+  // Legacy roles without tenant metadata remain globally owned, readable but
+  // editable only by Super Admin. Never guess ownership from current users.
+  const owns = actor.role === ROLES.CLUSTER_ADMIN
+    ? !role.schoolId && role.clusterId && String(role.clusterId) === String(actor.clusterId)
+    : role.schoolId && String(role.schoolId) === String(actor.schoolId);
+  if (role.isSystem || !owns) throw new ApiError(403, 'Vai trò dùng chung hoặc ngoài phạm vi quản lý');
+};
+const validateDelegatedPermissions = async (actor, entries) => {
+  if (!Array.isArray(entries)) throw new ApiError(400, 'permissions phải là danh sách');
+  for (const entry of entries) {
+    if (!RESOURCES.some(r => r.key === entry.resource) || !Array.isArray(entry.actions) || entry.actions.some(a => !ACTIONS.includes(a))) throw new ApiError(400, 'Quyền không hợp lệ');
+    if (actor.role !== ROLES.SUPER_ADMIN) for (const action of entry.actions) {
+      if (!(await roleCache.canAccess(actor.role, entry.resource, action))) throw new ApiError(403, 'Không được cấp quyền vượt quá quyền của mình');
+    }
+  }
+};
 
 /** Admin được quản lý tài khoản / role cùng cấp */
 const PEER_MANAGE_ROLES = [ROLES.SUPER_ADMIN, ROLES.CLUSTER_ADMIN, ROLES.SCHOOL_ADMIN];
@@ -56,7 +81,7 @@ const listRoles = async (actor, query = {}) => {
   }
 
   // Chỉ vai trò ngang cấp (admin peer) hoặc thấp hơn
-  roles = roles.filter((r) => canManageLevel(actor, actorLevel, r.level));
+  roles = roles.filter((r) => visibleRole(actor, r) && canManageLevel(actor, actorLevel, r.level));
 
   return roles.map(roleCache.normalizeRoleDoc);
 };
@@ -66,7 +91,7 @@ const listAssignableRoles = async (actor) => {
   await roleCache.ensureLoaded();
   const roles = await Role.find({ status: STATUS.ACTIVE }).sort({ level: 1 }).lean();
   return roles
-    .filter((r) => canManageLevel(actor, actorLevel, r.level))
+    .filter((r) => visibleRole(actor, r) && canManageLevel(actor, actorLevel, r.level))
     .map(roleCache.normalizeRoleDoc);
 };
 
@@ -102,6 +127,7 @@ const createRole = async (actor, data) => {
     throw new ApiError(400, 'Mã vai trò đã tồn tại');
   }
 
+  await validateDelegatedPermissions(actor, data.permissions || []);
   const permissions = mergePermissionEntries(data.permissions || []);
   const role = await Role.create({
     code,
@@ -109,6 +135,8 @@ const createRole = async (actor, data) => {
     description: data.description || '',
     level,
     isSystem: false,
+    schoolId: ![ROLES.SUPER_ADMIN, ROLES.CLUSTER_ADMIN].includes(actor.role) ? actor.schoolId : null,
+    clusterId: actor.role === ROLES.CLUSTER_ADMIN ? actor.clusterId : null,
     status: data.status || STATUS.ACTIVE,
     permissions,
   });
@@ -118,8 +146,9 @@ const createRole = async (actor, data) => {
 };
 
 const updateRole = async (actor, id, data) => {
-  const role = await Role.findById(id);
+  const role = await Role.findById(objectId(id));
   if (!role) throw new ApiError(404, 'Không tìm thấy vai trò');
+  assertRoleOwnership(actor, role);
 
   await assertCanManageLevel(actor, role.level);
 
@@ -133,6 +162,7 @@ const updateRole = async (actor, id, data) => {
   if (data.description !== undefined) role.description = data.description;
   if (data.status !== undefined) role.status = data.status;
   if (data.permissions !== undefined) {
+    await validateDelegatedPermissions(actor, data.permissions);
     role.permissions = mergePermissionEntries(data.permissions);
   }
   if (data.level !== undefined) {
@@ -161,6 +191,7 @@ const updateRole = async (actor, id, data) => {
 const deleteRole = async (actor, id) => {
   const role = await Role.findById(id);
   if (!role) throw new ApiError(404, 'Không tìm thấy vai trò');
+  assertRoleOwnership(actor, role);
   if (role.isSystem) throw new ApiError(400, 'Không thể xóa vai trò hệ thống');
 
   await assertCanManageLevel(actor, role.level);
@@ -233,4 +264,5 @@ module.exports = {
   canManageLevel,
   allowsPeerManage,
   PEER_MANAGE_ROLES,
+  visibleRole,
 };
