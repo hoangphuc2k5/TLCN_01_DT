@@ -35,7 +35,7 @@ const exportGrades = asyncHandler(async (req, res) => {
 });
 
 const exportFees = asyncHandler(async (req, res) => {
-  const buffer = await crossService.exportFeesExcel(req.user);
+  const buffer = await crossService.exportFeesExcel(req.user, req.query);
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', 'attachment; filename=hoc-phi.xlsx');
   return res.send(buffer);
