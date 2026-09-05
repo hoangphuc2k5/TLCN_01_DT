@@ -12,7 +12,8 @@ Cập nhật: 05/09/2026. Đang thực hiện Đợt 0: phân quyền, tenant v�
 ## Checklist Đợt 0
 
 - [x] 0.1 Quyền API theo hành động ở các route dùng MANAGE_*, từ chối role vô hiệu hóa; kiểm thử hồi quy.
-- [ ] 0.2 Menu/route/nút thao tác theo permission, role tùy chỉnh.
+- [x] 0.2a Menu/route theo permission; nút user/role và quyền lưu/duyệt TKB, đơn từ.
+- [ ] 0.2b Chuyển các nút còn lại (điểm, điểm danh, phí, thi, học liệu, thư viện, CSVC, mẫu…) theo action; kiểm thử UI đầu cuối.
 - [x] 0.3 Scope báo cáo Excel: tenant, lớp/môn, bản thân/con em, lọc records điểm danh.
 - [x] 0.4 Scope duyệt đơn, TKB, gửi tin nhắn; chống tự duyệt/duyệt lặp.
 - [ ] 0.5 Rà các service còn lại theo ID và quan hệ: học vụ, thi, học liệu, thư viện, CSVC, user/role, template.
@@ -61,4 +62,24 @@ Cập nhật: 05/09/2026. Đang thực hiện Đợt 0: phân quyền, tenant v�
 - Tin nhắn: chỉ trong trường hoặc liên lạc quản trị cấp trên thuộc cụm/Super Admin; reply phải thuộc đúng cặp người gửi/nhận. Đây là chính sách phạm vi ban đầu, chưa thêm quan hệ GV-PH theo lớp.
 - Test: `cd ExpressJS; npm test` — 48/48 đạt; có duyệt đồng thời (một 200, một 409), đối chiếu DB không đổi khi bị chặn, TKB/reply giả và khoảng ngày sai.
 - Không migration. Chưa tự cập nhật lịch bù hoặc kiểm tra xung đột TKB giữa các lớp (Đợt 2). Giữ quy tắc người duyệt theo role hệ thống hiện có, đồng thời kiểm tra permission execute; custom approver cần thiết kế riêng để không vô tình cho GV tự có quyền duyệt.
+- Push: thành công lên origin, commit `df819a6`.
+
+## Bàn giao 0.2a — Menu, route và điều khiển quản trị
+
+- Nhánh: `feat/phase0-permission-navigation`, kế thừa `feat/phase0-workflow-scope` (`df819a6`).
+- Helper `can` và `canVisit`; menu lấy từ catalog hiện có rồi lọc theo permission, không khóa role tùy chỉnh khỏi menu. PrivateRoute dùng cùng policy để chặn truy cập URL trực tiếp.
+- Bỏ RoleRoute chỉ-SuperAdmin trên trang clusters/subscriptions; quyền xem từ permission, API vẫn kiểm tra riêng.
+- Nút user/role kiểm tra create/update/delete; import user yêu cầu create + update. TKB lưu cần create + update; duyệt và đơn từ xét thêm execute.
+- Kiểm thử frontend: `cd ReactJS; npm test` — 7/7 đạt (custom role, chỉ xem, HS/PH, quyền quản lý, URL không biết). Build production đạt; cảnh báo chunk lớn vẫn còn.
+- Đây là kiểm thử policy + build, chưa phải kiểm thử trình duyệt/E2E. Nút nghiệp vụ ở các màn hình khác vẫn cần chuyển đổi ở 0.2b.
 - Push: kiểm tra nhánh remote sau commit.
+
+## Điểm tiếp tục chính xác
+
+1. Hoàn thành **0.2b**: các trang FeesPage, GradesPage, AttendancePage, MaterialsPage, ExamsPage, LibraryPage, FacilitiesPage, TemplatesPage còn dùng role/canManage để bật nhiều action chung. Tách từng create/update/delete/execute; đối chiếu route mới trước khi sửa.
+2. Hoàn thành **0.5**: hiện mới đảm bảo scope cho export và workflow đã bàn giao. `listAttendance` vẫn trả cả records của lớp cho HS/PH; cần dùng scope tương tự export và lọc records trước trả JSON. `listGrades`, `listInvoices` còn thiếu scope cụm khi actor không có schoolId; ưu tiên xử lý tiếp.
+3. Kiểm tra toàn bộ ID tham chiếu khi ghi điểm/điểm danh, tạo invoice; tiếp đó CRUD học vụ/thi/thư viện/CSVC/mẫu. Helper có sẵn: `dataScope.js`; không áp dụng filter clusterId trực tiếp lên model chỉ có schoolId.
+4. Hoàn thành **0.6**: thêm test endpoint tương ứng, chạy cả hai bộ test + frontend build; test browser với tài khoản fixture. Không dùng seedDemo hoặc DB từ .env để test.
+5. Khi tất cả trên xong mới đánh dấu **Đợt 0 hoàn tất** và chuyển sang kho file/job/2FA. Các nhánh hiện tại là nhánh nối tiếp, chưa merge main.
+
+Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend và 4 ở frontend từ cây dependency; chưa chạy audit fix vì có thể thay major/ngoài scope. File .env và hai file untracked ban đầu không thuộc các commit bàn giao.

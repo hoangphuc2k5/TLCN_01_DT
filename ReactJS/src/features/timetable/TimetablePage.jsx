@@ -11,13 +11,14 @@ import {
   upsertTimetableApi,
 } from '../../api';
 import { ROLES } from '../../constants/roles';
+import { can } from '../../util/permissions';
 
 const dayLabels = { 1: 'T2', 2: 'T3', 3: 'T4', 4: 'T5', 5: 'T6', 6: 'T7', 7: 'CN' };
 
 const TimetablePage = () => {
   const { user } = useSelector((s) => s.auth);
-  const canEdit = [ROLES.ACADEMIC_AFFAIRS, ROLES.SCHOOL_ADMIN].includes(user?.role);
-  const canApprove = user?.role === ROLES.SCHOOL_ADMIN;
+  const canEdit = can(user, 'timetable', 'create') && can(user, 'timetable', 'update');
+  const canApprove = user?.role === ROLES.SCHOOL_ADMIN && can(user, 'timetable', 'execute');
   const [rows, setRows] = useState([]);
   const [classes, setClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);

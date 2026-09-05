@@ -29,6 +29,7 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../../Redux/authSlice';
 import { ROLES, ROLE_LABELS } from '../../constants/roles';
+import { canVisit } from '../../util/permissions';
 
 const { Header, Sider, Content } = Layout;
 
@@ -148,7 +149,10 @@ const menuByRole = (role, user) => {
     roleMenus.unshift(rolesItem);
   }
 
-  return [...roleMenus, ...common];
+  const catalog = [...roleMenus, ...Object.values(maps).flat(), ...common];
+  const unique = new Map();
+  for (const item of catalog) if (!unique.has(item.key)) unique.set(item.key, item);
+  return [...unique.values()].filter(item => canVisit(user, item.key));
 };
 
 const AppLayout = () => {

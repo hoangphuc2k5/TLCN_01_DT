@@ -1,10 +1,13 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import { canVisit } from '../../util/permissions';
 
 export const PrivateRoute = () => {
-  const { isAuthenticated, appLoading } = useSelector((s) => s.auth);
+  const { isAuthenticated, appLoading, user } = useSelector((s) => s.auth);
+  const location = useLocation();
   if (appLoading) return null;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!canVisit(user, location.pathname)) return <Navigate to="/dashboard" replace />;
   return <Outlet />;
 };
 
