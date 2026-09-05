@@ -70,6 +70,15 @@ const rows = async (type, actor, query) => {
 const codes = records => [...new Set(records.map(r => r.MaHS))].sort();
 
 for (const type of ['grades', 'fees', 'attendance']) {
+  test(`${type}: JSON list enforces personal and cluster scope too`, async () => {
+    for (const [actor, expected] of [[students[0], ['ST0']], [actors.parent, ['ST0', 'ST2']], [actors.cluster, ['ST0', 'ST1', 'ST2', 'ST3']]]) {
+      const response = await fetch(`${origin}/v1/api/${type}`, { headers: { Authorization: `Bearer ${jwt.sign({ _id: actor._id }, process.env.JWT_SECRET)}` } });
+      assert.equal(response.status, 200);
+      const data = (await response.json()).data;
+      const identifiers = type === 'attendance' ? data.flatMap(d => d.records.map(r => r.studentId.code)) : data.map(d => d.studentId.code);
+      assert.deepEqual([...new Set(identifiers)].sort(), expected);
+    }
+  });
   test(`${type}: student only exports self`, async () => assert.deepEqual(codes(await rows(type, students[0])), ['ST0']));
   test(`${type}: parent only exports own children, including embedded attendance`, async () => assert.deepEqual(codes(await rows(type, actors.parent)), ['ST0', 'ST2']));
   test(`${type}: school admin and custom reader remain school scoped`, async () => {

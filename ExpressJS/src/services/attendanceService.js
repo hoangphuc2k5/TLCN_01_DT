@@ -2,29 +2,27 @@ const ApiError = require('../utils/ApiError');
 const { attendanceRepo } = require('../repositories');
 const eventBus = require('../patterns/eventBus');
 const { ROLES } = require('../constants/roles');
+const { buildExportScope } = require('./exportScopeService');
 
 const listAttendance = async (actor, query = {}) => {
-  const filter = {};
-  if (actor.schoolId) filter.schoolId = actor.schoolId;
-  if (query.classId) filter.classId = query.classId;
+  const { filter, studentIds } = await buildExportScope(actor, 'attendance', query);
   if (query.date) {
     const d = new Date(query.date);
+    if (!Number.isFinite(d.getTime())) throw new ApiError(400, 'Ngày điểm danh không hợp lệ');
     const next = new Date(d);
     next.setDate(next.getDate() + 1);
     filter.date = { $gte: d, $lt: next };
   }
-  if ([ROLES.SUBJECT_TEACHER, ROLES.HOMEROOM_TEACHER].includes(actor.role)) {
-    filter.teacherId = actor._id;
-  }
-  if (actor.role === ROLES.STUDENT) {
-    filter['records.studentId'] = actor._id;
-  }
-  if (actor.role === ROLES.PARENT) {
-    filter['records.studentId'] = { $in: actor.parentOf || [] };
-  }
-  return attendanceRepo.find(filter, {
+  const documents = await attendanceRepo.find(filter, {
     populate: 'classId subjectId teacherId records.studentId',
     limit: 100,
+  });
+  if (studentIds === null) return documents;
+  const allowed = new Set(studentIds.map(String));
+  return documents.map(doc => {
+    const result = doc.toObject();
+    result.records = result.records.filter(r => allowed.has(String(r.studentId?._id)));
+    return result;
   });
 };
 
