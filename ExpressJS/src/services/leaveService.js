@@ -3,10 +3,17 @@ const { leaveRepo } = require('../repositories');
 const eventBus = require('../patterns/eventBus');
 const { LEAVE_STATUS, LEAVE_TYPES } = require('../constants/status');
 const { ROLES } = require('../constants/roles');
+const { schoolScope, objectId } = require('./dataScope');
+const User = require('../models/User');
+const Class = require('../models/Class');
+
+const homeroomStudentIds = async (actor) => {
+  const classes = await Class.find({ schoolId: actor.schoolId, homeroomTeacherId: actor._id }).select('_id');
+  return (await User.find({ schoolId: actor.schoolId, role: ROLES.STUDENT, classId: { $in: classes.map(c => c._id) } }).select('_id')).map(u => u._id);
+};
 
 const listLeaves = async (actor, query = {}) => {
-  const filter = {};
-  if (actor.schoolId) filter.schoolId = actor.schoolId;
+  const filter = await schoolScope(actor);
   if (query.status) filter.status = query.status;
 
   if ([ROLES.STUDENT, ROLES.PARENT, ROLES.SUBJECT_TEACHER].includes(actor.role)) {
@@ -16,7 +23,7 @@ const listLeaves = async (actor, query = {}) => {
     // see class-related + own
     filter.$or = [
       { requesterId: actor._id },
-      { studentId: { $exists: true } }, // simplified: school-scoped already
+      { type: LEAVE_TYPES.STUDENT_ABSENCE, studentId: { $in: await homeroomStudentIds(actor) } },
     ];
   }
 
@@ -29,6 +36,10 @@ const listLeaves = async (actor, query = {}) => {
 const createLeave = async (actor, data) => {
   if (!data.type || !data.reason || !data.fromDate || !data.toDate) {
     throw new ApiError(400, 'Thiếu thông tin đơn');
+  }
+  const from = new Date(data.fromDate), to = new Date(data.toDate);
+  if (!Number.isFinite(from.getTime()) || !Number.isFinite(to.getTime()) || from > to) {
+    throw new ApiError(400, 'Khoảng ngày nghỉ không hợp lệ');
   }
 
   const allowedByRole = {
@@ -68,6 +79,9 @@ const createLeave = async (actor, data) => {
     throw new ApiError(403, 'Học sinh không thuộc phụ huynh này');
   }
 
+  if (studentId && !(await User.exists({ _id: objectId(studentId, 'studentId'), schoolId: actor.schoolId, role: ROLES.STUDENT }))) {
+    throw new ApiError(403, 'Học sinh không thuộc trường');
+  }
   return leaveRepo.create({
     schoolId: actor.schoolId,
     requesterId: actor._id,
@@ -82,7 +96,8 @@ const createLeave = async (actor, data) => {
 };
 
 const reviewLeave = async (actor, id, data) => {
-  const leave = await leaveRepo.findById(id);
+  const scope = await schoolScope(actor);
+  const leave = await leaveRepo.findOne({ ...scope, _id: objectId(id) });
   if (!leave) throw new ApiError(404, 'Không tìm thấy đơn');
   if (![LEAVE_STATUS.APPROVED, LEAVE_STATUS.REJECTED].includes(data.status)) {
     throw new ApiError(400, 'status phải là APPROVED hoặc REJECTED');
@@ -96,18 +111,26 @@ const reviewLeave = async (actor, id, data) => {
   ].includes(actor.role);
 
   if (!canReview) throw new ApiError(403, 'Không có quyền duyệt');
-
-  leave.status = data.status;
-  leave.reviewedBy = actor._id;
-  leave.reviewNote = data.reviewNote || '';
-  await leave.save();
+  if (String(leave.requesterId) === String(actor._id)) throw new ApiError(403, 'Không được tự duyệt đơn');
+  if (actor.role === ROLES.HOMEROOM_TEACHER) {
+    const ids = await homeroomStudentIds(actor);
+    if (leave.type !== LEAVE_TYPES.STUDENT_ABSENCE || !ids.some(id => String(id) === String(leave.studentId))) {
+      throw new ApiError(403, 'Chỉ được duyệt đơn nghỉ học của lớp chủ nhiệm');
+    }
+  }
+  const reviewed = await leaveRepo.model.findOneAndUpdate(
+    { ...scope, _id: leave._id, status: LEAVE_STATUS.PENDING },
+    { status: data.status, reviewedBy: actor._id, reviewNote: data.reviewNote || '' },
+    { new: true, runValidators: true }
+  );
+  if (!reviewed) throw new ApiError(409, 'Đơn đã được xử lý');
 
   eventBus.emit('leave.reviewed', {
-    leave,
+    leave: reviewed,
     requesterId: leave.requesterId,
   });
 
-  return leave;
+  return reviewed;
 };
 
 module.exports = { listLeaves, createLeave, reviewLeave };

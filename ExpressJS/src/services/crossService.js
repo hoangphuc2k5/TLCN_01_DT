@@ -10,6 +10,7 @@ const Grade = require('../models/Grade');
 const FeeInvoice = require('../models/FeeInvoice');
 const Attendance = require('../models/Attendance');
 const { buildExportScope } = require('./exportScopeService');
+const { schoolScope, objectId } = require('./dataScope');
 
 // ——— Messaging ———
 const listMessages = async (actor, query = {}) => {
@@ -27,8 +28,22 @@ const sendMessage = async (actor, data) => {
   if (!data.receiverId || !data.body) {
     throw new ApiError(400, 'Thiếu người nhận hoặc nội dung');
   }
-  const receiver = await User.findById(data.receiverId);
+  const receiver = await User.findById(objectId(data.receiverId, 'receiverId'));
   if (!receiver) throw new ApiError(404, 'Không tìm thấy người nhận');
+  if (actor.role !== ROLES.SUPER_ADMIN && receiver.role !== ROLES.SUPER_ADMIN) {
+    const scope = await schoolScope(actor);
+    const inScope = actor.role === ROLES.CLUSTER_ADMIN
+      ? (receiver.role === ROLES.CLUSTER_ADMIN && String(receiver.clusterId) === String(actor.clusterId)) || scope.schoolId.$in.some(s => String(s) === String(receiver.schoolId))
+      : String(receiver.schoolId) === String(actor.schoolId) || (receiver.role === ROLES.CLUSTER_ADMIN && actor.clusterId && String(receiver.clusterId) === String(actor.clusterId));
+    if (!inScope) throw new ApiError(403, 'Người nhận ngoài phạm vi liên lạc');
+  }
+  if (data.parentMessageId) {
+    const parent = await Message.findOne({ _id: objectId(data.parentMessageId, 'parentMessageId'), $or: [
+      { senderId: actor._id, receiverId: receiver._id },
+      { senderId: receiver._id, receiverId: actor._id },
+    ] });
+    if (!parent) throw new ApiError(403, 'Tin nhắn gốc không thuộc cuộc hội thoại');
+  }
 
   const msg = await Message.create({
     schoolId: actor.schoolId || receiver.schoolId || null,
