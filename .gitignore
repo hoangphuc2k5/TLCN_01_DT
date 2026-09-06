@@ -23,3 +23,7 @@ build/
 ReactJS/test-results/
 ReactJS/playwright-report/
 ExpressJS/storage/
+# Encrypted snapshots and interrupted publication artifacts are never source files.
+*.edubak
+*.edubak.partial-*
+*.edubak.checking-*
