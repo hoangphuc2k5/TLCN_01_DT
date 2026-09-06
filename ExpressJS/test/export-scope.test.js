@@ -273,6 +273,141 @@ test('school admin cannot edit a globally shared role', async () => {
 
 const makeExam = (overrides = {}) => Exam.create({ schoolId: schools[0]._id, classId: classes[0]._id, subjectId: subjects[0]._id, createdBy: actors.teacher._id, title: 'Scope exam', status: 'PUBLISHED', questions: [{ type: 'MCQ', prompt: '1+1?', options: [{ key: 'A', text: '2' }], correctKey: 'A', points: 1 }, { type: 'ESSAY', prompt: 'Explain', points: 3 }], ...overrides });
 const read = (path, actor) => fetch(`${origin}/v1/api${path}`, { headers: { Authorization: `Bearer ${jwt.sign({ _id: actor._id }, process.env.JWT_SECRET)}` } });
+
+test('audit: parent dashboard rejects stale foreign-school child links', async () => {
+  const parent = await User.create({ name: 'Stale parent', email: 'stale-parent@test.invalid', role: 'PARENT', schoolId: schools[0]._id, parentOf: [students[0]._id, students[3]._id] });
+  const response = await read('/dashboard', parent);
+  assert.equal(response.status, 200);
+  const data = (await response.json()).data;
+  assert.equal(data.stats.find(s => s.key === 'children').value, 1);
+  assert.ok(data.grades.length > 0);
+  assert.ok(data.grades.every(g => String(g.studentId._id) === String(students[0]._id)));
+  assert.ok(data.invoices.every(i => String(i.studentId) === String(students[0]._id)));
+});
+
+test('audit: teacher dashboard uses current class/subject/year scope', async () => {
+  const data = (await (await read('/dashboard', actors.teacher)).json()).data;
+  const grades = await Grade.countDocuments({ schoolId: schools[0]._id, classId: classes[0]._id, subjectId: subjects[0]._id, academicYearId: year._id, teacherId: actors.teacher._id });
+  const attendance = await Attendance.countDocuments({ schoolId: schools[0]._id, classId: classes[0]._id, teacherId: actors.teacher._id });
+  assert.equal(data.stats.find(s => s.key === 'gradeSheets').value, grades);
+  assert.equal(data.stats.find(s => s.key === 'attendanceSessions').value, attendance);
+});
+
+test('audit: dashboard honors revoked personal and teacher read permissions', async () => {
+  for (const actor of [actors.parent, actors.teacher]) {
+    const role = await Role.findOne({ code: actor.role });
+    const original = role.permissions.toObject();
+    try {
+      await Role.updateOne({ _id: role._id }, { permissions: [] });
+      await cache.reload();
+      const response = await read('/dashboard', actor);
+      assert.equal(response.status, 200);
+      const data = (await response.json()).data;
+      assert.ok(!data.grades?.length && !data.invoices?.length);
+      assert.ok(!data.stats.some(s => ['children', 'grades', 'invoices', 'gradeSheets', 'attendanceSessions'].includes(s.key)));
+    } finally {
+      await Role.updateOne({ _id: role._id }, { permissions: original });
+      await cache.reload();
+    }
+  }
+});
+
+test('audit: staff without leave.view sees only own requests', async () => {
+  const own = await makeLeave({ requesterId: actors.reader._id });
+  await makeLeave();
+  const response = await read('/leave-requests', actors.reader);
+  assert.equal(response.status, 200);
+  const data = (await response.json()).data;
+  assert.deepEqual(data.map(l => l._id), [String(own._id)]);
+  const admin = (await (await read('/leave-requests', actors.school)).json()).data;
+  assert.ok(admin.some(l => l._id === String(own._id)));
+});
+
+test('audit: private materials visible only to owner and school managers', async () => {
+  const other = await Material.create({ schoolId: schools[0]._id, uploadedBy: actors.school._id, title: 'Private audit', isShared: false });
+  const own = await Material.create({ schoolId: schools[0]._id, uploadedBy: actors.teacher._id, title: 'Own audit', isShared: false });
+  const shared = await Material.create({ schoolId: schools[0]._id, uploadedBy: actors.school._id, title: 'Shared audit', isShared: true });
+  for (const actor of [actors.teacher, actors.parent]) {
+    const response = await read('/materials', actor);
+    assert.equal(response.status, 200);
+    const ids = (await response.json()).data.map(m => m._id);
+    assert.ok(!ids.includes(String(other._id)));
+    assert.ok(ids.includes(String(shared._id)));
+    assert.equal(ids.includes(String(own._id)), actor === actors.teacher);
+  }
+  const managed = (await (await read('/materials', actors.school)).json()).data;
+  assert.ok(managed.some(m => m._id === String(other._id)));
+});
+
+test('audit: student exam list includes schoolwide exams and respects narrowing query', async () => {
+  const exam = await makeExam({ classId: null });
+  const data = (await (await read('/exams', students[0])).json()).data;
+  assert.ok(data.some(e => e._id === String(exam._id)));
+  const foreign = (await (await read(`/exams?classId=${classes[1]._id}`, students[0])).json()).data;
+  assert.deepEqual(foreign, []);
+});
+
+test('audit: teacher cannot read or edit exams of an unassigned subject', async () => {
+  const exam = await makeExam({ subjectId: subjects[1]._id });
+  assert.equal((await read(`/exams/${exam._id}`, actors.teacher)).status, 404);
+  assert.equal((await write(`/exams/${exam._id}`, actors.teacher, { title: 'Forbidden' }, 'PUT')).status, 404);
+});
+
+test('audit: calendar filters class membership and target roles', async () => {
+  const Event = require('../src/models/CalendarEvent');
+  const events = await Event.create([
+    { title: 'Parent class', classId: classes[0]._id, targetRoles: ['PARENT'] },
+    { title: 'Other class', classId: classes[1]._id },
+    { title: 'Staff only', targetRoles: ['SCHOOL_ADMIN'] },
+    { title: 'School event' },
+  ].map(e => ({ schoolId: schools[0]._id, createdBy: actors.school._id, startAt: '2026-10-01', endAt: '2026-10-02', ...e })));
+  const parent = await User.create({ name: 'Calendar parent', email: 'calendar-parent@test.invalid', role: 'PARENT', schoolId: schools[0]._id, parentOf: [students[0]._id] });
+  const result = (await (await read('/calendar', parent)).json()).data.map(e => e._id);
+  assert.ok(result.includes(String(events[0]._id)) && result.includes(String(events[3]._id)));
+  assert.ok(!result.includes(String(events[1]._id)) && !result.includes(String(events[2]._id)));
+  const teacher = (await (await read('/calendar', actors.teacher)).json()).data.map(e => e._id);
+  assert.ok(!teacher.includes(String(events[1]._id)));
+});
+
+test('audit: class announcements reach linked parents and honor role targeting in notifications', async () => {
+  const bus = require('../src/patterns/eventBus');
+  let emitted;
+  const capture = event => { emitted = event; };
+  bus.once('announcement.created', capture);
+  try {
+    const response = await write('/announcements', actors.teacher, { title: 'Parent only audit', content: 'Parent meeting', classId: classes[0]._id, targetRoles: ['PARENT'] }, 'POST');
+    assert.equal(response.status, 201);
+    const notice = (await response.json()).data;
+    const parent = (await (await read('/announcements', actors.parent)).json()).data;
+    assert.ok(parent.some(n => n._id === notice._id));
+    const student = (await (await read('/announcements', students[0])).json()).data;
+    assert.ok(!student.some(n => n._id === notice._id));
+    assert.ok(emitted.recipients.some(u => String(u) === String(actors.parent._id)));
+    assert.ok(!emitted.recipients.some(u => String(u) === String(students[0]._id)));
+  } finally { bus.removeListener('announcement.created', capture); }
+});
+
+test('audit: roster and teaching lookups do not expose private user profiles', async () => {
+  await User.updateOne({ _id: students[0]._id }, { address: 'Private audit address', phone: 'Private phone' });
+  const roster = (await (await read(`/classes/${classes[0]._id}/students`, actors.teacher)).json()).data;
+  assert.ok(roster.some(s => s.code === 'ST0'));
+  for (const row of roster) for (const key of ['address', 'phone', 'password', 'googleId', 'parentOf']) assert.equal(row[key], undefined);
+  const assignments = (await (await read('/assignments', actors.teacher)).json()).data;
+  assert.ok(Array.isArray(assignments) && assignments.length > 0);
+  for (const row of assignments) assert.equal(row.teacherId.address, undefined);
+});
+
+test('audit: homeroom conduct reads stay within the homeroom class', async () => {
+  const Conduct = require('../src/models/ConductRecord');
+  const home = await User.create({ name: 'Conduct home', email: 'conduct-home@test.invalid', role: 'HOMEROOM_TEACHER', schoolId: schools[0]._id });
+  await Class.updateOne({ _id: classes[0]._id }, { homeroomTeacherId: home._id });
+  const records = await Conduct.create([students[0], students[2]].map(s => ({ schoolId: schools[0]._id, studentId: s._id, classId: s.classId, academicYearId: year._id, rating: 'TOT', recordedBy: home._id })));
+  const response = await read('/conduct', home);
+  assert.equal(response.status, 200);
+  const data = (await response.json()).data;
+  assert.ok(data.some(r => r._id === String(records[0]._id)));
+  assert.ok(!data.some(r => r._id === String(records[1]._id)));
+});
 test('payment list intersects cluster scope with invoice query', async () => {
   const Payment = require('../src/models/Payment');
   const original = await Role.findOne({ code: 'CLUSTER_ADMIN' }).lean();

@@ -5,7 +5,8 @@ const User = require('../models/User');
 const { ROLES } = require('../constants/roles');
 const { ANNOUNCEMENT_SCOPE } = require('../constants/status');
 const { academicReferences, targetSchool } = require('./writeScope');
-const { objectId } = require('./dataScope');
+const { objectId, schoolScope } = require('./dataScope');
+const { classAudienceScope, roleAudienceScope } = require('./audienceScope');
 const School = require('../models/School');
 const Cluster = require('../models/Cluster');
 
@@ -16,14 +17,16 @@ const listAnnouncements = async (actor, query = {}) => {
   } else if (actor.role === ROLES.CLUSTER_ADMIN) {
     or.push({ scope: ANNOUNCEMENT_SCOPE.SYSTEM });
     or.push({ scope: ANNOUNCEMENT_SCOPE.CLUSTER, clusterId: actor.clusterId });
+    or.push({ scope: { $in: [ANNOUNCEMENT_SCOPE.SCHOOL, ANNOUNCEMENT_SCOPE.CLASS] }, ...await schoolScope(actor) });
   } else {
     or.push({ scope: ANNOUNCEMENT_SCOPE.SYSTEM });
-    if (actor.clusterId) or.push({ scope: ANNOUNCEMENT_SCOPE.CLUSTER, clusterId: actor.clusterId });
+    const school = await School.findById(actor.schoolId).select('clusterId');
+    if (school?.clusterId) or.push({ scope: ANNOUNCEMENT_SCOPE.CLUSTER, clusterId: school.clusterId });
     or.push({ scope: ANNOUNCEMENT_SCOPE.SCHOOL, schoolId: actor.schoolId });
-    if (actor.classId) or.push({ scope: ANNOUNCEMENT_SCOPE.CLASS, classId: actor.classId });
+    or.push({ scope: ANNOUNCEMENT_SCOPE.CLASS, schoolId: actor.schoolId, ...await classAudienceScope(actor) });
   }
 
-  const filter = or.length ? { $or: or } : {};
+  const filter = { $and: [or.length ? { $or: or } : {}, roleAudienceScope(actor)] };
   if (query.scope) filter.scope = query.scope;
 
   return announcementRepo.find(filter, {
@@ -68,13 +71,21 @@ const createAnnouncement = async (actor, data) => {
     isPinned: !!data.isPinned,
   });
 
-  // notify recipients (simplified)
+  // Apply the same class/role audience before emitting content to notification/email listeners.
   let recipients = [];
+  const recipientFilter = { schoolId: announcement.schoolId, ...(announcement.targetRoles.length ? { role: { $in: announcement.targetRoles } } : {}) };
   if (scope === ANNOUNCEMENT_SCOPE.SCHOOL && announcement.schoolId) {
-    const users = await User.find({ schoolId: announcement.schoolId }).select('_id');
+    const users = await User.find(recipientFilter).select('_id');
     recipients = users.map((u) => u._id);
   } else if (scope === ANNOUNCEMENT_SCOPE.CLASS && announcement.classId) {
-    const users = await User.find({ classId: announcement.classId }).select('_id');
+    const students = await User.find({ schoolId: announcement.schoolId, classId: announcement.classId, role: ROLES.STUDENT }).select('_id');
+    const assignments = await require('../models/TeacherAssignment').find({ schoolId: announcement.schoolId, classId: announcement.classId }).select('teacherId');
+    const cls = await require('../models/Class').findById(announcement.classId).select('homeroomTeacherId');
+    const users = await User.find({ ...recipientFilter, $or: [
+      { role: ROLES.STUDENT, _id: { $in: students.map(s => s._id) } },
+      { role: ROLES.PARENT, parentOf: { $in: students.map(s => s._id) } },
+      { role: { $in: [ROLES.SUBJECT_TEACHER, ROLES.HOMEROOM_TEACHER] }, _id: { $in: [...assignments.map(a => a.teacherId), cls?.homeroomTeacherId].filter(Boolean) } },
+    ] }).select('_id');
     recipients = users.map((u) => u._id);
   }
 

@@ -6,6 +6,7 @@ const { ROLES } = require('../constants/roles');
 const { schoolScope, objectId } = require('./dataScope');
 const User = require('../models/User');
 const Class = require('../models/Class');
+const cache = require('./rolePermissionCache');
 
 const homeroomStudentIds = async (actor) => {
   const classes = await Class.find({ schoolId: actor.schoolId, homeroomTeacherId: actor._id }).select('_id');
@@ -16,10 +17,11 @@ const listLeaves = async (actor, query = {}) => {
   const filter = await schoolScope(actor);
   if (query.status) filter.status = query.status;
 
-  if ([ROLES.STUDENT, ROLES.PARENT, ROLES.SUBJECT_TEACHER].includes(actor.role)) {
+  const canView = await cache.canAccess(actor.role, 'leave', 'view');
+  if (!canView || [ROLES.STUDENT, ROLES.PARENT, ROLES.SUBJECT_TEACHER].includes(actor.role)) {
     filter.requesterId = actor._id;
   }
-  if (actor.role === ROLES.HOMEROOM_TEACHER) {
+  if (canView && actor.role === ROLES.HOMEROOM_TEACHER) {
     // see class-related + own
     filter.$or = [
       { requesterId: actor._id },

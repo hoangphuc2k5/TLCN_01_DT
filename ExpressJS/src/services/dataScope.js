@@ -41,8 +41,10 @@ const teacherClassScope = async (actor, resource) => {
   const rules = [
     ...assignments.map(a => resource === 'grades'
       ? { classId: a.classId, subjectId: a.subjectId, academicYearId: a.academicYearId }
-      : { classId: a.classId }),
-    ...homeClasses.map(c => resource === 'grades'
+      : resource === 'exams' ? { classId: a.classId, subjectId: { $in: [a.subjectId, null] } }
+        : { classId: a.classId }),
+    // Exam access includes answer keys and grading; homeroom membership alone is insufficient.
+    ...(resource === 'exams' ? [] : homeClasses).map(c => resource === 'grades'
       ? { classId: c._id, academicYearId: c.academicYearId } : { classId: c._id }),
   ];
   return rules.length ? { $or: rules } : { _id: { $in: [] } };

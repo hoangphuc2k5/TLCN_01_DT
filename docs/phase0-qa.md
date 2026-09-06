@@ -1,6 +1,6 @@
 # Kiểm thử Đợt 0
 
-Ngày chạy: 06/09/2026. Phần UI: 22/22 E2E, 9/9 policy, build production đạt. Backend bản chốt: 82/82; sau bản chốt chạy lại 4/4 luồng E2E bị ảnh hưởng đều đạt. Chi tiết nhánh và thay đổi xem implementation-progress.md.
+Ngày chạy: 06/09/2026. Lượt rà lại mới nhất: **93/93 backend, 24/24 E2E, 9/9 policy**, build production đạt. Đã chạy đầy đủ trên bản sửa mới; chi tiết phát hiện và phạm vi xem [phase0-review-2026-09-06.md](phase0-review-2026-09-06.md), nhánh bàn giao xem implementation-progress.md.
 
 ## Chạy lại
 
@@ -24,6 +24,8 @@ Tài khoản fixture: `reader0`, `creator0`, `teacher0`, `student0`, `parent0`, 
 - Truy cập URL role trực tiếp bị đưa về dashboard khi thiếu quyền.
 - Custom role chỉ có materials.view/create tạo học liệu thành công, không có nút xóa.
 - Phụ huynh chỉ thấy con trong điểm/học phí và records điểm danh, không thấy HS cùng lớp hay trường khác.
+- Dashboard PH bỏ liên kết con sai trường trong fixture; thông báo lớp con hiển thị đúng.
+- Giáo viên thấy học liệu chia sẻ nhưng không thấy tài liệu chưa chia sẻ của tác giả khác.
 - Học sinh làm/nộp đề; điểm chưa công bố vẫn bị ẩn.
 - Thủ thư lấy được HS cùng trường mà không có users.view; không tự duyệt, duyệt yêu cầu người khác thành công.
 - Giáo viên lưu điểm đúng lớp được phân công; kết quả mới hiển thị trong bảng.

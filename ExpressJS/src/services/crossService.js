@@ -12,6 +12,7 @@ const Attendance = require('../models/Attendance');
 const { buildExportScope } = require('./exportScopeService');
 const { schoolScope, objectId } = require('./dataScope');
 const { scopedDocument, academicReferences, targetSchool } = require('./writeScope');
+const { classAudienceScope, roleAudienceScope } = require('./audienceScope');
 
 // ——— Messaging ———
 const listMessages = async (actor, query = {}) => {
@@ -85,7 +86,7 @@ const markMessageRead = async (actor, id) => {
 
 // ——— Calendar ———
 const listEvents = async (actor, query = {}) => {
-  const filter = await schoolScope(actor);
+  const filter = { $and: [await schoolScope(actor), await classAudienceScope(actor), roleAudienceScope(actor)] };
   if (query.from || query.to) {
     filter.startAt = {};
     if (query.from) filter.startAt.$gte = new Date(query.from);

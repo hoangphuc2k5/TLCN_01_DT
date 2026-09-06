@@ -18,6 +18,8 @@ const listMaterials = async (actor, query = {}) => {
   if (personal !== null) {
     const students = await User.find({ _id: { $in: personal } }).select('classId');
     filter.$and = [{ $or: [{ classId: null }, { classId: { $in: students.map(s => s.classId).filter(Boolean) } }] }, { isShared: true }];
+  } else if (![ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.ACADEMIC_AFFAIRS].includes(actor.role)) {
+    filter.$or = [{ uploadedBy: actor._id }, { isShared: true }];
   }
   return LearningMaterial.find(filter)
     .populate('subjectId', 'name')

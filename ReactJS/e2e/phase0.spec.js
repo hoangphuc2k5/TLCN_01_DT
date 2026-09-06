@@ -79,6 +79,26 @@ test('parent sees only own child in grades, fees and nested attendance', async (
   await page.screenshot({ path: 'test-results/parent-attendance.png', fullPage: true });
 });
 
+test('parent dashboard excludes stale foreign child and receives class notice', async ({ page }) => {
+  await login(page, 'parent0');
+  const loaded = page.waitForResponse(r => r.url().endsWith('/v1/api/dashboard'));
+  await page.reload();
+  const data = (await (await loaded).json()).data;
+  expect(data.stats.find(s => s.key === 'children').value).toBe(1);
+  expect(data.grades.every(g => g.studentId.name === 'student 0')).toBe(true);
+  await expect(page.locator('.ant-statistic').filter({ hasText: 'Con em' }).locator('.ant-statistic-content-value')).toHaveText('1');
+  await openPage(page, '/announcements');
+  await expect(page.getByRole('cell', { name: 'QA Parent Notice 0', exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'QA Parent Notice 1', exact: true })).toHaveCount(0);
+});
+
+test('teacher cannot see another author private material', async ({ page }) => {
+  await login(page, 'teacher0');
+  await openPage(page, '/materials');
+  await expect(page.getByRole('cell', { name: 'QA Material 0', exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'QA Private Material 0', exact: true })).toHaveCount(0);
+});
+
 test('student submits exam through UI without seeing unpublished score', async ({ page }) => {
   await login(page, 'student0');
   await openPage(page, '/exams');
