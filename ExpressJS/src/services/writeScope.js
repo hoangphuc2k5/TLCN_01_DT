@@ -34,8 +34,9 @@ const teaching = async (actor, cls, subjectId, homeroomAllowed = false) => {
     teacherId: actor._id, ...(subjectId ? { subjectId } : {}),
   }))) throw new ApiError(403, 'Không được phân công lớp/môn này');
 };
-const academicReferences = async (actor, data, { homeroomAllowed = false } = {}) => {
+const academicReferences = async (actor, data, { homeroomAllowed = false, expectedSchoolId } = {}) => {
   const cls = await scopedDocument(Class, actor, data.classId);
+  if (expectedSchoolId && String(cls.schoolId) !== String(expectedSchoolId)) throw new ApiError(403, 'Lớp không thuộc trường được chọn');
   if (data.academicYearId && String(cls.academicYearId) !== String(objectId(data.academicYearId))) throw new ApiError(403, 'Lớp không thuộc năm học');
   await reference(AcademicYear, cls.academicYearId, cls.schoolId);
   if (data.subjectId) await reference(Subject, data.subjectId, cls.schoolId);

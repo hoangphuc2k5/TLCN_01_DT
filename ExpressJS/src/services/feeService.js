@@ -4,6 +4,7 @@ const { FEE_STATUS } = require('../constants/status');
 const { ROLES } = require('../constants/roles');
 const { buildExportScope } = require('./exportScopeService');
 const { targetSchool, reference } = require('./writeScope');
+const { schoolScope, objectId } = require('./dataScope');
 const User = require('../models/User');
 const AcademicYear = require('../models/AcademicYear');
 
@@ -78,9 +79,8 @@ const recordPayment = async (actor, data) => {
 };
 
 const listPayments = async (actor, query = {}) => {
-  const filter = {};
-  if (actor.schoolId) filter.schoolId = actor.schoolId;
-  if (query.invoiceId) filter.invoiceId = query.invoiceId;
+  const filter = await schoolScope(actor);
+  if (query.invoiceId) filter.invoiceId = objectId(query.invoiceId, 'invoiceId');
   return paymentRepo.find(filter, { populate: 'invoiceId studentId recordedBy', limit: 200 });
 };
 

@@ -273,6 +273,52 @@ test('school admin cannot edit a globally shared role', async () => {
 
 const makeExam = (overrides = {}) => Exam.create({ schoolId: schools[0]._id, classId: classes[0]._id, subjectId: subjects[0]._id, createdBy: actors.teacher._id, title: 'Scope exam', status: 'PUBLISHED', questions: [{ type: 'MCQ', prompt: '1+1?', options: [{ key: 'A', text: '2' }], correctKey: 'A', points: 1 }, { type: 'ESSAY', prompt: 'Explain', points: 3 }], ...overrides });
 const read = (path, actor) => fetch(`${origin}/v1/api${path}`, { headers: { Authorization: `Bearer ${jwt.sign({ _id: actor._id }, process.env.JWT_SECRET)}` } });
+test('payment list intersects cluster scope with invoice query', async () => {
+  const Payment = require('../src/models/Payment');
+  const original = await Role.findOne({ code: 'CLUSTER_ADMIN' }).lean();
+  await Role.updateOne({ code: original.code }, { $push: { permissions: { resource: 'fees', actions: ['view'] } } });
+  await cache.reload();
+  try {
+    const invoices = await Promise.all([students[0], students[4]].map(s => FeeInvoice.findOne({ studentId: s._id })));
+    for (const invoice of invoices) await Payment.create({ schoolId: invoice.schoolId, studentId: invoice.studentId, invoiceId: invoice._id, amount: 10, recordedBy: actors.global._id });
+    const response = await read('/payments', actors.cluster);
+    assert.equal(response.status, 200);
+    const data = (await response.json()).data;
+    assert.equal(data.length, 1);
+    assert.equal(String(data[0].schoolId), String(schools[0]._id));
+    const foreign = await read(`/payments?invoiceId=${invoices[1]._id}`, actors.cluster);
+    assert.equal(foreign.status, 200);
+    assert.deepEqual((await foreign.json()).data, []);
+  } finally {
+    await Role.updateOne({ code: original.code }, { permissions: original.permissions });
+    await cache.reload();
+  }
+});
+test('even global admin cannot mix school and class in material, exam, calendar or announcement', async () => {
+  const refs = { schoolId: schools[1]._id, classId: classes[0]._id };
+  for (const [path, payload] of [
+    ['/materials', { title: 'Mixed school', ...refs }],
+    ['/exams', { title: 'Mixed school', ...refs }],
+    ['/calendar', { title: 'Mixed school', startAt: '2026-10-01', endAt: '2026-10-02', ...refs }],
+    ['/announcements', { title: 'Mixed school', content: 'Test', scope: 'CLASS', ...refs }],
+  ]) assert.equal((await write(path, actors.global, payload, 'POST')).status, 403, path);
+});
+test('announcement derives cluster from school instead of accepting foreign cluster injection', async () => {
+  const response = await write('/announcements', actors.school, { title: 'Scope notice', content: 'Test', clusterId: schools[2].clusterId }, 'POST');
+  assert.equal(response.status, 201);
+  const data = (await response.json()).data;
+  assert.equal(String(data.schoolId), String(schools[0]._id));
+  assert.equal(String(data.clusterId), String(schools[0].clusterId));
+});
+test('password login rejects a role owned by a different tenant before issuing a token', async () => {
+  process.env.ALLOW_PASSWORD_LOGIN = 'true';
+  await Role.create({ code: 'LOGIN_WRONG_SCOPE', name: 'Wrong scope', schoolId: schools[1]._id, permissions: [] });
+  await cache.reload();
+  await User.create({ name: 'Wrong login scope', email: 'wrong-login@test.invalid', schoolId: schools[0]._id, role: 'LOGIN_WRONG_SCOPE', password: await require('bcrypt').hash('Fixture@Test123', 4) });
+  const response = await fetch(`${origin}/v1/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'wrong-login@test.invalid', password: 'Fixture@Test123' }) });
+  assert.equal(response.status, 403);
+  assert.equal((await response.json()).data?.access_token, undefined);
+});
 test('directory exposes only contact fields and populated users omit password hashes', async () => {
   await User.updateOne({ _id: actors.teacher._id }, { password: 'test-hash-never-return', address: 'Private address', phone: 'Private phone' });
   const response = await read('/users/directory', actors.teacher);

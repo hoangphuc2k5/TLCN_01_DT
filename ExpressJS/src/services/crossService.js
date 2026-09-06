@@ -102,9 +102,9 @@ const createEvent = async (actor, data) => {
   if (!data.title || !data.startAt || !data.endAt) {
     throw new ApiError(400, 'Thiếu title/startAt/endAt');
   }
-  if (data.classId) await academicReferences(actor, data, { homeroomAllowed: true });
   if (!Number.isFinite(new Date(data.startAt).getTime()) || !Number.isFinite(new Date(data.endAt).getTime()) || new Date(data.startAt) > new Date(data.endAt)) throw new ApiError(400, 'Thời gian sự kiện không hợp lệ');
   const schoolId = await targetSchool(actor, data.schoolId);
+  if (data.classId) await academicReferences(actor, data, { homeroomAllowed: true, expectedSchoolId: schoolId });
   return CalendarEvent.create({
     schoolId,
     title: data.title,

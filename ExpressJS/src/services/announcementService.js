@@ -5,6 +5,9 @@ const User = require('../models/User');
 const { ROLES } = require('../constants/roles');
 const { ANNOUNCEMENT_SCOPE } = require('../constants/status');
 const { academicReferences, targetSchool } = require('./writeScope');
+const { objectId } = require('./dataScope');
+const School = require('../models/School');
+const Cluster = require('../models/Cluster');
 
 const listAnnouncements = async (actor, query = {}) => {
   const or = [];
@@ -43,18 +46,23 @@ const createAnnouncement = async (actor, data) => {
     scope = ANNOUNCEMENT_SCOPE.SCHOOL;
   }
 
-  if (data.classId) await academicReferences(actor, data, { homeroomAllowed: true });
-  if ([ANNOUNCEMENT_SCOPE.SCHOOL, ANNOUNCEMENT_SCOPE.CLASS].includes(scope)) await targetSchool(actor, actor.schoolId || data.schoolId);
+  let schoolId = null, clusterId = null;
+  if ([ANNOUNCEMENT_SCOPE.SCHOOL, ANNOUNCEMENT_SCOPE.CLASS].includes(scope)) {
+    schoolId = await targetSchool(actor, actor.schoolId || data.schoolId);
+    clusterId = (await School.findById(schoolId)).clusterId;
+    if (scope === ANNOUNCEMENT_SCOPE.CLASS && !data.classId) throw new ApiError(400, 'Thông báo lớp cần classId');
+    if (data.classId) await academicReferences(actor, data, { homeroomAllowed: true, expectedSchoolId: schoolId });
+  } else if (scope === ANNOUNCEMENT_SCOPE.CLUSTER) {
+    clusterId = objectId(actor.role === ROLES.CLUSTER_ADMIN ? actor.clusterId : data.clusterId, 'clusterId');
+    if (!(await Cluster.exists({ _id: clusterId }))) throw new ApiError(400, 'Cụm không tồn tại');
+  }
   const announcement = await announcementRepo.create({
     title: data.title,
     content: data.content,
     scope,
-    schoolId: scope === ANNOUNCEMENT_SCOPE.SYSTEM ? null : actor.schoolId || data.schoolId || null,
-    clusterId:
-      scope === ANNOUNCEMENT_SCOPE.CLUSTER
-        ? actor.clusterId
-        : data.clusterId || actor.clusterId || null,
-    classId: data.classId || null,
+    schoolId,
+    clusterId,
+    classId: scope === ANNOUNCEMENT_SCOPE.CLASS ? data.classId : null,
     createdBy: actor._id,
     targetRoles: data.targetRoles || [],
     isPinned: !!data.isPinned,
