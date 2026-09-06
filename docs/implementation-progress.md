@@ -5,6 +5,7 @@ Cập nhật: 06/09/2026. Phase 1 đã có kho file (1.1), job/queue (1.2), 2FA 
 ## Phase 1 — 1.3 2FA và password policy
 
 - Nhánh bàn giao `feat/phase1-auth-security`, nền `feat/phase1-job-queue` tại `6cee993`. Không merge vào main hoặc integration/phase0.
+- Đã commit/push code, test và tài liệu tại `56a4ce2` lên `origin/feat/phase1-auth-security`. Phiên sau checkout nhánh này để tiếp tục 1.4.
 - TOTP qua QR/khóa nhập tay, xác nhận bật, tắt, cấp lại 10 mã khôi phục dùng một lần; màn hình đăng nhập xử lý challenge trước khi có JWT. Cả mật khẩu và Google đều đi qua 2FA nếu tài khoản đã bật.
 - Secret mã hóa AES-256-GCM gắn user ID; challenge/recovery chỉ lưu hash. MongoDB CAS theo revision chống request đồng thời, mã dùng lại và ghi đè trạng thái mới; hạn setup 10 phút, challenge 5 phút. Throttle chia sẻ MongoDB theo tài khoản/IP, không reset hạn mức khi xin challenge mới.
 - Policy chung cho tạo user/import/đổi/reset: tối thiểu 15 ký tự, tối đa 72 byte UTF-8, bcrypt cost 12, lịch sử 5 mật khẩu và chặn một số mẫu dễ đoán. Bỏ mật khẩu mặc định chung khi import/reset. Admin reset tạo mật khẩu tạm riêng và buộc đổi trước khi dùng nghiệp vụ; giữ 2FA.
