@@ -33,7 +33,7 @@ async function start() {
   await mongoose.connect(mongo.getUri());
   console.log('Seeding isolated fixture accounts');
   await Role.create(Object.entries(ROLE_PERMISSIONS).map(([code, keys]) => ({ code, name: code, level: DEFAULT_ROLE_LEVELS[code], permissions: legacyPermissionsToEntries(keys) })));
-  await Role.create({ code: 'QA_READER', name: 'QA chỉ xem', level: 35, permissions: ['classes', 'grades', 'attendance', 'fees', 'exams', 'materials', 'library', 'facilities', 'conduct', 'templates', 'support', 'subscriptions'].map(resource => ({ resource, actions: ['view'] })) });
+  await Role.create({ code: 'QA_READER', name: 'QA chỉ xem', level: 35, permissions: ['classes', 'grades', 'attendance', 'fees', 'exams', 'materials', 'library', 'facilities', 'conduct', 'templates', 'support', 'subscriptions', 'jobs'].map(resource => ({ resource, actions: ['view'] })) });
   await Role.create({ code: 'QA_CREATOR', name: 'QA tạo học liệu', level: 35, permissions: [{ resource: 'materials', actions: ['view', 'create'] }] });
   const cluster = await Cluster.create({ name: 'QA Cluster', code: 'QA' });
   const password = await bcrypt.hash('Phase0@Test123', 4);
@@ -52,6 +52,7 @@ async function start() {
     await user('creator', 'QA_CREATOR');
     const librarian = await user('librarian', 'LIBRARIAN');
     const admin = await user('admin', 'SCHOOL_ADMIN');
+    await require('../src/models/Job').create({ schoolId: school._id, kind: 'NOTIFICATION_EMAIL', resourceId: new mongoose.Types.ObjectId(), label: `QA Job ${i}`, status: 'FAILED', attempts: 2, maxAttempts: 2, totalAttempts: 2, lastError: 'SMTP_UNCONFIGURED' });
     await Assignment.create({ schoolId: school._id, teacherId: teacher._id, classId: cls._id, subjectId: subject._id, academicYearId: year._id });
     for (const pupil of [student, peer]) {
       await require('../src/models/Grade').create({ schoolId: school._id, classId: cls._id, subjectId: subject._id, academicYearId: year._id, studentId: pupil._id, teacherId: teacher._id, average: 8 });
@@ -75,6 +76,7 @@ async function start() {
   await require('../src/models/ExamAttempt').init();
   await require('../src/models/FileAsset').init();
   await require('../src/models/Subscription').init();
+  await require('../src/models/Job').init();
   server = app.listen(8091, '127.0.0.1');
   server.on('error', async error => { console.error(error.message); await stop(); process.exitCode = 1; });
   server.on('listening', () => console.log('Isolated phase0 fixture ready on http://127.0.0.1:8091'));

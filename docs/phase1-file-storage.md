@@ -4,6 +4,8 @@ Nền: `integration/phase0` tại `cdbdb11`. Nhánh chức năng: `feat/phase1-f
 
 Đã push code/test tại `f73ec42` lên `origin/feat/phase1-file-storage`. Bản này được bàn giao trên nhánh riêng, chưa merge vào main hoặc integration/phase0.
 
+Cập nhật ở Phase 1.2: nhánh kế thừa `feat/phase1-job-queue` thêm worker tự retry file DELETING. UPLOADING vẫn cần bảo trì; khi chạy lệnh phục hồi phải dừng cả API và worker. Xem [phase1-job-queue.md](phase1-job-queue.md); các ghi chú chưa có worker bên dưới mô tả bản 1.1 gốc.
+
 ## Thay đổi người dùng thấy
 
 Trang Học liệu có lựa chọn liên kết hoặc tải file, công tắc chia sẻ, dung lượng trường và giới hạn mỗi file. File đã upload được tải bằng nút **Tải file**, có JWT; không tạo URL public. Xóa học liệu sẽ xóa file và hoàn dung lượng sau khi xóa vật lý thành công. Luồng học liệu dạng link hiện có vẫn hoạt động.

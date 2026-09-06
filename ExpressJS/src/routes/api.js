@@ -9,6 +9,10 @@ const c = require('../controllers/moduleController');
 const a = require('../controllers/advancedController');
 
 const router = express.Router();
+const jobs = require('../controllers/jobController');
+router.get('/jobs', authorizeRead('jobs'), jobs.list);
+router.post('/jobs/:id/retry', authorizePermissionAction('execute', PERMISSIONS.MANAGE_JOBS), audit('RETRY', 'Job'), jobs.retry);
+router.post('/jobs/:id/cancel', authorizePermissionAction('execute', PERMISSIONS.MANAGE_JOBS), audit('CANCEL', 'Job'), jobs.cancel);
 const files = require('../controllers/fileController');
 router.post('/materials/upload', authorizePermissionAction('create', PERMISSIONS.MANAGE_MATERIALS), require('../middleware/fileUpload').upload, audit('CREATE', 'FileAsset'), files.upload);
 router.get('/files/usage', authorizeRead('materials'), files.usage);

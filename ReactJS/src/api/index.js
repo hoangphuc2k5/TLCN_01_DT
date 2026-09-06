@@ -152,6 +152,9 @@ export const gradeAttemptApi = (attemptId, grades) =>
 export const getAttemptsApi = (params) => axios.get('/v1/api/exam-attempts', { params });
 
 export const getMaterialsApi = (params) => axios.get('/v1/api/materials', { params });
+export const getJobsApi = params => axios.get('/v1/api/jobs', { params });
+export const retryJobApi = (id, data = {}) => axios.post(`/v1/api/jobs/${id}/retry`, data);
+export const cancelJobApi = id => axios.post(`/v1/api/jobs/${id}/cancel`);
 export const createMaterialApi = (data) => axios.post('/v1/api/materials', data);
 export const deleteMaterialApi = (id) => axios.delete(`/v1/api/materials/${id}`);
 export const getFileUsageApi = () => axios.get('/v1/api/files/usage');

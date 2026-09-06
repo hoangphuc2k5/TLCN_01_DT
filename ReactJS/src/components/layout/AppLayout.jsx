@@ -149,7 +149,7 @@ const menuByRole = (role, user) => {
     roleMenus.unshift(rolesItem);
   }
 
-  const catalog = [...roleMenus, ...Object.values(maps).flat(), ...common];
+  const catalog = [...roleMenus, { key: '/jobs', icon: <CloudServerOutlined />, label: <Link to="/jobs">Tác vụ nền</Link> }, ...Object.values(maps).flat(), ...common];
   const unique = new Map();
   for (const item of catalog) if (!unique.has(item.key)) unique.set(item.key, item);
   return [...unique.values()].filter(item => canVisit(user, item.key));
