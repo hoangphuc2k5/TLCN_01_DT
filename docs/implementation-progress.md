@@ -2,6 +2,23 @@
 
 Cập nhật: 06/09/2026. Đã hoàn thành checklist Đợt 0: phân quyền, tenant và nền kiểm thử. Các giới hạn nghiệp vụ và việc tiếp theo được ghi ở cuối file.
 
+## Nhánh tổng hợp Đợt 0
+
+- Nhánh bàn giao chung: `integration/phase0`, tạo từ `origin/main` (306c72c).
+- Đã merge riêng từng nhánh bằng `--no-ff`, theo thứ tự:
+  1. `feat/phase0-api-permissions`
+  2. `feat/phase0-export-scope`
+  3. `feat/phase0-workflow-scope`
+  4. `feat/phase0-permission-navigation`
+  5. `feat/phase0-academic-read-scope`
+  6. `feat/phase0-academic-write-scope`
+  7. `feat/phase0-resource-role-ownership`
+  8. `feat/phase0-exam-access`
+  9. `feat/phase0-ui-actions-e2e`
+  10. `feat/phase0-scope-final-check`
+- Không có xung đột. Kiểm tra ancestry xác nhận đủ cả 10 nhánh; `git diff --exit-code origin/feat/phase0-scope-final-check HEAD` trước cập nhật tài liệu xác nhận toàn bộ cây file giống bản đã kiểm thử (681acb8). Không chạy lại test vì merge không thay đổi code.
+- Dùng `integration/phase0` làm nền tiếp tục Đợt 1. Các nhánh chức năng được giữ lại; `main` chưa được merge Đợt 0.
+
 ## Quy trình bàn giao
 
 - Mỗi chức năng: sửa code → kiểm thử → ghi kết quả → tạo nhánh, commit và push origin.
@@ -148,7 +165,7 @@ Cập nhật: 06/09/2026. Đã hoàn thành checklist Đợt 0: phân quyền, t
 
 ## Việc tiếp theo — Đợt 1 chưa bắt đầu
 
-1. Bắt đầu từ `feat/phase0-scope-final-check`; kiểm tra git status trước khi sửa. File kế hoạch cũ `docs/feature-gap-implementation-plan.md` không tồn tại trong checkout này; tài liệu này là điểm bàn giao hiện hành.
+1. Bắt đầu từ `integration/phase0`; kiểm tra git status trước khi sửa. File kế hoạch cũ `docs/feature-gap-implementation-plan.md` không tồn tại trong checkout này; tài liệu này là điểm bàn giao hiện hành.
 2. Triển khai kho file theo tenant: metadata FileAsset, adapter lưu trữ local/S3 theo cấu hình, upload/download có scope, hạn mức dung lượng, kiểm thử truy cập chéo trường. Chưa chọn dịch vụ cloud hoặc cần secret mới.
 3. Tiếp đó nền job/queue: retry, idempotency, trạng thái và lịch chạy để phục vụ thông báo/backup; không tạo job giả chỉ đổi trạng thái.
 4. Tiếp đó 2FA và password policy (spec 2.6), rồi backup/restore (2.7); từng chức năng phải có kiểm thử, nhánh riêng, push và bổ sung tài liệu trước khi chuyển tiếp.
