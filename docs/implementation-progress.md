@@ -5,6 +5,7 @@ Cập nhật: 06/09/2026. Phase 1 đã có kho file (1.1) và job/queue (1.2). B
 ## Phase 1 — 1.2 Job/queue
 
 - Nhánh `feat/phase1-job-queue`, nền `feat/phase1-file-storage` tại `9f27526`. Chưa merge vào main hoặc integration/phase0.
+- Đã push code/test tại `5a41949` lên `origin/feat/phase1-job-queue`. Lấy nhánh này làm nền cho Phase 1.3.
 - Job MongoDB có unique key theo tenant/loại/nguồn; lịch runAt, atomic claim, lease/heartbeat, retry backoff, giới hạn attempts, giữ totalAttempts và mã lỗi an toàn. Worker cũ mất lease không ack/ghi đè worker mới.
 - Handler thật: email từ Notification đã lưu và xóa file DELETING/hoàn quota. Dispatcher đọc ý định bền vững, khôi phục khoảng gián đoạn enqueue/đánh dấu nguồn. Không tự gửi notification cũ, không tự xóa UPLOADING.
 - Email tin nhắn/điểm danh/thông báo/kết quả duyệt đơn chuyển khỏi request sang worker. Message API hỗ trợ emailRunAt một lần; SMTP chưa cấu hình được ghi lỗi/retry, không báo đã gửi.

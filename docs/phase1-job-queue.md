@@ -2,6 +2,8 @@
 
 Nền: `feat/phase1-file-storage` tại `9f27526`. Nhánh bàn giao: `feat/phase1-job-queue`. MongoDB lưu hàng đợi; không thêm Redis hoặc dịch vụ cloud.
 
+Đã push code/test tại `5a41949` lên origin. Nhánh kế thừa đầy đủ 1.1, chưa merge vào main/integration/phase0; tiến trình tiếp tục ở `implementation-progress.md`.
+
 ## Phạm vi đã làm
 
 - Job bền vững với lịch chạy một lần, retry tăng thời gian chờ, giới hạn lượt thử, trạng thái và lease cho nhiều worker.
