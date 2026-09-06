@@ -9,6 +9,7 @@ const XLSX = require('xlsx');
 const Grade = require('../models/Grade');
 const FeeInvoice = require('../models/FeeInvoice');
 const Attendance = require('../models/Attendance');
+const { buildExportScope } = require('./exportScopeService');
 
 // ——— Messaging ———
 const listMessages = async (actor, query = {}) => {
@@ -114,9 +115,7 @@ const deleteEvent = async (actor, id) => {
 
 // ——— Export Excel ———
 const exportGradesExcel = async (actor, query = {}) => {
-  const filter = {};
-  if (actor.schoolId) filter.schoolId = actor.schoolId;
-  if (query.classId) filter.classId = query.classId;
+  const { filter } = await buildExportScope(actor, 'grades', query);
   const grades = await Grade.find(filter)
     .populate('studentId', 'name code')
     .populate('subjectId', 'name code')
@@ -139,9 +138,8 @@ const exportGradesExcel = async (actor, query = {}) => {
   return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 };
 
-const exportFeesExcel = async (actor) => {
-  const filter = {};
-  if (actor.schoolId) filter.schoolId = actor.schoolId;
+const exportFeesExcel = async (actor, query = {}) => {
+  const { filter } = await buildExportScope(actor, 'fees', query);
   const fees = await FeeInvoice.find(filter).populate('studentId', 'name code').limit(1000);
   const rows = fees.map((f) => ({
     HocSinh: f.studentId?.name,
@@ -159,9 +157,8 @@ const exportFeesExcel = async (actor) => {
 };
 
 const exportAttendanceExcel = async (actor, query = {}) => {
-  const filter = {};
-  if (actor.schoolId) filter.schoolId = actor.schoolId;
-  if (query.classId) filter.classId = query.classId;
+  const { filter, studentIds } = await buildExportScope(actor, 'attendance', query);
+  const allowedStudents = studentIds === null ? null : new Set(studentIds.map(String));
   const list = await Attendance.find(filter)
     .populate('classId', 'name')
     .populate('records.studentId', 'name code')
@@ -170,6 +167,7 @@ const exportAttendanceExcel = async (actor, query = {}) => {
   const rows = [];
   for (const a of list) {
     for (const r of a.records || []) {
+      if (allowedStudents && !allowedStudents.has(String(r.studentId?._id))) continue;
       rows.push({
         Ngay: a.date,
         Tiet: a.period,
