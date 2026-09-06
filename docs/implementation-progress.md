@@ -25,7 +25,14 @@ Cập nhật: 06/09/2026. Đã rà lại checklist Đợt 0 và sửa thêm các
   9. `feat/phase0-ui-actions-e2e`
   10. `feat/phase0-scope-final-check`
 - Không có xung đột. Kiểm tra ancestry xác nhận đủ cả 10 nhánh; `git diff --exit-code origin/feat/phase0-scope-final-check HEAD` trước cập nhật tài liệu xác nhận toàn bộ cây file giống bản đã kiểm thử (681acb8). Không chạy lại test vì merge không thay đổi code.
-- Dùng `integration/phase0` làm nền tiếp tục Đợt 1. Các nhánh chức năng được giữ lại; `main` chưa được merge Đợt 0.
+- Dùng `integration/phase0` làm nền tiếp tục Đợt 1; `main` chưa được merge Đợt 0.
+
+### Dọn nhánh phụ sau bàn giao — 06/09/2026
+
+- Theo yêu cầu người dùng, đã xóa 10 nhánh `feat/phase0-*` nêu trên và `fix/phase0-read-path-audit` ở cả local và origin.
+- Trước khi xóa đã fetch origin và kiểm tra từng đầu nhánh local/remote là ancestor của `origin/integration/phase0` tại `5737d51`; cả 11 nhánh đã được merge đầy đủ. Remote được xóa atomic kèm kiểm tra SHA để không xóa nhánh vừa có commit mới; local dùng `git branch -d`.
+- Giữ `integration/phase0` và `main`. Toàn bộ commit, code và lịch sử merge Phase 0 vẫn nằm trong nhánh tổng hợp; không cần chạy lại test vì chỉ dọn ref Git và cập nhật tài liệu.
+- Các tên nhánh trong mục bàn giao bên dưới là thông tin lịch sử. Khi review sau khi dọn nhánh, dùng commit SHA đã ghi hoặc lịch sử merge của `integration/phase0`.
 
 ## Quy trình bàn giao
 
