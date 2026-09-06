@@ -3,10 +3,14 @@ Object.assign(process.env, {
   NODE_ENV: 'test', JWT_SECRET: 'phase0-local-fixture-secret',
   ALLOW_PASSWORD_LOGIN: 'true', AUTH_GMAIL_ONLY: 'false',
   GOOGLE_CLIENT_ID: '', GMAIL_USER: '', GMAIL_APP_PASSWORD: '',
+  FILE_STORAGE_DRIVER: 'local', FILE_MAX_BYTES: '10485760', FILE_DEFAULT_QUOTA_BYTES: '5368709120',
 });
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
-const { MongoMemoryServer } = require('mongodb-memory-server');
+const { MongoMemoryReplSet } = require('mongodb-memory-server');
+const fs = require('node:fs/promises');
+const path = require('node:path');
+const os = require('node:os');
 const app = require('../src/app');
 const Role = require('../src/models/Role');
 const Cluster = require('../src/models/Cluster');
@@ -20,10 +24,12 @@ const { ROLE_PERMISSIONS } = require('../src/constants/permissions');
 const { legacyPermissionsToEntries, DEFAULT_ROLE_LEVELS } = require('../src/constants/permissionCatalog');
 const cache = require('../src/services/rolePermissionCache');
 
-let mongo, server;
+let mongo, server, storageRoot;
 async function start() {
   console.log('Preparing isolated MongoDB fixture');
-  mongo = await MongoMemoryServer.create({ binary: { downloadDir: require('node:path').resolve(__dirname, '../node_modules/.cache/mongodb-memory-server') } });
+  storageRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'phase1-e2e-'));
+  process.env.FILE_LOCAL_ROOT = storageRoot;
+  mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 }, binary: { downloadDir: path.resolve(__dirname, '../node_modules/.cache/mongodb-memory-server') } });
   await mongoose.connect(mongo.getUri());
   console.log('Seeding isolated fixture accounts');
   await Role.create(Object.entries(ROLE_PERMISSIONS).map(([code, keys]) => ({ code, name: code, level: DEFAULT_ROLE_LEVELS[code], permissions: legacyPermissionsToEntries(keys) })));
@@ -67,6 +73,8 @@ async function start() {
   await User.updateOne({ email: 'parent0@test.invalid' }, { $push: { parentOf: foreignChild._id } });
   await cache.reload();
   await require('../src/models/ExamAttempt').init();
+  await require('../src/models/FileAsset').init();
+  await require('../src/models/Subscription').init();
   server = app.listen(8091, '127.0.0.1');
   server.on('error', async error => { console.error(error.message); await stop(); process.exitCode = 1; });
   server.on('listening', () => console.log('Isolated phase0 fixture ready on http://127.0.0.1:8091'));
@@ -75,6 +83,9 @@ async function stop() {
   if (server?.listening) await new Promise(resolve => server.close(resolve));
   await mongoose.disconnect();
   if (mongo) await mongo.stop();
+  if (storageRoot && path.dirname(storageRoot) === path.resolve(os.tmpdir()) && path.basename(storageRoot).startsWith('phase1-e2e-')) {
+    await fs.rm(storageRoot, { recursive: true, force: true });
+  }
 }
 for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => stop().then(() => process.exit(0)));
 start().catch(async error => { console.error(error.message); await stop(); process.exitCode = 1; });

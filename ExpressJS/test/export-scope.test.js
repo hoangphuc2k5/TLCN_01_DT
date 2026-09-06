@@ -274,6 +274,18 @@ test('school admin cannot edit a globally shared role', async () => {
 const makeExam = (overrides = {}) => Exam.create({ schoolId: schools[0]._id, classId: classes[0]._id, subjectId: subjects[0]._id, createdBy: actors.teacher._id, title: 'Scope exam', status: 'PUBLISHED', questions: [{ type: 'MCQ', prompt: '1+1?', options: [{ key: 'A', text: '2' }], correctKey: 'A', points: 1 }, { type: 'ESSAY', prompt: 'Explain', points: 3 }], ...overrides });
 const read = (path, actor) => fetch(`${origin}/v1/api${path}`, { headers: { Authorization: `Bearer ${jwt.sign({ _id: actor._id }, process.env.JWT_SECRET)}` } });
 
+test('file upload on standalone MongoDB fails clearly without metadata or quota changes', async () => {
+  process.env.FILE_STORAGE_DRIVER = 'local';
+  const body = new FormData();
+  body.set('title', 'Standalone upload');
+  body.set('file', new Blob(['%PDF-1.4\nStandalone'], { type: 'application/pdf' }), 'lesson.pdf');
+  const response = await fetch(`${origin}/v1/api/materials/upload`, { method: 'POST', body, headers: { Authorization: `Bearer ${jwt.sign({ _id: actors.teacher._id }, process.env.JWT_SECRET)}` } });
+  assert.equal(response.status, 503);
+  assert.match((await response.json()).EM, /replica set/);
+  assert.equal(await require('../src/models/FileAsset').countDocuments(), 0);
+  assert.equal(await Material.countDocuments({ title: 'Standalone upload' }), 0);
+});
+
 test('audit: parent dashboard rejects stale foreign-school child links', async () => {
   const parent = await User.create({ name: 'Stale parent', email: 'stale-parent@test.invalid', role: 'PARENT', schoolId: schools[0]._id, parentOf: [students[0]._id, students[3]._id] });
   const response = await read('/dashboard', parent);

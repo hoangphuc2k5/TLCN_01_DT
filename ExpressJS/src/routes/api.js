@@ -9,6 +9,11 @@ const c = require('../controllers/moduleController');
 const a = require('../controllers/advancedController');
 
 const router = express.Router();
+const files = require('../controllers/fileController');
+router.post('/materials/upload', authorizePermissionAction('create', PERMISSIONS.MANAGE_MATERIALS), require('../middleware/fileUpload').upload, audit('CREATE', 'FileAsset'), files.upload);
+router.get('/files/usage', authorizeRead('materials'), files.usage);
+router.get('/files/:id', authorizeRead('materials', { personal: true }), files.metadata);
+router.get('/files/:id/download', authorizeRead('materials', { personal: true }), files.download);
 
 router.get('/health', (req, res) => res.json({ EC: 0, EM: 'OK', data: { status: 'up' } }));
 

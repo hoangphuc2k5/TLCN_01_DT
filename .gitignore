@@ -22,3 +22,4 @@ build/
 # Local browser test artifacts
 ReactJS/test-results/
 ReactJS/playwright-report/
+ExpressJS/storage/
