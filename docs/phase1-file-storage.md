@@ -2,6 +2,8 @@
 
 Nền: `integration/phase0` tại `cdbdb11`. Nhánh chức năng: `feat/phase1-file-storage`. Đây là chức năng đầu tiên của Phase 1; queue, 2FA/password policy và backup/restore chưa được triển khai trong nhánh này.
 
+Đã push code/test tại `f73ec42` lên `origin/feat/phase1-file-storage`. Bản này được bàn giao trên nhánh riêng, chưa merge vào main hoặc integration/phase0.
+
 ## Thay đổi người dùng thấy
 
 Trang Học liệu có lựa chọn liên kết hoặc tải file, công tắc chia sẻ, dung lượng trường và giới hạn mỗi file. File đã upload được tải bằng nút **Tải file**, có JWT; không tạo URL public. Xóa học liệu sẽ xóa file và hoàn dung lượng sau khi xóa vật lý thành công. Luồng học liệu dạng link hiện có vẫn hoạt động.

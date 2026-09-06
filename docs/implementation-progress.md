@@ -5,6 +5,7 @@ Cập nhật: 06/09/2026. Đã bắt đầu Phase 1 với kho file học liệu 
 ## Phase 1 — 1.1 Kho file học liệu
 
 - Nhánh `feat/phase1-file-storage`, nền `integration/phase0` tại `cdbdb11`. Không nhập code Phase 1 vào nhánh tổng hợp Phase 0.
+- Đã commit/push code và test tại `f73ec42`; nhánh đang track `origin/feat/phase1-file-storage`. Phiên tiếp theo lấy nhánh này làm nền cho 1.2.
 - Thêm FileAsset, storageUsedBytes, liên kết fileAssetId; adapter local/S3, API upload/metadata/download/usage; dùng scope và quyền học liệu hiện hành. File mới tải qua JWT, không expose thư mục public.
 - Giao dịch MongoDB giữ chỗ dung lượng và metadata; chống vượt quota khi upload đồng thời. Xóa file trước khi hoàn quota; trạng thái UPLOADING/READY/DELETING và lệnh bảo trì giúp phục hồi gián đoạn.
 - UI Học liệu hỗ trợ tải file hoặc liên kết, chia sẻ/riêng tư, hiển thị hạn mức, download đúng tên và xóa. Giữ tên file tiếng Việt.
