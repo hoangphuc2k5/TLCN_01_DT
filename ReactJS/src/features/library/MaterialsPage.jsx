@@ -8,16 +8,11 @@ import {
   getMaterialsApi,
   getSubjectsApi,
 } from '../../api';
-import { ROLES } from '../../constants/roles';
+import { can } from '../../util/permissions';
 
 const MaterialsPage = () => {
   const { user } = useSelector((s) => s.auth);
-  const canManage = [
-    ROLES.SUBJECT_TEACHER,
-    ROLES.HOMEROOM_TEACHER,
-    ROLES.SCHOOL_ADMIN,
-    ROLES.ACADEMIC_AFFAIRS,
-  ].includes(user?.role);
+  const canManage = can(user, 'materials', 'create');
   const [rows, setRows] = useState([]);
   const [classes, setClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -68,10 +63,10 @@ const MaterialsPage = () => {
               ),
           },
           { title: 'Người đăng', render: (_, r) => r.uploadedBy?.name },
-          canManage
+          can(user, 'materials', 'delete')
             ? {
                 title: 'Xóa',
-                render: (_, r) => (
+                render: (_, r) => ((r.uploadedBy?._id || r.uploadedBy) === user?._id || ['SCHOOL_ADMIN', 'SUPER_ADMIN'].includes(user?.role)) && (
                   <Popconfirm
                     title="Xóa học liệu?"
                     onConfirm={async () => {

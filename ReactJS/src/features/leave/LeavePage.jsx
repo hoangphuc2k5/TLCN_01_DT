@@ -112,7 +112,7 @@ const LeavePage = () => {
             ? {
                 title: 'Duyệt',
                 render: (_, r) =>
-                  r.status === 'PENDING' ? (
+                  r.status === 'PENDING' && (r.requesterId?._id || r.requesterId) !== user?._id ? (
                     <Space>
                       <Button
                         size="small"

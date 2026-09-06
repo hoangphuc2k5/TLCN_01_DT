@@ -18,6 +18,7 @@ const SchoolsPage = () => {
   const [editing, setEditing] = useState(null);
   const [form] = Form.useForm();
   const canManage = [ROLES.SUPER_ADMIN, ROLES.CLUSTER_ADMIN].includes(user?.role);
+  const canEdit = [ROLES.SUPER_ADMIN, ROLES.CLUSTER_ADMIN, ROLES.SCHOOL_ADMIN].includes(user?.role);
   const canDelete = user?.role === ROLES.SUPER_ADMIN;
 
   const load = async () => {
@@ -83,7 +84,7 @@ const SchoolsPage = () => {
             title: 'Thao tác',
             render: (_, r) => (
               <Space>
-                <Button
+                {canEdit && <Button
                   size="small"
                   onClick={() => {
                     setEditing(r);
@@ -101,7 +102,7 @@ const SchoolsPage = () => {
                   }}
                 >
                   Sửa
-                </Button>
+                </Button>}
                 {canDelete && (
                   <Popconfirm
                     title="Xóa trường?"

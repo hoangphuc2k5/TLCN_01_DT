@@ -3,11 +3,12 @@ import { Button, Form, Input, Modal, Popconfirm, Space, Table, Tag, message } fr
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
 import { createAnnouncementApi, deleteAnnouncementApi, getAnnouncementsApi } from '../../api';
+import { can, sameId } from '../../util/permissions';
 import { ROLES } from '../../constants/roles';
 
 const AnnouncementsPage = () => {
   const { user } = useSelector((s) => s.auth);
-  const canCreate = ![ROLES.STUDENT, ROLES.PARENT, ROLES.LIBRARIAN].includes(user?.role);
+  const canCreate = can(user, 'announcements', 'create');
   const [rows, setRows] = useState([]);
   const [open, setOpen] = useState(false);
   const [form] = Form.useForm();
@@ -51,7 +52,7 @@ const AnnouncementsPage = () => {
           },
           {
             title: 'Thao tác',
-            render: (_, r) => (
+            render: (_, r) => can(user, 'announcements', 'delete') && (user?.role === ROLES.SUPER_ADMIN || (user?.role === ROLES.CLUSTER_ADMIN && sameId(r.clusterId, user.clusterId)) || sameId(r.schoolId, user?.schoolId)) && (
               <Popconfirm
                 title="Xóa thông báo?"
                 onConfirm={async () => {

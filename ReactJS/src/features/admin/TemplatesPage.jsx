@@ -7,12 +7,13 @@ import {
   getSchoolsApi,
   getTemplatesApi,
 } from '../../api';
+import { can } from '../../util/permissions';
 import { ROLES } from '../../constants/roles';
 
 const TemplatesPage = () => {
   const { user } = useSelector((s) => s.auth);
-  const canCreate = [ROLES.SUPER_ADMIN, ROLES.CLUSTER_ADMIN].includes(user?.role);
-  const canApply = [ROLES.SUPER_ADMIN, ROLES.CLUSTER_ADMIN, ROLES.SCHOOL_ADMIN].includes(user?.role);
+  const canCreate = can(user, 'templates', 'create') && [ROLES.SUPER_ADMIN, ROLES.CLUSTER_ADMIN].includes(user?.role);
+  const canApply = can(user, 'templates', 'execute');
   const [rows, setRows] = useState([]);
   const [schools, setSchools] = useState([]);
   const [open, setOpen] = useState(false);
@@ -68,6 +69,7 @@ const TemplatesPage = () => {
                 title: 'Áp dụng',
                 render: (_, r) => (
                   <Button
+                    disabled={!r.isActive}
                     size="small"
                     onClick={() => {
                       setSelectedTpl(r);

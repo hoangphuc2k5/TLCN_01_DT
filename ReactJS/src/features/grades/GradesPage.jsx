@@ -11,13 +11,11 @@ import {
   downloadExport,
 } from '../../api';
 import ImportExcelButton from '../../components/ImportExcelButton';
-import { ROLES } from '../../constants/roles';
+import { can, canExport } from '../../util/permissions';
 
 const GradesPage = () => {
   const { user } = useSelector((s) => s.auth);
-  const canEnter = [ROLES.SUBJECT_TEACHER, ROLES.HOMEROOM_TEACHER, ROLES.SCHOOL_ADMIN].includes(
-    user?.role
-  );
+  const canEnter = can(user, 'grades', 'create') && can(user, 'grades', 'update');
   const [rows, setRows] = useState([]);
   const [open, setOpen] = useState(false);
   const [classes, setClasses] = useState([]);
@@ -47,13 +45,13 @@ const GradesPage = () => {
 
   return (
     <div>
-      {canEnter && (
+      {(canEnter || canExport(user, 'grades')) && (
         <Space style={{ marginBottom: 16 }}>
-          <Button type="primary" onClick={() => setOpen(true)}>
+          {canEnter && <Button type="primary" onClick={() => setOpen(true)}>
             Nhập / cập nhật điểm
-          </Button>
-          <ImportExcelButton type="grades" onDone={load} />
-          <Button
+          </Button>}
+          {canEnter && <ImportExcelButton type="grades" onDone={load} />}
+          {canExport(user, 'grades') && <Button
             onClick={async () => {
               try {
                 await downloadExport('grades');
@@ -63,7 +61,7 @@ const GradesPage = () => {
             }}
           >
             Xuất Excel
-          </Button>
+          </Button>}
         </Space>
       )}
       <Table
@@ -85,7 +83,7 @@ const GradesPage = () => {
       />
       <Modal
         open={open}
-        title="Nhập điểm (Strategy: weighted)"
+        title="Nhập điểm"
         onCancel={() => setOpen(false)}
         onOk={() => form.submit()}
         width={640}
@@ -124,6 +122,8 @@ const GradesPage = () => {
             <Select
               options={classes.map((c) => ({ value: c._id, label: c.name }))}
               onChange={async (id) => {
+                form.setFieldValue('studentId', undefined);
+                setStudents([]);
                 const res = await getClassStudentsApi(id);
                 if (res?.EC === 0) setStudents(res.data || []);
               }}

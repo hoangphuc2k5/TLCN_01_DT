@@ -18,3 +18,7 @@ Thumbs.db
 dist/
 build/
 .codegraph/
+
+# Local browser test artifacts
+ReactJS/test-results/
+ReactJS/playwright-report/

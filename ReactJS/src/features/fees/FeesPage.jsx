@@ -6,12 +6,13 @@ import {
   createFeeApi,
   getAcademicYearsApi,
   getFeesApi,
-  getUsersApi,
+  getUserDirectoryApi,
   recordPaymentApi,
   downloadExport,
 } from '../../api';
 import ImportExcelButton from '../../components/ImportExcelButton';
 import { ROLES } from '../../constants/roles';
+import { can, canExport } from '../../util/permissions';
 
 const statusColor = {
   UNPAID: 'red',
@@ -22,7 +23,7 @@ const statusColor = {
 
 const FeesPage = () => {
   const { user } = useSelector((s) => s.auth);
-  const canManage = [ROLES.ACCOUNTANT, ROLES.SCHOOL_ADMIN].includes(user?.role);
+  const canManage = can(user, 'fees', 'create');
   const [rows, setRows] = useState([]);
   const [students, setStudents] = useState([]);
   const [years, setYears] = useState([]);
@@ -41,7 +42,7 @@ const FeesPage = () => {
     (async () => {
       if (canManage) {
         const [u, y] = await Promise.all([
-          getUsersApi({ role: ROLES.STUDENT }),
+          getUserDirectoryApi({ role: ROLES.STUDENT }),
           getAcademicYearsApi(),
         ]);
         if (u?.EC === 0) setStudents(u.data || []);
@@ -53,13 +54,13 @@ const FeesPage = () => {
 
   return (
     <div>
-      {canManage && (
+      {(canManage || canExport(user, 'fees')) && (
         <Space style={{ marginBottom: 16 }}>
-          <Button type="primary" onClick={() => setOpenFee(true)}>
+          {canManage && <Button type="primary" onClick={() => setOpenFee(true)}>
             Tạo hóa đơn
-          </Button>
-          <ImportExcelButton type="fees" onDone={load} />
-          <Button
+          </Button>}
+          {canManage && can(user, 'fees', 'update') && <ImportExcelButton type="fees" onDone={load} />}
+          {canExport(user, 'fees') && <Button
             onClick={async () => {
               try {
                 await downloadExport('fees');
@@ -69,7 +70,7 @@ const FeesPage = () => {
             }}
           >
             Xuất Excel
-          </Button>
+          </Button>}
         </Space>
       )}
       <Table
