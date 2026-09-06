@@ -5,6 +5,7 @@ Cập nhật: 07/09/2026. Phase 1 đã có code 1.1–1.4 trong phạm vi ghi b�
 ## Phase 1 — 1.4 Backup/Restore
 
 - Nhánh bàn giao `feat/phase1-backup-restore`, nền `feat/phase1-auth-security` tại `2ee28d1`; không merge main/integration/phase0.
+- Đã commit/push code, test và runbook tại `142dc50` lên `origin/feat/phase1-backup-restore`; dùng nhánh này làm nền phiên tiếp theo.
 - Thêm `npm run backup -- create|verify|restore`: sao lưu logic toàn database ứng dụng + file FileAsset local/S3, raw BSON, index, collection rỗng, validator/collation. Archive AES-256-GCM, kiểm tra lại toàn bộ trước khi công bố file đích; không ghi đè backup cũ.
 - Restore mặc định chỉ lập kế hoạch, `--apply --maintenance` mới ghi. Đích bắt buộc DB rỗng khác tên nguồn và thư mục local mới; không drop/overwrite hoặc tự chuyển cấu hình. Toàn bộ tag mã hóa/cấu trúc/checksum/tenant/quota được kiểm tra trước khi ghi; lỗi index/validator hoặc lỗi ghi vẫn có thể xảy ra và giữ marker chặn đích.
 - `restoreguard` claim bền vững chặn restore cạnh tranh; trạng thái COMPLETE là điểm commit sau khi DB/file/index/report hoàn tất. API/worker probe guard trước Mongoose tự tạo collection/index/seed; sai trạng thái hoặc fingerprint khóa thì không khởi động. Guard COMPLETE được giữ lại; backup tiếp theo kiểm tra và bỏ marker nội bộ khỏi archive.
