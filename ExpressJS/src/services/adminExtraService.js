@@ -6,7 +6,7 @@ const SharedTemplate = require('../models/SharedTemplate');
 const School = require('../models/School');
 const { ROLES } = require('../constants/roles');
 const { scopedDocument, reference, targetSchool, academicReferences } = require('./writeScope');
-const { objectId, schoolScope } = require('./dataScope');
+const { objectId, schoolScope, personalStudentIds, teacherClassScope } = require('./dataScope');
 const User = require('../models/User');
 
 // Audit
@@ -75,11 +75,17 @@ const updateTicket = async (actor, id, data) => {
 
 // Conduct
 const listConduct = async (actor, query = {}) => {
-  const filter = await schoolScope(actor);
-  if (query.studentId) filter.studentId = query.studentId;
+  const filter = { $and: [await schoolScope(actor)] };
+  if (query.studentId) filter.studentId = objectId(query.studentId, 'studentId');
   if (query.semester) filter.semester = Number(query.semester);
-  if (actor.role === ROLES.STUDENT) filter.studentId = actor._id;
-  if (actor.role === ROLES.PARENT) filter.studentId = { $in: actor.parentOf || [] };
+  const personal = await personalStudentIds(actor);
+  if (personal !== null) filter.$and.push({ studentId: { $in: personal } });
+  if (actor.role === ROLES.HOMEROOM_TEACHER) {
+    const classes = await require('../models/Class').find({ schoolId: actor.schoolId, homeroomTeacherId: actor._id }).select('_id');
+    filter.$and.push({ classId: { $in: classes.map(c => c._id) } });
+  } else {
+    filter.$and.push(await teacherClassScope(actor, 'conduct'));
+  }
   return ConductRecord.find(filter)
     .populate('studentId', 'name code')
     .populate('classId', 'name')

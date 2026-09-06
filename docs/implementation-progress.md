@@ -1,6 +1,14 @@
 # Tiến trình triển khai
 
-Cập nhật: 06/09/2026. Đã hoàn thành checklist Đợt 0: phân quyền, tenant và nền kiểm thử. Các giới hạn nghiệp vụ và việc tiếp theo được ghi ở cuối file.
+Cập nhật: 06/09/2026. Đã rà lại checklist Đợt 0 và sửa thêm các đường đọc chưa được test cũ bao phủ. Kết quả mới: backend 93/93, frontend 9/9, E2E 24/24, build đạt. Phạm vi và giới hạn được ghi cụ thể trong [báo cáo rà soát](phase0-review-2026-09-06.md).
+
+## Rà soát bổ sung sau tổng hợp Phase 0
+
+- Nền `integration/phase0` (6baf465); nhánh sửa `fix/phase0-read-path-audit`.
+- Sửa scope/quyền dashboard, đọc đơn của custom role, học liệu chưa chia sẻ, thi theo môn và đề toàn trường, lịch/thông báo theo lớp/vai trò nhận, hạnh kiểm lớp chủ nhiệm. Thu gọn hồ sơ trong tra cứu học vụ; đồng bộ nút duyệt CSVC với API.
+- Thêm 11 test backend tái hiện lỗi; thêm 2 E2E với fixture có liên kết con khác trường và học liệu riêng. Chạy lại đầy đủ: **93/93 backend, 9/9 frontend, 24/24 E2E**, build đạt; `git diff --check` đạt.
+- Đây là kết quả nền tảng 0.1–0.6 trong phạm vi ghi nhận; không xác nhận mọi tổ hợp quyền hoặc toàn bộ nghiệp vụ/spec. Giới hạn và hướng tiếp tục: [phase0-review-2026-09-06.md](phase0-review-2026-09-06.md), [phase0-qa.md](phase0-qa.md).
+- Bàn giao nhánh sửa và merge vào `integration/phase0`; giữ nguyên `main` và hai file cấu hình người dùng chưa track.
 
 ## Nhánh tổng hợp Đợt 0
 
@@ -30,12 +38,12 @@ Cập nhật: 06/09/2026. Đã hoàn thành checklist Đợt 0: phân quyền, t
 
 - [x] 0.1 Quyền API theo hành động ở các route dùng MANAGE_*, từ chối role vô hiệu hóa; kiểm thử hồi quy.
 - [x] 0.2a Menu/route theo permission; nút user/role và quyền lưu/duyệt TKB, đơn từ.
-- [x] 0.2b Chuyển các nút còn lại theo action và quy tắc nghiệp vụ; kiểm thử UI đầu cuối 22/22 đạt.
+- [x] 0.2b Chuyển các nút còn lại theo action và quy tắc nghiệp vụ; kiểm thử UI đầu cuối mới nhất 24/24 đạt.
 - [x] 0.3 Scope báo cáo Excel: tenant, lớp/môn, bản thân/con em, lọc records điểm danh.
 - [x] 0.4 Scope duyệt đơn, TKB, gửi tin nhắn; chống tự duyệt/duyệt lặp.
 - [x] 0.5a Đồng bộ scope API xem điểm/điểm danh/học phí với export, lọc records điểm danh trước trả JSON.
 - [x] 0.5b Rà ID/quan hệ khi ghi học vụ, thi, học liệu, thư viện, CSVC, user/role, template; bổ sung payment scope và nhất quán trường/lớp.
-- [x] 0.6 Backend 82/82, frontend 9/9, production build đạt; E2E 22/22 và chạy lại 4 luồng bị ảnh hưởng sau bản sửa cuối.
+- [x] 0.6 Lượt rà lại: backend 93/93, frontend 9/9, production build đạt; chạy đầy đủ E2E 24/24 trên bản sửa mới.
 
 ## Trạng thái bắt đầu
 

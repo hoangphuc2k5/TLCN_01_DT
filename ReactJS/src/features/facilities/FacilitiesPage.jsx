@@ -9,7 +9,7 @@ import { ROLES } from '../../constants/roles';
 const FacilitiesPage = () => {
   const { user } = useSelector((s) => s.auth);
   const canRequest = can(user, 'facilities', 'create');
-  const canReview = can(user, 'facilities', 'execute') && [ROLES.SUPER_ADMIN, ROLES.LIBRARIAN, ROLES.SCHOOL_ADMIN, ROLES.ACADEMIC_AFFAIRS].includes(
+  const canReview = can(user, 'facilities', 'execute') && [ROLES.LIBRARIAN, ROLES.SCHOOL_ADMIN, ROLES.ACADEMIC_AFFAIRS].includes(
     user?.role
   );
   const [rows, setRows] = useState([]);

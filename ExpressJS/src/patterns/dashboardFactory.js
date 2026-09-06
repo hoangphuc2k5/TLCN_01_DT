@@ -8,6 +8,7 @@ const LeaveRequest = require('../models/LeaveRequest');
 const Grade = require('../models/Grade');
 const Announcement = require('../models/Announcement');
 const { FEE_STATUS, LEAVE_STATUS } = require('../constants/status');
+const { schoolScope, personalStudentIds, teacherClassScope } = require('../services/dataScope');
 
 /**
  * Factory Pattern — build dashboard payload per role
@@ -122,9 +123,9 @@ class AcademicAffairsDashboard extends SchoolAdminDashboard {
 
 class TeacherDashboard extends BaseDashboard {
   async build(user) {
-    const schoolId = user.schoolId;
-    const attendanceCount = await Attendance.countDocuments({ teacherId: user._id });
-    const gradeCount = await Grade.countDocuments({ teacherId: user._id });
+    const scope = await schoolScope(user);
+    const attendanceCount = await Attendance.countDocuments({ $and: [scope, await teacherClassScope(user, 'attendance'), { teacherId: user._id }] });
+    const gradeCount = await Grade.countDocuments({ $and: [scope, await teacherClassScope(user, 'grades'), { teacherId: user._id }] });
     return {
       title: 'Bảng điều khiển Giáo viên',
       stats: [
@@ -156,10 +157,12 @@ class AccountantDashboard extends BaseDashboard {
 
 class StudentDashboard extends BaseDashboard {
   async build(user) {
+    const scope = await schoolScope(user);
+    const studentIds = await personalStudentIds(user);
     const [grades, attendance, invoices] = await Promise.all([
-      Grade.find({ studentId: user._id }).populate('subjectId', 'name code'),
-      Attendance.countDocuments({ 'records.studentId': user._id }),
-      FeeInvoice.find({ studentId: user._id }).sort({ dueDate: 1 }).limit(5),
+      Grade.find({ ...scope, studentId: { $in: studentIds } }).populate('subjectId', 'name code'),
+      Attendance.countDocuments({ ...scope, 'records.studentId': { $in: studentIds } }),
+      FeeInvoice.find({ ...scope, studentId: { $in: studentIds } }).sort({ dueDate: 1 }).limit(5),
     ]);
     return {
       title: 'Bảng điều khiển Học sinh',
@@ -176,11 +179,12 @@ class StudentDashboard extends BaseDashboard {
 
 class ParentDashboard extends BaseDashboard {
   async build(user) {
-    const childrenIds = user.parentOf || [];
+    const scope = await schoolScope(user);
+    const childrenIds = await personalStudentIds(user);
     const [grades, invoices, leave] = await Promise.all([
-      Grade.find({ studentId: { $in: childrenIds } }).populate('subjectId', 'name').populate('studentId', 'name'),
-      FeeInvoice.find({ studentId: { $in: childrenIds } }),
-      LeaveRequest.countDocuments({ requesterId: user._id }),
+      Grade.find({ ...scope, studentId: { $in: childrenIds } }).populate('subjectId', 'name').populate('studentId', 'name'),
+      FeeInvoice.find({ ...scope, studentId: { $in: childrenIds } }),
+      LeaveRequest.countDocuments({ ...scope, requesterId: user._id }),
     ]);
     return {
       title: 'Bảng điều khiển Phụ huynh',

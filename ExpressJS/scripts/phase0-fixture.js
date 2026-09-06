@@ -45,7 +45,7 @@ async function start() {
     await user('reader', 'QA_READER');
     await user('creator', 'QA_CREATOR');
     const librarian = await user('librarian', 'LIBRARIAN');
-    await user('admin', 'SCHOOL_ADMIN');
+    const admin = await user('admin', 'SCHOOL_ADMIN');
     await Assignment.create({ schoolId: school._id, teacherId: teacher._id, classId: cls._id, subjectId: subject._id, academicYearId: year._id });
     for (const pupil of [student, peer]) {
       await require('../src/models/Grade').create({ schoolId: school._id, classId: cls._id, subjectId: subject._id, academicYearId: year._id, studentId: pupil._id, teacherId: teacher._id, average: 8 });
@@ -54,12 +54,17 @@ async function start() {
     await require('../src/models/Attendance').create({ schoolId: school._id, classId: cls._id, teacherId: teacher._id, date: '2026-09-01', records: [student, peer].map(pupil => ({ studentId: pupil._id, status: 'PRESENT' })) });
     await require('../src/models/Exam').create({ schoolId: school._id, classId: cls._id, subjectId: subject._id, createdBy: teacher._id, title: `QA Exam ${i}`, status: 'PUBLISHED', showResults: false, questions: [{ prompt: '1 + 1?', type: 'MCQ', options: [{ key: 'A', text: '2' }, { key: 'B', text: '3' }], correctKey: 'A', points: 1 }] });
     await require('../src/models/LearningMaterial').create({ schoolId: school._id, classId: cls._id, uploadedBy: teacher._id, title: `QA Material ${i}`, fileUrl: '', isShared: true });
+    await require('../src/models/LearningMaterial').create({ schoolId: school._id, uploadedBy: admin._id, title: `QA Private Material ${i}`, isShared: false });
     const book = await require('../src/models/LibraryBook').create({ schoolId: school._id, title: `QA Book ${i}`, quantity: 2, available: 1 });
     await require('../src/models/BookLoan').create({ schoolId: school._id, bookId: book._id, borrowerId: student._id, dueAt: '2027-01-01' });
     for (const requester of [teacher, librarian]) await require('../src/models/FacilityRequest').create({ schoolId: school._id, requesterId: requester._id, itemName: `QA Room ${requester.name}`, from: '2026-10-01', to: '2026-10-02' });
     await require('../src/models/Announcement').create({ schoolId: school._id, createdBy: teacher._id, title: `QA Notice ${i}`, content: 'Fixture notice', scope: 'SCHOOL' });
+    await require('../src/models/Announcement').create({ schoolId: school._id, classId: cls._id, createdBy: teacher._id, title: `QA Parent Notice ${i}`, content: 'Parent meeting', scope: 'CLASS', targetRoles: ['PARENT'] });
     await require('../src/models/CalendarEvent').create({ schoolId: school._id, createdBy: teacher._id, title: `QA Event ${i}`, startAt: '2026-10-01', endAt: '2026-10-02' });
   }
+  // Deliberately stale legacy link: dashboard and every personal list must reject it.
+  const foreignChild = await User.findOne({ email: 'student1@test.invalid' }).select('_id');
+  await User.updateOne({ email: 'parent0@test.invalid' }, { $push: { parentOf: foreignChild._id } });
   await cache.reload();
   await require('../src/models/ExamAttempt').init();
   server = app.listen(8091, '127.0.0.1');

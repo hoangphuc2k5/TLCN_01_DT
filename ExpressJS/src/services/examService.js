@@ -39,15 +39,8 @@ const presentAttempt = (actor, attempt, showResults) => {
 
 const listExams = async (actor, query = {}) => {
   const filter = await examScope(actor);
-  if (query.classId) filter.classId = query.classId;
+  if (query.classId) filter.classId = objectId(query.classId, 'classId');
   if (query.status) filter.status = query.status;
-  if (actor.role === ROLES.STUDENT) {
-    filter.status = 'PUBLISHED';
-    if (actor.classId) filter.classId = actor.classId;
-  }
-  if (actor.role === ROLES.PARENT) {
-    filter.status = { $in: ['PUBLISHED', 'CLOSED'] };
-  }
   return Exam.find(filter)
     .populate('subjectId', 'name code')
     .populate('classId', 'name')

@@ -47,7 +47,7 @@ const listClasses = async (actor, query = {}) => {
     filter.$or = [{ _id: { $in: assignments.map(a => a.classId) } }, { homeroomTeacherId: actor._id }];
   }
   return classRepo.find(filter, {
-    populate: 'homeroomTeacherId academicYearId',
+    populate: [{ path: 'homeroomTeacherId', select: 'name code email' }, { path: 'academicYearId' }],
     limit: 200,
   });
 };
@@ -113,7 +113,7 @@ const listAssignments = async (actor, query = {}) => {
     filter.teacherId = actor._id;
   }
   return assignmentRepo.find(filter, {
-    populate: 'teacherId classId subjectId academicYearId',
+    populate: [{ path: 'teacherId', select: 'name code email' }, { path: 'classId' }, { path: 'subjectId' }, { path: 'academicYearId' }],
   });
 };
 
@@ -148,7 +148,7 @@ const listStudentsInClass = async (actor, classId) => {
   const personal = await personalStudentIds(actor);
   return userRepo.find(
     { schoolId: cls.schoolId, classId, role: ROLES.STUDENT, ...(personal !== null ? { _id: { $in: personal } } : {}) },
-    { select: '-password', sort: { name: 1 }, limit: 100 }
+    { select: 'name code classId schoolId role', sort: { name: 1 }, limit: 100 }
   );
 };
 
