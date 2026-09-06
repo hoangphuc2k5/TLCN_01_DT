@@ -23,6 +23,11 @@ const Year = require('../src/models/AcademicYear');
 const Leave = require('../src/models/LeaveRequest');
 const Timetable = require('../src/models/Timetable');
 const Message = require('../src/models/Message');
+const Book = require('../src/models/LibraryBook');
+const Loan = require('../src/models/BookLoan');
+const Material = require('../src/models/LearningMaterial');
+const Facility = require('../src/models/FacilityRequest');
+const Template = require('../src/models/SharedTemplate');
 const id = () => new mongoose.Types.ObjectId();
 let mongo, server, origin, schools, students, actors, classes, year, subjects;
 
@@ -215,4 +220,50 @@ test('class roster endpoint filters parent children and denies foreign school', 
   assert.equal(response.status, 200);
   assert.deepEqual((await response.json()).data.map(s => s.code), ['ST0']);
   assert.equal((await fetch(`${origin}/v1/api/classes/${classes[2]._id}/students`, { headers })).status, 404);
+});
+
+test('library mutation denies foreign book and invalid borrower without reducing stock', async () => {
+  const foreign = await Book.create({ schoolId: schools[1]._id, title: 'Foreign', quantity: 2, available: 2 });
+  assert.equal((await write(`/library/books/${foreign._id}`, actors.librarian, { title: 'Changed' }, 'PUT')).status, 404);
+  const own = await Book.create({ schoolId: schools[0]._id, title: 'Own', quantity: 2, available: 2 });
+  assert.equal((await write('/library/loans', actors.librarian, { bookId: own._id, borrowerId: students[3]._id, dueAt: '2026-12-01' }, 'POST')).status, 403);
+  assert.equal((await Book.findById(own._id)).available, 2);
+  const loan = await Loan.create({ schoolId: schools[1]._id, bookId: foreign._id, borrowerId: students[3]._id, dueAt: new Date() });
+  assert.equal((await write(`/library/loans/${loan._id}/return`, actors.librarian, {})).status, 404);
+});
+test('school admin cannot delete foreign material or approve foreign facility', async () => {
+  const material = await Material.create({ schoolId: schools[1]._id, title: 'Foreign', uploadedBy: actors.teacher._id });
+  assert.equal((await write(`/materials/${material._id}`, actors.school, {}, 'DELETE')).status, 404);
+  const facility = await Facility.create({ schoolId: schools[1]._id, requesterId: actors.teacher._id, itemName: 'Room', from: new Date(), to: new Date() });
+  assert.equal((await write(`/facilities/${facility._id}/review`, actors.school, { status: 'APPROVED' })).status, 404);
+});
+test('template apply rejects foreign-cluster template and role owner cannot edit global template', async () => {
+  const template = await Template.create({ name: 'Foreign', type: 'TRANSCRIPT', scope: 'CLUSTER', clusterId: schools[2].clusterId, createdBy: actors.global._id });
+  assert.equal((await write(`/schools/${schools[0]._id}/apply-template`, actors.school, { templateId: template._id }, 'POST')).status, 403);
+  assert.equal((await write(`/templates/${template._id}`, actors.school, { content: 'Changed' }, 'PUT')).status, 403);
+});
+test('user update cannot move schools or inject foreign class/children', async () => {
+  for (const body of [{ schoolId: schools[1]._id, classId: null }, { classId: classes[2]._id }]) {
+    assert.equal((await write(`/users/${students[0]._id}`, actors.school, body, 'PUT')).status, 403);
+  }
+  assert.equal((await write(`/users/${actors.parent._id}`, actors.school, { parentOf: [students[3]._id] }, 'PUT')).status, 403);
+  assert.equal(String((await User.findById(students[0]._id)).schoolId), String(schools[0]._id));
+});
+test('role creation cannot delegate permissions absent from actor', async () => {
+  const response = await write('/roles', actors.school, { code: 'ESCALATION', name: 'Escalation', level: 40, permissions: [{ resource: 'subscriptions', actions: ['create'] }] }, 'POST');
+  assert.equal(response.status, 403);
+  assert.equal(await Role.countDocuments({ code: 'ESCALATION' }), 0);
+});
+test('custom role is tenant-owned; other schools cannot edit or assign it', async () => {
+  const response = await write('/roles', actors.school, { code: 'LOCAL_READER', name: 'Local reader', level: 40, permissions: [{ resource: 'grades', actions: ['view'] }] }, 'POST');
+  assert.equal(response.status, 201);
+  const role = await Role.findOne({ code: 'LOCAL_READER' });
+  assert.equal(String(role.schoolId), String(schools[0]._id));
+  const foreignAdmin = await User.create({ name: 'Foreign admin', email: 'foreign-admin@test.invalid', schoolId: schools[1]._id, role: 'SCHOOL_ADMIN' });
+  assert.equal((await write(`/roles/${role._id}`, foreignAdmin, { name: 'Changed' }, 'PUT')).status, 403);
+  assert.equal((await write(`/users/${students[3]._id}`, foreignAdmin, { role: role.code }, 'PUT')).status, 403);
+});
+test('school admin cannot edit a globally shared role', async () => {
+  const role = await Role.findOne({ code: 'STUDENT' });
+  assert.equal((await write(`/roles/${role._id}`, actors.school, { permissions: [] }, 'PUT')).status, 403);
 });

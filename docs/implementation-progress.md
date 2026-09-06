@@ -95,6 +95,17 @@ Cập nhật: 06/09/2026. Đang thực hiện Đợt 0: phân quyền, tenant v�
 - Academic year/class/subject/assignment tạo mới dùng whitelist; đổi schoolId qua payload không chuyển dữ liệu sang trường khác.
 - Kiểm thử `npm test` backend: **61/61 đạt**, thêm ca ghi đúng phân công, ghi sai lớp/HS/trường, nâng role qua gán GVCN, thu tiền âm/0 và danh sách HS của PH.
 - Không migration. Tiếp theo: quyền ghi các module tài nguyên, thi, user/role và UI còn lại. Chưa đánh dấu hoàn tất 0.5b.
+- Push thành công: `dcd384a`.
+
+### Bàn giao tiếp: quyền sở hữu tài nguyên và role
+
+- Nhánh `feat/phase0-resource-role-ownership`, kế thừa `feat/phase0-academic-write-scope`.
+- Thư viện/học liệu/CSVC: lấy bản ghi trong scope trước sửa/xóa/duyệt/mượn/trả; người mượn phải cùng trường. Sửa sách chỉ nhận metadata, không cho sửa tenant hoặc tồn kho tùy ý. CSVC kiểm tra trạng thái và không tự duyệt.
+- Mẫu: chỉ Super Admin sửa mẫu hệ thống, quản lý cụm sửa mẫu của cụm; apply kiểm tra mẫu tồn tại/active và đúng cụm của trường.
+- User: kiểm tra school/class/parentOf trước tạo/sửa, suy cluster từ trường, ngăn chuyển trường ngoài scope và gán role tenant khác.
+- Role mới thêm schoolId/clusterId; người quản lý chỉ sửa/xóa role do phạm vi mình sở hữu, không cấp permission mình không có. Role cũ không có metadata coi là role dùng chung, chỉ Super Admin sửa; không đoán và tự backfill quyền sở hữu. Cần Super Admin tạo bản role riêng cho trường nếu muốn chỉnh role dùng chung.
+- Schema thêm trường nullable, không cần migration phá dữ liệu. Cache/API trả scope role để frontend kiểm tra nút quản lý.
+- `npm test` backend: **68/68 đạt**. Chưa hoàn tất thi online và nút nghiệp vụ/E2E.
 
 1. Hoàn thành **0.2b**: các trang FeesPage, GradesPage, AttendancePage, MaterialsPage, ExamsPage, LibraryPage, FacilitiesPage, TemplatesPage còn dùng role/canManage để bật nhiều action chung. Tách từng create/update/delete/execute; đối chiếu route mới trước khi sửa.
 2. Hoàn thành **0.5b**: scope export, JSON điểm/phí/điểm danh và workflow đã được sửa. Các module khác chưa được kiểm tra toàn bộ. Không coi kiểm thử 51 case là chứng minh toàn ứng dụng đã đúng tenant.

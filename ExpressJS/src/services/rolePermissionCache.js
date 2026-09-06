@@ -26,6 +26,8 @@ const normalizeRoleDoc = (doc) => {
     description: obj.description || '',
     level: obj.level,
     isSystem: !!obj.isSystem,
+    schoolId: obj.schoolId || null,
+    clusterId: obj.clusterId || null,
     status: obj.status,
     permissions: obj.permissions || [],
   };
