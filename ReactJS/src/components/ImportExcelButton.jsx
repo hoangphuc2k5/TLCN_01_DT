@@ -61,6 +61,7 @@ const ImportExcelButton = ({ type, onDone, label = 'Import Excel' }) => {
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
             Tải file mẫu, điền dữ liệu rồi tải lên (.xlsx). Hệ thống báo từng dòng lỗi nếu có.
+            {type === 'users' && ' Nếu dùng đăng nhập mật khẩu, hãy điền mật khẩu riêng cho từng tài khoản trong cột password (ít nhất 15 ký tự).'}
           </Typography.Paragraph>
           <Space>
             <Button icon={<DownloadOutlined />} onClick={downloadTemplate}>

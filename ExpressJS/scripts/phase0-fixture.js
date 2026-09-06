@@ -1,6 +1,6 @@
 // Local E2E only: never connects to MONGODB_URI or imports the production seed.
 Object.assign(process.env, {
-  NODE_ENV: 'test', JWT_SECRET: 'phase0-local-fixture-secret',
+  NODE_ENV: 'test', JWT_SECRET: 'phase0-local-fixture-secret', AUTH_MFA_ENCRYPTION_KEY: 'ab'.repeat(32),
   ALLOW_PASSWORD_LOGIN: 'true', AUTH_GMAIL_ONLY: 'false',
   GOOGLE_CLIENT_ID: '', GMAIL_USER: '', GMAIL_APP_PASSWORD: '',
   FILE_STORAGE_DRIVER: 'local', FILE_MAX_BYTES: '10485760', FILE_DEFAULT_QUOTA_BYTES: '5368709120',
@@ -45,6 +45,7 @@ async function start() {
     const subject = await Subject.create({ schoolId: school._id, name: 'QA Math', code: 'MATH' });
     const user = (name, role, extra = {}) => User.create({ name: `${name} ${i}`, email: `${name}${i}@test.invalid`, password, role, schoolId: school._id, clusterId: cluster._id, ...extra });
     const teacher = await user('teacher', 'SUBJECT_TEACHER');
+    await user('security', 'SUBJECT_TEACHER');
     const student = await user('student', 'STUDENT', { classId: cls._id, code: `QA-ST${i}` });
     const peer = await user('peer', 'STUDENT', { classId: cls._id, code: `QA-PEER${i}` });
     await user('parent', 'PARENT', { parentOf: [student._id] });

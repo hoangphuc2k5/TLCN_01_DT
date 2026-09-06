@@ -1,6 +1,20 @@
 # Tiến trình triển khai
 
-Cập nhật: 06/09/2026. Phase 1 đã có kho file (1.1) và job/queue (1.2). Backend hiện đạt 123/123, frontend policy 10/10; E2E đầy đủ 27/27, build đạt. Điểm bàn giao mới ở mục 1.2 bên dưới; lịch sử trước đó được giữ lại để đối chiếu.
+Cập nhật: 06/09/2026. Phase 1 đã có kho file (1.1), job/queue (1.2), 2FA và password policy (1.3). Backend hiện đạt 145/145, frontend policy 10/10; E2E đầy đủ 29/29, build đạt. Điểm bàn giao mới ở mục 1.3 bên dưới; lịch sử trước đó được giữ lại để đối chiếu.
+
+## Phase 1 — 1.3 2FA và password policy
+
+- Nhánh bàn giao `feat/phase1-auth-security`, nền `feat/phase1-job-queue` tại `6cee993`. Không merge vào main hoặc integration/phase0.
+- TOTP qua QR/khóa nhập tay, xác nhận bật, tắt, cấp lại 10 mã khôi phục dùng một lần; màn hình đăng nhập xử lý challenge trước khi có JWT. Cả mật khẩu và Google đều đi qua 2FA nếu tài khoản đã bật.
+- Secret mã hóa AES-256-GCM gắn user ID; challenge/recovery chỉ lưu hash. MongoDB CAS theo revision chống request đồng thời, mã dùng lại và ghi đè trạng thái mới; hạn setup 10 phút, challenge 5 phút. Throttle chia sẻ MongoDB theo tài khoản/IP, không reset hạn mức khi xin challenge mới.
+- Policy chung cho tạo user/import/đổi/reset: tối thiểu 15 ký tự, tối đa 72 byte UTF-8, bcrypt cost 12, lịch sử 5 mật khẩu và chặn một số mẫu dễ đoán. Bỏ mật khẩu mặc định chung khi import/reset. Admin reset tạo mật khẩu tạm riêng và buộc đổi trước khi dùng nghiệp vụ; giữ 2FA.
+- Bật/tắt/cấp lại mã/đổi/reset tăng sessionVersion và xóa challenge/setup; middleware thu hồi JWT cũ. Bí mật không xuất hiện trong profile/danh sách/audit body. API bảo mật chỉ thao tác chính tài khoản đang đăng nhập, admin reset giữ quyền/scope cũ.
+- Cấu trúc: adapter `totpProvider`/`googleIdentity`, policy `passwordPolicy`, repository `authSecurityRepository`, service điều phối `authSecurityService`, cấp phiên riêng `authSessionService`; không có phụ thuộc vòng giữa cấp phiên và 2FA.
+- Kiểm thử cuối: **145/145 backend** (thêm 22 test auth), **10/10 frontend policy**, **29/29 E2E đầy đủ**, production build đạt. E2E mới kiểm tra bật → nhập sai → recovery login → tắt → đổi mật khẩu; admin reset → redirect Tài khoản sau tải lại → bắt đổi mật khẩu. `git diff --check` đạt. Vite test chạy `CI=true` để không thoát khi stdin đóng trên Windows; không thay cấu hình Vite chạy thực tế.
+- Tất cả test dùng MongoDB/file tạm và Google SDK giả; không kết nối Atlas, Google/Gmail/S3 thật. Không thay các `.env` người dùng hoặc file production example chưa track. Build còn cảnh báo chunk lớn (~1.54 MB).
+- Cần cấu hình khóa `AUTH_MFA_ENCRYPTION_KEY` 64 hex trong môi trường thật để bật TOTP. Chưa có khóa thì enrollment báo chưa khả dụng; không tự bỏ qua 2FA đã bật. Cấu hình, API, giới hạn và khôi phục: [phase1-auth-security.md](phase1-auth-security.md).
+- Tiếp theo: **1.4 Backup/restore** từ nhánh này. Thiết kế phải tính tới private storage, dữ liệu queue và User.security; sao lưu khóa 2FA riêng, giữ user ID khi restore, xử lý thu hồi phiên sau restore. Chưa chạy backup/restore hoặc worker trên DB người dùng.
+- Giới hạn 1.3: TOTP tự nguyện, policy cố định dùng chung; chưa bắt buộc MFA theo tenant/role, chưa có WebAuthn/SMS OTP, kiểm tra mật khẩu rò rỉ đầy đủ, key rotation hoặc UAT Google thật. Không coi toàn bộ spec bảo mật doanh nghiệp là hoàn tất.
 
 ## Phase 1 — 1.2 Job/queue
 
@@ -29,7 +43,7 @@ Cập nhật: 06/09/2026. Phase 1 đã có kho file (1.1) và job/queue (1.2). B
 
 - [x] 1.1 Kho file theo tenant tích hợp học liệu: code, kiểm thử local, adapter S3 và tài liệu.
 - [x] 1.2 Job/queue: retry, idempotency, trạng thái, lịch chạy một lần và handler email/xóa file; phục hồi DELETING, giữ UPLOADING cho bảo trì.
-- [ ] 1.3 2FA và password policy (spec 2.6).
+- [x] 1.3 TOTP/recovery + password policy chung, thu hồi phiên và bắt đổi mật khẩu tạm; giới hạn triển khai ghi ở mục 1.3.
 - [ ] 1.4 Backup/restore (spec 2.7).
 - [ ] Smoke test S3/IAM thực tế trước khi chọn triển khai adapter S3; không chặn dùng local.
 

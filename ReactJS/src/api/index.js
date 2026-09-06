@@ -4,6 +4,9 @@ export const loginApi = (email, password) =>
   axios.post('/v1/api/auth/login', { email, password });
 
 export const getMeApi = () => axios.get('/v1/api/auth/me');
+export const verifyMfaApi = (data) => axios.post('/v1/api/auth/mfa/verify', data);
+export const getSecurityApi = () => axios.get('/v1/api/auth/security');
+export const securityActionApi = (action, data) => axios.post(`/v1/api/auth/${action}`, data);
 
 export const updateProfileApi = (data) => axios.put('/v1/api/auth/profile', data);
 

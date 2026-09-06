@@ -1,6 +1,6 @@
 const ApiError = require('../utils/ApiError');
 const { userRepo, schoolRepo } = require('../repositories');
-const { hashPassword } = require('./authService');
+const { hash: hashPassword } = require('./passwordPolicy');
 const { isGmailAddress } = require('../utils/gmail');
 const { ROLES } = require('../constants/roles');
 const { STATUS } = require('../constants/status');
@@ -177,7 +177,7 @@ const createUser = async (actor, data) => {
   const target = { role: roleCode, schoolId: resolvedSchoolId, clusterId: resolvedClusterId, classId, parentOf };
   await validateUserReferences(actor, target);
   resolvedSchoolId = target.schoolId; resolvedClusterId = target.clusterId;
-  const hashed = password ? await hashPassword(password) : null;
+  const hashed = password ? await hashPassword(password, { email: normalizedEmail }) : null;
   const user = await userRepo.create({
     name,
     email: normalizedEmail,
@@ -242,25 +242,15 @@ const updateUser = async (actor, id, data) => {
   return user.toSafeObject();
 };
 
-const getDefaultPassword = () =>
-  (process.env.DEFAULT_PASSWORD || 'Password@123').trim() || 'Password@123';
+const getDefaultPassword = require('./passwordPolicy').temporaryPassword;
 
 const resetPassword = async (actor, id) => {
-  const existing = await userRepo.findById(id);
+  const existing = await require('../repositories/authSecurityRepository').load(id);
   if (!existing) throw new ApiError(404, 'Không tìm thấy người dùng');
-
   await assertCanManageUser(actor, existing);
-
   const plain = getDefaultPassword();
-  const hashed = await hashPassword(plain);
-  const authProvider =
-    existing.authProvider === 'google' || existing.googleId ? 'both' : 'password';
-
-  const user = await userRepo.updateById(id, { password: hashed, authProvider });
-  return {
-    user: user.toSafeObject(),
-    defaultPassword: plain,
-  };
+  const user = await require('./authSecurityService').replacePassword(existing, plain, true);
+  return { user: user.toSafeObject(), defaultPassword: plain };
 };
 
 const deleteUser = async (actor, id) => {

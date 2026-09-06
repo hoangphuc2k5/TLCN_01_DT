@@ -22,11 +22,21 @@ router.get('/files/:id/download', authorizeRead('materials', { personal: true })
 router.get('/health', (req, res) => res.json({ EC: 0, EM: 'OK', data: { status: 'up' } }));
 
 // Auth
+const authSecurity = require('../controllers/authSecurityController');
+router.use('/auth', authSecurity.noStore);
+router.post(['/auth/login', '/auth/google', '/auth/mfa/verify', '/auth/mfa/setup', '/auth/mfa/confirm', '/auth/mfa/disable', '/auth/mfa/recovery', '/auth/password'], authSecurity.limit);
 router.post('/auth/login', authController.loginValidators, validate, authController.login);
 router.post('/auth/google', authController.loginGoogle);
 router.get('/auth/config', authController.authConfig);
 router.get('/auth/me', authController.me);
 router.put('/auth/profile', authController.updateProfile);
+router.get('/auth/security', authSecurity.status);
+router.post('/auth/mfa/verify', authSecurity.verify);
+router.post('/auth/mfa/setup', audit('MFA_SETUP', 'User'), authSecurity.setup);
+router.post('/auth/mfa/confirm', audit('MFA_ENABLE', 'User'), authSecurity.confirm);
+router.post('/auth/mfa/disable', audit('MFA_DISABLE', 'User'), authSecurity.disable);
+router.post('/auth/mfa/recovery', audit('MFA_RECOVERY_ROTATE', 'User'), authSecurity.recovery);
+router.post('/auth/password', audit('CHANGE_PASSWORD', 'User'), authSecurity.password);
 
 // Dashboard & notifications
 router.get('/dashboard', c.getDashboard);
