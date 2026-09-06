@@ -28,6 +28,8 @@ const Loan = require('../src/models/BookLoan');
 const Material = require('../src/models/LearningMaterial');
 const Facility = require('../src/models/FacilityRequest');
 const Template = require('../src/models/SharedTemplate');
+const Exam = require('../src/models/Exam');
+const Attempt = require('../src/models/ExamAttempt');
 const id = () => new mongoose.Types.ObjectId();
 let mongo, server, origin, schools, students, actors, classes, year, subjects;
 
@@ -231,11 +233,12 @@ test('library mutation denies foreign book and invalid borrower without reducing
   const loan = await Loan.create({ schoolId: schools[1]._id, bookId: foreign._id, borrowerId: students[3]._id, dueAt: new Date() });
   assert.equal((await write(`/library/loans/${loan._id}/return`, actors.librarian, {})).status, 404);
 });
-test('school admin cannot delete foreign material or approve foreign facility', async () => {
+test('material and facility mutations require both permission and tenant scope', async () => {
   const material = await Material.create({ schoolId: schools[1]._id, title: 'Foreign', uploadedBy: actors.teacher._id });
   assert.equal((await write(`/materials/${material._id}`, actors.school, {}, 'DELETE')).status, 404);
   const facility = await Facility.create({ schoolId: schools[1]._id, requesterId: actors.teacher._id, itemName: 'Room', from: new Date(), to: new Date() });
-  assert.equal((await write(`/facilities/${facility._id}/review`, actors.school, { status: 'APPROVED' })).status, 404);
+  assert.equal((await write(`/facilities/${facility._id}/review`, actors.school, { status: 'APPROVED' })).status, 403);
+  assert.equal((await write(`/facilities/${facility._id}/review`, actors.librarian, { status: 'APPROVED' })).status, 404);
 });
 test('template apply rejects foreign-cluster template and role owner cannot edit global template', async () => {
   const template = await Template.create({ name: 'Foreign', type: 'TRANSCRIPT', scope: 'CLUSTER', clusterId: schools[2].clusterId, createdBy: actors.global._id });
@@ -266,4 +269,83 @@ test('custom role is tenant-owned; other schools cannot edit or assign it', asyn
 test('school admin cannot edit a globally shared role', async () => {
   const role = await Role.findOne({ code: 'STUDENT' });
   assert.equal((await write(`/roles/${role._id}`, actors.school, { permissions: [] }, 'PUT')).status, 403);
+});
+
+const makeExam = (overrides = {}) => Exam.create({ schoolId: schools[0]._id, classId: classes[0]._id, subjectId: subjects[0]._id, createdBy: actors.teacher._id, title: 'Scope exam', status: 'PUBLISHED', questions: [{ type: 'MCQ', prompt: '1+1?', options: [{ key: 'A', text: '2' }], correctKey: 'A', points: 1 }, { type: 'ESSAY', prompt: 'Explain', points: 3 }], ...overrides });
+const read = (path, actor) => fetch(`${origin}/v1/api${path}`, { headers: { Authorization: `Bearer ${jwt.sign({ _id: actor._id }, process.env.JWT_SECRET)}` } });
+test('directory exposes only contact fields and populated users omit password hashes', async () => {
+  await User.updateOne({ _id: actors.teacher._id }, { password: 'test-hash-never-return', address: 'Private address', phone: 'Private phone' });
+  const response = await read('/users/directory', actors.teacher);
+  assert.equal(response.status, 200);
+  const users = (await response.json()).data;
+  assert.ok(users.length > 0);
+  for (const u of users) for (const key of ['password', 'phone', 'address', 'parentOf', 'googleId']) assert.equal(u[key], undefined);
+  const populated = await Attendance.findOne({ teacherId: actors.teacher._id }).populate('teacherId');
+  assert.equal(populated.teacherId.password, undefined);
+});
+test('password login still works with password excluded by default', async () => {
+  process.env.ALLOW_PASSWORD_LOGIN = 'true';
+  const bcrypt = require('bcrypt');
+  await User.updateOne({ _id: actors.teacher._id }, { password: await bcrypt.hash('Fixture@Test123', 4) });
+  const response = await fetch(`${origin}/v1/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: actors.teacher.email, password: 'Fixture@Test123' }) });
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).data.user.password, undefined);
+});
+test('read-only report role cannot read exam keys or create calendar events', async () => {
+  assert.equal((await read('/exams', actors.reader)).status, 403);
+  assert.equal((await write('/calendar', actors.reader, { title: 'Forbidden' }, 'POST')).status, 403);
+});
+test('authentication rejects a custom role from another school', async () => {
+  await Role.create({ code: 'WRONG_SCOPE', name: 'Wrong scope', schoolId: schools[1]._id, permissions: [{ resource: 'grades', actions: ['view'] }] });
+  await cache.reload();
+  const user = await User.create({ name: 'Wrong scope', email: 'wrong-scope@test.invalid', schoolId: schools[0]._id, role: 'WRONG_SCOPE' });
+  assert.equal((await read('/grades', user)).status, 403);
+});
+test('exam read hides answer keys from parents and rejects foreign students', async () => {
+  const exam = await makeExam();
+  const get = actor => fetch(`${origin}/v1/api/exams/${exam._id}`, { headers: { Authorization: `Bearer ${jwt.sign({ _id: actor._id }, process.env.JWT_SECRET)}` } });
+  const parent = await get(actors.parent);
+  assert.equal(parent.status, 200);
+  assert.ok((await parent.json()).data.questions.every(q => q.correctKey === undefined));
+  assert.equal((await get(students[3])).status, 404);
+});
+test('exam mutation cannot inject foreign class', async () => {
+  const exam = await makeExam();
+  assert.equal((await write(`/exams/${exam._id}`, actors.school, { classId: classes[2]._id }, 'PUT')).status, 404);
+});
+test('unassigned teacher cannot grade an attempt', async () => {
+  const exam = await makeExam({ classId: classes[1]._id });
+  const attempt = await Attempt.create({ schoolId: schools[0]._id, examId: exam._id, studentId: students[2]._id, status: 'SUBMITTED' });
+  assert.equal((await write(`/exam-attempts/${attempt._id}/grade`, actors.teacher, { grades: [] }, 'POST')).status, 404);
+});
+test('concurrent start cannot exceed one attempt', async () => {
+  await Attempt.init();
+  const exam = await makeExam();
+  const responses = await Promise.all([0, 1].map(() => write(`/exams/${exam._id}/attempts`, students[0], {}, 'POST')));
+  assert.equal(responses.filter(r => r.status >= 200 && r.status < 300).length, 1);
+  assert.equal(await Attempt.countDocuments({ examId: exam._id }), 1);
+});
+test('submission rejects wrong owner, duplicate questions and hides disabled results', async () => {
+  const exam = await makeExam({ showResults: false });
+  const attempt = await Attempt.create({ schoolId: schools[0]._id, examId: exam._id, studentId: students[0]._id });
+  const answer = { questionId: exam.questions[0]._id, answerKey: 'A' };
+  assert.equal((await write(`/exam-attempts/${attempt._id}/submit`, students[1], { answers: [answer] }, 'POST')).status, 403);
+  assert.equal((await write(`/exam-attempts/${attempt._id}/submit`, students[0], { answers: [answer, answer] }, 'POST')).status, 400);
+  const response = await write(`/exam-attempts/${attempt._id}/submit`, students[0], { answers: [answer] }, 'POST');
+  assert.equal(response.status, 200);
+  const data = (await response.json()).data;
+  assert.equal(data.score, null);
+  assert.ok(data.answers.every(a => a.pointsAwarded === undefined && a.isCorrect === undefined));
+  assert.equal((await Attempt.findById(attempt._id)).score, 1);
+});
+test('essay regrade recalculates total without accumulating old awarded points', async () => {
+  const exam = await makeExam();
+  const attempt = await Attempt.create({ schoolId: schools[0]._id, examId: exam._id, studentId: students[0]._id, status: 'SUBMITTED', answers: [{ questionId: exam.questions[0]._id, answerKey: 'A', isCorrect: true, pointsAwarded: 1 }, { questionId: exam.questions[1]._id, answerText: 'Because', pointsAwarded: 0 }] });
+  const grade = { questionId: exam.questions[1]._id, pointsAwarded: 2 };
+  for (let i = 0; i < 2; i++) {
+    const response = await write(`/exam-attempts/${attempt._id}/grade`, actors.teacher, { grades: [grade] }, 'POST');
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).data.score, 3);
+  }
+  assert.equal((await write(`/exam-attempts/${attempt._id}/grade`, actors.teacher, { grades: [{ ...grade, pointsAwarded: 100 }] }, 'POST')).status, 400);
 });

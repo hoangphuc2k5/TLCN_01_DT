@@ -16,6 +16,7 @@ const examAttemptSchema = new mongoose.Schema(
     schoolId: { type: mongoose.Schema.Types.ObjectId, ref: 'School', required: true },
     examId: { type: mongoose.Schema.Types.ObjectId, ref: 'Exam', required: true },
     studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    attemptNumber: { type: Number },
     answers: [answerSchema],
     score: { type: Number, default: 0 },
     maxScore: { type: Number, default: 0 },
@@ -27,5 +28,6 @@ const examAttemptSchema = new mongoose.Schema(
 );
 
 examAttemptSchema.index({ examId: 1, studentId: 1 });
+examAttemptSchema.index({ examId: 1, studentId: 1, attemptNumber: 1 }, { unique: true, partialFilterExpression: { attemptNumber: { $exists: true } } });
 
 module.exports = mongoose.model('ExamAttempt', examAttemptSchema);

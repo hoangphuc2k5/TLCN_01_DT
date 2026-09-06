@@ -11,12 +11,7 @@ const User = require('../models/User');
 
 // Audit
 const listAuditLogs = async (actor, query = {}) => {
-  const filter = {};
-  if (actor.role === ROLES.SUPER_ADMIN) {
-    if (query.schoolId) filter.schoolId = query.schoolId;
-  } else {
-    filter.schoolId = actor.schoolId;
-  }
+  const filter = { $and: [await schoolScope(actor), query.schoolId ? { schoolId: objectId(query.schoolId) } : {}] };
   if (query.action) filter.action = query.action;
   if (query.resource) filter.resource = query.resource;
   return AuditLog.find(filter)
@@ -80,8 +75,7 @@ const updateTicket = async (actor, id, data) => {
 
 // Conduct
 const listConduct = async (actor, query = {}) => {
-  const filter = {};
-  if (actor.schoolId) filter.schoolId = actor.schoolId;
+  const filter = await schoolScope(actor);
   if (query.studentId) filter.studentId = query.studentId;
   if (query.semester) filter.semester = Number(query.semester);
   if (actor.role === ROLES.STUDENT) filter.studentId = actor._id;

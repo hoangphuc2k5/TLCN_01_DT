@@ -16,7 +16,7 @@ const { objectId } = require('./dataScope');
 
 const validateUserReferences = async (actor, target) => {
   const role = await roleCache.getRole(target.role);
-  if (!role || !visibleRole(target, role)) throw new ApiError(403, 'Vai trò không thuộc phạm vi tài khoản');
+  if (!role) throw new ApiError(403, 'Vai trò không tồn tại');
   if (target.role === ROLES.SUPER_ADMIN) {
     if (actor.role !== ROLES.SUPER_ADMIN) throw new ApiError(403, 'Chỉ Super Admin');
     target.schoolId = null; target.clusterId = null;
@@ -28,6 +28,7 @@ const validateUserReferences = async (actor, target) => {
     target.schoolId = await targetSchool(actor, target.schoolId);
     target.clusterId = (await schoolRepo.findById(target.schoolId)).clusterId;
   }
+  if (!visibleRole(target, role)) throw new ApiError(403, 'Vai trò không thuộc phạm vi tài khoản');
   if (target.classId) await reference(Class, target.classId, target.schoolId);
   if (!Array.isArray(target.parentOf || [])) throw new ApiError(400, 'parentOf phải là danh sách');
   for (const studentId of target.parentOf || []) {
@@ -109,8 +110,8 @@ const listUsers = async (actor, query = {}) => {
   }
 
   const users = await userRepo.find(filter, {
-    select: '-password',
-    populate: 'schoolId classId',
+    select: query.scope === 'directory' ? 'name email code role schoolId classId' : '-password',
+    populate: [{ path: 'schoolId', select: 'name code' }, { path: 'classId', select: 'name gradeLevel' }],
     limit: Number(query.limit) || 100,
   });
 

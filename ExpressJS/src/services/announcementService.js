@@ -4,6 +4,7 @@ const eventBus = require('../patterns/eventBus');
 const User = require('../models/User');
 const { ROLES } = require('../constants/roles');
 const { ANNOUNCEMENT_SCOPE } = require('../constants/status');
+const { academicReferences, targetSchool } = require('./writeScope');
 
 const listAnnouncements = async (actor, query = {}) => {
   const or = [];
@@ -42,6 +43,8 @@ const createAnnouncement = async (actor, data) => {
     scope = ANNOUNCEMENT_SCOPE.SCHOOL;
   }
 
+  if (data.classId) await academicReferences(actor, data, { homeroomAllowed: true });
+  if ([ANNOUNCEMENT_SCOPE.SCHOOL, ANNOUNCEMENT_SCOPE.CLASS].includes(scope)) await targetSchool(actor, actor.schoolId || data.schoolId);
   const announcement = await announcementRepo.create({
     title: data.title,
     content: data.content,
@@ -74,11 +77,10 @@ const createAnnouncement = async (actor, data) => {
 const deleteAnnouncement = async (actor, id) => {
   const item = await announcementRepo.findById(id);
   if (!item) throw new ApiError(404, 'Không tìm thấy thông báo');
-  if (
-    actor.role !== ROLES.SUPER_ADMIN &&
-    String(item.createdBy) !== String(actor._id) &&
-    String(item.schoolId) !== String(actor.schoolId)
-  ) {
+  const inScope = actor.role === ROLES.SUPER_ADMIN ||
+    (actor.role === ROLES.CLUSTER_ADMIN && item.clusterId && String(item.clusterId) === String(actor.clusterId)) ||
+    (actor.schoolId && item.schoolId && String(item.schoolId) === String(actor.schoolId));
+  if (!inScope) {
     throw new ApiError(403, 'Không có quyền xóa');
   }
   await announcementRepo.deleteById(id);
