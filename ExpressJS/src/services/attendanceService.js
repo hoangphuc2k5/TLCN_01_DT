@@ -3,6 +3,8 @@ const { attendanceRepo } = require('../repositories');
 const eventBus = require('../patterns/eventBus');
 const { ROLES } = require('../constants/roles');
 const { buildExportScope } = require('./exportScopeService');
+const { academicReferences, reference, pick } = require('./writeScope');
+const User = require('../models/User');
 
 const listAttendance = async (actor, query = {}) => {
   const { filter, studentIds } = await buildExportScope(actor, 'attendance', query);
@@ -27,10 +29,18 @@ const listAttendance = async (actor, query = {}) => {
 };
 
 const recordAttendance = async (actor, data) => {
-  const schoolId = actor.schoolId;
   const { classId, subjectId, date, period, records } = data;
   if (!classId || !date || !records?.length) {
     throw new ApiError(400, 'Thiếu classId/date/records');
+  }
+  const cls = await academicReferences(actor, data, { homeroomAllowed: !subjectId });
+  const schoolId = cls.schoolId;
+  if (!Array.isArray(records) || !Number.isFinite(new Date(date).getTime())) throw new ApiError(400, 'Điểm danh không hợp lệ');
+  const ids = new Set();
+  for (const r of records) {
+    await reference(User, r.studentId, schoolId, { classId: cls._id, role: ROLES.STUDENT });
+    if (ids.has(String(r.studentId))) throw new ApiError(400, 'Học sinh bị trùng');
+    ids.add(String(r.studentId));
   }
 
   const payload = {
@@ -40,7 +50,7 @@ const recordAttendance = async (actor, data) => {
     teacherId: actor._id,
     date: new Date(date),
     period: period || 1,
-    records,
+    records: records.map(r => pick(r, ['studentId', 'status', 'note'])),
   };
 
   // upsert by class+date+period

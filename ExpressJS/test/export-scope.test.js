@@ -162,3 +162,57 @@ test('cross-school message and unrelated reply are rejected without creating mes
   assert.equal((await write('/messages', students[0], { receiverId: students[1]._id, body: 'Test', parentMessageId: id() }, 'POST')).status, 403);
   assert.equal(await Message.countDocuments(), initial);
 });
+
+test('grade write accepts assigned teacher and rejects another class or student', async () => {
+  const payload = { academicYearId: year._id, classId: classes[0]._id, subjectId: subjects[0]._id, studentId: students[0]._id, scores: [{ type: 'ORAL', score: 7 }] };
+  assert.equal((await write('/grades', actors.teacher, payload, 'POST')).status, 200);
+  assert.equal((await write('/grades', actors.teacher, { ...payload, classId: classes[1]._id, studentId: students[2]._id }, 'POST')).status, 403);
+  assert.equal((await write('/grades', actors.school, { ...payload, studentId: students[3]._id }, 'POST')).status, 403);
+});
+test('teacher cannot append score to an unassigned subject', async () => {
+  const grade = await Grade.findOne({ studentId: students[0]._id, subjectId: subjects[1]._id });
+  const before = grade.scores.length;
+  assert.equal((await write(`/grades/${grade._id}/scores`, actors.teacher, { type: 'ORAL', score: 10 }, 'POST')).status, 403);
+  assert.equal((await Grade.findById(grade._id)).scores.length, before);
+});
+test('attendance rejects student from another class before changing records', async () => {
+  const count = await Attendance.countDocuments();
+  const payload = { classId: classes[0]._id, subjectId: subjects[0]._id, date: '2026-09-06', records: [{ studentId: students[2]._id, status: 'PRESENT' }] };
+  assert.equal((await write('/attendance', actors.teacher, payload, 'POST')).status, 403);
+  assert.equal(await Attendance.countDocuments(), count);
+});
+test('school cannot create fee for a foreign student', async () => {
+  const count = await FeeInvoice.countDocuments();
+  assert.equal((await write('/fees', actors.school, { studentId: students[3]._id, academicYearId: year._id, title: 'Test', amount: 100, dueDate: '2026-10-01' }, 'POST')).status, 403);
+  assert.equal(await FeeInvoice.countDocuments(), count);
+});
+test('payment cannot use zero or negative amount', async () => {
+  const invoice = await FeeInvoice.findOne({ studentId: students[0]._id });
+  for (const amount of [0, -1]) assert.equal((await write('/payments', actors.school, { invoiceId: invoice._id, amount }, 'POST')).status, 400);
+});
+test('subject mutation checks tenant and ignores injected schoolId', async () => {
+  const foreign = await Subject.create({ name: 'Foreign', code: 'FOREIGN', schoolId: schools[1]._id });
+  assert.equal((await write(`/subjects/${foreign._id}`, actors.school, { name: 'Changed' }, 'PUT')).status, 404);
+  assert.equal((await write(`/subjects/${subjects[0]._id}`, actors.school, { name: 'MATH', schoolId: schools[1]._id }, 'PUT')).status, 200);
+  assert.equal(String((await Subject.findById(subjects[0]._id)).schoolId), String(schools[0]._id));
+});
+test('class update cannot promote arbitrary user to homeroom teacher', async () => {
+  assert.equal((await write(`/classes/${classes[0]._id}`, actors.school, { homeroomTeacherId: students[0]._id }, 'PUT')).status, 403);
+  assert.equal((await User.findById(students[0]._id)).role, 'STUDENT');
+});
+test('assignment validates all tenant references', async () => {
+  const payload = { teacherId: actors.teacher._id, classId: classes[0]._id, subjectId: subjects[0]._id, academicYearId: year._id };
+  assert.equal((await write('/assignments', actors.school, { ...payload, classId: classes[2]._id }, 'POST')).status, 403);
+});
+test('assignment deletion cannot cross school', async () => {
+  const assignment = await Assignment.create({ teacherId: actors.teacher._id, schoolId: schools[1]._id, classId: classes[2]._id, subjectId: subjects[0]._id, academicYearId: year._id });
+  assert.equal((await write(`/assignments/${assignment._id}`, actors.school, {}, 'DELETE')).status, 404);
+  assert.ok(await Assignment.findById(assignment._id));
+});
+test('class roster endpoint filters parent children and denies foreign school', async () => {
+  const headers = { Authorization: `Bearer ${jwt.sign({ _id: actors.parent._id }, process.env.JWT_SECRET)}` };
+  const response = await fetch(`${origin}/v1/api/classes/${classes[0]._id}/students`, { headers });
+  assert.equal(response.status, 200);
+  assert.deepEqual((await response.json()).data.map(s => s.code), ['ST0']);
+  assert.equal((await fetch(`${origin}/v1/api/classes/${classes[2]._id}/students`, { headers })).status, 404);
+});
