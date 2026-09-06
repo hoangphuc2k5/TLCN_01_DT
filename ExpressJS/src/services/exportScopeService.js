@@ -9,7 +9,7 @@ const buildExportScope = async (actor, resource, query = {}) => {
   const teacher = [ROLES.SUBJECT_TEACHER, ROLES.HOMEROOM_TEACHER].includes(actor.role);
   const resources = personal ? ['own_data'] : teacher ? [resource] : [resource, 'reports'];
   const allowed = await Promise.all(resources.map(r => cache.canAccess(actor.role, r, 'view')));
-  if (!allowed.some(Boolean)) throw new ApiError(403, 'Không có quyền xuất báo cáo');
+  if (!allowed.some(Boolean)) throw new ApiError(403, 'Không có quyền xem dữ liệu báo cáo');
   const filters = [await schoolScope(actor)];
   let studentIds = await personalStudentIds(actor);
   if (teacher) filters.push(await teacherClassScope(actor, resource));

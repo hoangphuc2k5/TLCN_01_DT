@@ -16,7 +16,8 @@ Cập nhật: 05/09/2026. Đang thực hiện Đợt 0: phân quyền, tenant v�
 - [ ] 0.2b Chuyển các nút còn lại (điểm, điểm danh, phí, thi, học liệu, thư viện, CSVC, mẫu…) theo action; kiểm thử UI đầu cuối.
 - [x] 0.3 Scope báo cáo Excel: tenant, lớp/môn, bản thân/con em, lọc records điểm danh.
 - [x] 0.4 Scope duyệt đơn, TKB, gửi tin nhắn; chống tự duyệt/duyệt lặp.
-- [ ] 0.5 Rà các service còn lại theo ID và quan hệ: học vụ, thi, học liệu, thư viện, CSVC, user/role, template.
+- [x] 0.5a Đồng bộ scope API xem điểm/điểm danh/học phí với export, lọc records điểm danh trước trả JSON.
+- [ ] 0.5b Rà các service còn lại theo ID và quan hệ khi ghi: học vụ, thi, học liệu, thư viện, CSVC, user/role, template.
 - [ ] 0.6 Kiểm thử API nhiều cụm/trường/role, frontend build và ghi hạn chế còn lại.
 
 ## Trạng thái bắt đầu
@@ -72,12 +73,21 @@ Cập nhật: 05/09/2026. Đang thực hiện Đợt 0: phân quyền, tenant v�
 - Nút user/role kiểm tra create/update/delete; import user yêu cầu create + update. TKB lưu cần create + update; duyệt và đơn từ xét thêm execute.
 - Kiểm thử frontend: `cd ReactJS; npm test` — 7/7 đạt (custom role, chỉ xem, HS/PH, quyền quản lý, URL không biết). Build production đạt; cảnh báo chunk lớn vẫn còn.
 - Đây là kiểm thử policy + build, chưa phải kiểm thử trình duyệt/E2E. Nút nghiệp vụ ở các màn hình khác vẫn cần chuyển đổi ở 0.2b.
-- Push: kiểm tra nhánh remote sau commit.
+- Push: thành công lên origin, commit `86da9a8`.
+
+## Bàn giao 0.5a — Scope API đọc dữ liệu học vụ
+
+- Nhánh: `feat/phase0-academic-read-scope`, kế thừa `feat/phase0-permission-navigation` (`86da9a8`).
+- `listGrades`, `listInvoices`, `listAttendance` dùng chung policy với export. Scope cụm được resolve thành schoolIds; HS/PH chỉ nhận dữ liệu của mình/con.
+- Điểm danh lọc records trước trả JSON, không mutate dữ liệu lưu; kiểm tra ngày không hợp lệ. Query status học phí chỉ nhận enum hợp lệ.
+- Test: `cd ExpressJS; npm test` — 51/51 đạt; thêm đối chiếu JSON điểm/phí/điểm danh cho HS, PH và quản lý cụm. Bộ frontend 7/7 và build đã đạt ở 0.2a.
+- Không migration. Chưa bao gồm scope khi ghi điểm/điểm danh/tạo invoice; xử lý ở 0.5b.
+- Push: thành công lên origin, commit `3fd8973`.
 
 ## Điểm tiếp tục chính xác
 
 1. Hoàn thành **0.2b**: các trang FeesPage, GradesPage, AttendancePage, MaterialsPage, ExamsPage, LibraryPage, FacilitiesPage, TemplatesPage còn dùng role/canManage để bật nhiều action chung. Tách từng create/update/delete/execute; đối chiếu route mới trước khi sửa.
-2. Hoàn thành **0.5**: hiện mới đảm bảo scope cho export và workflow đã bàn giao. `listAttendance` vẫn trả cả records của lớp cho HS/PH; cần dùng scope tương tự export và lọc records trước trả JSON. `listGrades`, `listInvoices` còn thiếu scope cụm khi actor không có schoolId; ưu tiên xử lý tiếp.
+2. Hoàn thành **0.5b**: scope export, JSON điểm/phí/điểm danh và workflow đã được sửa. Các module khác chưa được kiểm tra toàn bộ. Không coi kiểm thử 51 case là chứng minh toàn ứng dụng đã đúng tenant.
 3. Kiểm tra toàn bộ ID tham chiếu khi ghi điểm/điểm danh, tạo invoice; tiếp đó CRUD học vụ/thi/thư viện/CSVC/mẫu. Helper có sẵn: `dataScope.js`; không áp dụng filter clusterId trực tiếp lên model chỉ có schoolId.
 4. Hoàn thành **0.6**: thêm test endpoint tương ứng, chạy cả hai bộ test + frontend build; test browser với tài khoản fixture. Không dùng seedDemo hoặc DB từ .env để test.
 5. Khi tất cả trên xong mới đánh dấu **Đợt 0 hoàn tất** và chuyển sang kho file/job/2FA. Các nhánh hiện tại là nhánh nối tiếp, chưa merge main.

@@ -2,6 +2,7 @@ const ApiError = require('../utils/ApiError');
 const { feeRepo, paymentRepo } = require('../repositories');
 const { FEE_STATUS } = require('../constants/status');
 const { ROLES } = require('../constants/roles');
+const { buildExportScope } = require('./exportScopeService');
 
 const refreshStatus = (invoice) => {
   if (invoice.paidAmount <= 0) {
@@ -16,12 +17,11 @@ const refreshStatus = (invoice) => {
 };
 
 const listInvoices = async (actor, query = {}) => {
-  const filter = {};
-  if (actor.schoolId) filter.schoolId = actor.schoolId;
-  if (query.status) filter.status = query.status;
-  if (query.studentId) filter.studentId = query.studentId;
-  if (actor.role === ROLES.STUDENT) filter.studentId = actor._id;
-  if (actor.role === ROLES.PARENT) filter.studentId = { $in: actor.parentOf || [] };
+  const { filter } = await buildExportScope(actor, 'fees', query);
+  if (query.status) {
+    if (!Object.values(FEE_STATUS).includes(query.status)) throw new ApiError(400, 'Invalid fee status');
+    filter.$and.push({ status: query.status });
+  }
   return feeRepo.find(filter, { populate: 'studentId academicYearId', limit: 200 });
 };
 
