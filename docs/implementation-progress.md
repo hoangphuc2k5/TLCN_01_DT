@@ -1,6 +1,6 @@
 # Tiến trình triển khai
 
-Cập nhật: 06/09/2026. Đang thực hiện Đợt 0: phân quyền, tenant và kiểm thử.
+Cập nhật: 06/09/2026. Đã hoàn thành checklist Đợt 0: phân quyền, tenant và nền kiểm thử. Các giới hạn nghiệp vụ và việc tiếp theo được ghi ở cuối file.
 
 ## Quy trình bàn giao
 
@@ -17,8 +17,8 @@ Cập nhật: 06/09/2026. Đang thực hiện Đợt 0: phân quyền, tenant v�
 - [x] 0.3 Scope báo cáo Excel: tenant, lớp/môn, bản thân/con em, lọc records điểm danh.
 - [x] 0.4 Scope duyệt đơn, TKB, gửi tin nhắn; chống tự duyệt/duyệt lặp.
 - [x] 0.5a Đồng bộ scope API xem điểm/điểm danh/học phí với export, lọc records điểm danh trước trả JSON.
-- [ ] 0.5b Rà các service còn lại theo ID và quan hệ khi ghi: học vụ, thi, học liệu, thư viện, CSVC, user/role, template.
-- [ ] 0.6 Kiểm thử API nhiều cụm/trường/role, frontend build và ghi hạn chế còn lại.
+- [x] 0.5b Rà ID/quan hệ khi ghi học vụ, thi, học liệu, thư viện, CSVC, user/role, template; bổ sung payment scope và nhất quán trường/lớp.
+- [x] 0.6 Backend 82/82, frontend 9/9, production build đạt; E2E 22/22 và chạy lại 4 luồng bị ảnh hưởng sau bản sửa cuối.
 
 ## Trạng thái bắt đầu
 
@@ -86,6 +86,15 @@ Cập nhật: 06/09/2026. Đang thực hiện Đợt 0: phân quyền, tenant v�
 
 ## Điểm tiếp tục chính xác
 
+### Bản chốt Đợt 0 — Thanh toán theo cụm và nhất quán tham chiếu
+
+- Nhánh `feat/phase0-scope-final-check`, nền `feat/phase0-ui-actions-e2e` (b223634). Nhánh này chứa toàn bộ chuỗi thay đổi Đợt 0, chưa merge main.
+- Payment list dùng schoolScope để tài khoản quản trị cụm được cấp fees.view không đọc toàn hệ thống; query invoice chỉ thu hẹp phạm vi. Không thay đổi luồng hạch toán.
+- Tạo học liệu/đề/lịch/thông báo lớp bắt buộc classId thuộc đúng schoolId được chọn, kể cả Super Admin. Thông báo suy cluster từ trường, không nhận clusterId giả từ payload; thông báo cụm kiểm tra cụm tồn tại.
+- Login từ chối role vô hiệu/ngoài tenant trước khi phát token, bên cạnh kiểm tra từng request đã có.
+- Backend `npm test`: **82/82 đạt**. Sau các thay đổi cuối, E2E chạy lại **4/4** luồng liên quan (tạo học liệu, nộp bài, ghi điểm, quyền admin sau reload) đạt. Bộ đầy đủ **22/22**, frontend policy **9/9** và build đã đạt trên b223634; không có thay đổi UI sản phẩm sau đó.
+- Đã hoàn thành checklist nền tảng 0.1–0.6 trong tài liệu này. Không đồng nghĩa đã làm tất cả chức năng thiếu của spec hoặc kiểm thử mọi kịch bản nghiệp vụ. Danh sách giới hạn xem [phase0-qa.md](phase0-qa.md).
+
 ### Bàn giao 0.2b — Quyền thao tác UI và E2E
 
 - Nhánh `feat/phase0-ui-actions-e2e`, nền `feat/phase0-exam-access` (3613f88).
@@ -96,7 +105,7 @@ Cập nhật: 06/09/2026. Đang thực hiện Đợt 0: phân quyền, tenant v�
 - Thêm `ExpressJS/scripts/phase0-fixture.js`, `ReactJS/playwright.config.js`, `ReactJS/e2e/phase0.spec.js`. Fixture tạo MongoDB tạm riêng, chỉ listen 127.0.0.1:8091, không dùng DB từ .env hoặc seedDemo. Vite test dùng 5175 và API_PROXY_TARGET; không tái sử dụng server đang chạy.
 - Kiểm thử: backend trước phần UI **78/78**, frontend policy **9/9**, production build đạt; E2E Chromium **22/22** (1,2 phút). Kiểm tra 15 màn hình chỉ xem, URL bị cấm, custom create-only, PH chỉ thấy con, HS nộp bài ẩn điểm, thủ thư chọn HS/duyệt người khác, GV lưu điểm, quyền sở hữu sau reload.
 - Công cụ browser tích hợp lỗi môi trường `missing sandboxPolicy`; E2E thực chạy bằng Playwright cục bộ. Lượt đầu chỉnh locator theo bản dịch Ant Design; kết quả cuối không bỏ qua hoặc retry test thất bại.
-- Cách chạy lại và giới hạn: [phase0-qa.md](phase0-qa.md). Còn rà cuối payment list theo cụm trước khi đánh dấu 0.5b hoàn thành.
+- Push thành công: `b223634`. Cách chạy lại và giới hạn: [phase0-qa.md](phase0-qa.md). Payment list đã được bổ sung ở bản chốt phía trên.
 
 ### Bàn giao tiếp: thi online và các đường truy cập còn hở
 
@@ -130,10 +139,12 @@ Cập nhật: 06/09/2026. Đang thực hiện Đợt 0: phân quyền, tenant v�
 - Schema thêm trường nullable, không cần migration phá dữ liệu. Cache/API trả scope role để frontend kiểm tra nút quản lý.
 - `npm test` backend: **68/68 đạt**. Chưa hoàn tất thi online và nút nghiệp vụ/E2E.
 
-1. Hoàn thành **0.2b**: các trang FeesPage, GradesPage, AttendancePage, MaterialsPage, ExamsPage, LibraryPage, FacilitiesPage, TemplatesPage còn dùng role/canManage để bật nhiều action chung. Tách từng create/update/delete/execute; đối chiếu route mới trước khi sửa.
-2. Hoàn thành **0.5b**: scope export, JSON điểm/phí/điểm danh và workflow đã được sửa. Các module khác chưa được kiểm tra toàn bộ. Không coi kiểm thử 51 case là chứng minh toàn ứng dụng đã đúng tenant.
-3. Kiểm tra toàn bộ ID tham chiếu khi ghi điểm/điểm danh, tạo invoice; tiếp đó CRUD học vụ/thi/thư viện/CSVC/mẫu. Helper có sẵn: `dataScope.js`; không áp dụng filter clusterId trực tiếp lên model chỉ có schoolId.
-4. Hoàn thành **0.6**: thêm test endpoint tương ứng, chạy cả hai bộ test + frontend build; test browser với tài khoản fixture. Không dùng seedDemo hoặc DB từ .env để test.
-5. Khi tất cả trên xong mới đánh dấu **Đợt 0 hoàn tất** và chuyển sang kho file/job/2FA. Các nhánh hiện tại là nhánh nối tiếp, chưa merge main.
+## Việc tiếp theo — Đợt 1 chưa bắt đầu
+
+1. Bắt đầu từ `feat/phase0-scope-final-check`; kiểm tra git status trước khi sửa. File kế hoạch cũ `docs/feature-gap-implementation-plan.md` không tồn tại trong checkout này; tài liệu này là điểm bàn giao hiện hành.
+2. Triển khai kho file theo tenant: metadata FileAsset, adapter lưu trữ local/S3 theo cấu hình, upload/download có scope, hạn mức dung lượng, kiểm thử truy cập chéo trường. Chưa chọn dịch vụ cloud hoặc cần secret mới.
+3. Tiếp đó nền job/queue: retry, idempotency, trạng thái và lịch chạy để phục vụ thông báo/backup; không tạo job giả chỉ đổi trạng thái.
+4. Tiếp đó 2FA và password policy (spec 2.6), rồi backup/restore (2.7); từng chức năng phải có kiểm thử, nhánh riêng, push và bổ sung tài liệu trước khi chuyển tiếp.
+5. Giữ riêng các việc nghiệp vụ: thời lượng/tự nộp thi, giao dịch đồng thời học phí/tồn kho, di chuyển trường giữa cụm và migration dữ liệu liên quan, bộ duyệt custom role, Google/SMTP/SMS/Zalo/payment thật. Chưa có kết quả UAT cho các phần này.
 
 Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend và 4 ở frontend từ cây dependency; chưa chạy audit fix vì có thể thay major/ngoài scope. File .env và hai file untracked ban đầu không thuộc các commit bàn giao.

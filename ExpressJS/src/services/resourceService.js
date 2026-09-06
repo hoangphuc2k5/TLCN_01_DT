@@ -29,7 +29,7 @@ const listMaterials = async (actor, query = {}) => {
 const createMaterial = async (actor, data) => {
   if (!data.title) throw new ApiError(400, 'Thiếu tiêu đề');
   const schoolId = await targetSchool(actor, data.schoolId);
-  if (data.classId) await academicReferences(actor, data);
+  if (data.classId) await academicReferences(actor, data, { expectedSchoolId: schoolId });
   if (data.subjectId) await reference(Subject, data.subjectId, schoolId);
   return LearningMaterial.create({
     schoolId,

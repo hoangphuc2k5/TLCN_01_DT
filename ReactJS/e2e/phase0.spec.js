@@ -121,6 +121,7 @@ test('teacher updates a grade for an assigned class using the UI', async ({ page
   const saved = page.waitForResponse(r => r.url().endsWith('/v1/api/grades') && r.request().method() === 'POST');
   await page.getByRole('dialog').getByRole('button', { name: 'Đồng ý', exact: true }).click();
   expect((await saved).status()).toBe(200);
+  await expect(page.getByRole('dialog')).toBeHidden();
   await expect(page.getByRole('row').filter({ hasText: 'student 0' }).getByRole('cell', { name: '9', exact: true })).toBeVisible();
   await page.screenshot({ path: 'test-results/teacher-grade-saved.png', fullPage: true });
 });

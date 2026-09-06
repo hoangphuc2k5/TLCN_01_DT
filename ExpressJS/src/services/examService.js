@@ -25,7 +25,7 @@ const examDocument = async (actor, id) => {
 };
 const validateExamRefs = async (actor, data, schoolId) => {
   if ([ROLES.SUBJECT_TEACHER, ROLES.HOMEROOM_TEACHER].includes(actor.role) && !data.classId) throw new ApiError(400, 'Giáo viên cần chọn lớp được phân công');
-  if (data.classId) await academicReferences(actor, data);
+  if (data.classId) await academicReferences(actor, data, { expectedSchoolId: schoolId });
   if (data.subjectId) await reference(Subject, data.subjectId, schoolId);
 };
 const presentAttempt = (actor, attempt, showResults) => {

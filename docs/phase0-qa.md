@@ -1,6 +1,6 @@
 # Kiểm thử Đợt 0
 
-Ngày chạy: 06/09/2026. Phần UI: 22/22 E2E, 9/9 policy, build production đạt. Backend tại nhánh nền: 78/78. Kết quả backend mới nhất xem implementation-progress.md.
+Ngày chạy: 06/09/2026. Phần UI: 22/22 E2E, 9/9 policy, build production đạt. Backend bản chốt: 82/82; sau bản chốt chạy lại 4/4 luồng E2E bị ảnh hưởng đều đạt. Chi tiết nhánh và thay đổi xem implementation-progress.md.
 
 ## Chạy lại
 
@@ -31,7 +31,7 @@ Tài khoản fixture: `reader0`, `creator0`, `teacher0`, `student0`, `parent0`, 
 
 ## Bằng chứng và giới hạn
 
-`ReactJS/playwright-report/index.html` lưu báo cáo cục bộ. `ReactJS/test-results/` có ảnh reader-grades.png, parent-attendance.png, teacher-grade-saved.png; khi lỗi có screenshot và trace. Các artifact này bị gitignore; chạy lại để tái tạo, không commit dữ liệu runtime.
+`ReactJS/playwright-report/index.html` lưu báo cáo lượt chạy gần nhất. Chạy đầy đủ tạo ảnh reader-grades.png, parent-attendance.png, teacher-grade-saved.png trong `ReactJS/test-results/`; khi lỗi có screenshot và trace. Chạy chọn lọc ghi đè báo cáo và chỉ giữ ảnh của các ca đã chạy. Các artifact này bị gitignore; chạy lại để tái tạo, không commit dữ liệu runtime.
 
 Đây là test Chromium trên dữ liệu giả, không phải UAT với dữ liệu production hay kiểm thử tải. Không xác nhận tích hợp Google/SMTP/SMS/Zalo/cổng thanh toán, nhập Excel mọi định dạng, in học bạ hoặc backup. Build còn cảnh báo chunk JS lớn. Các luồng thu tiền/tồn kho cần kiểm thử giao dịch đồng thời ở đợt nghiệp vụ tương ứng; bài thi chưa có tự nộp theo thời lượng.
 

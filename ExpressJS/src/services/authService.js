@@ -15,6 +15,7 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const buildAuthPayload = async (user) => {
   const roleMeta = await roleCache.getRole(user.role);
+  if (!roleMeta || !require('./roleService').visibleRole(user, roleMeta)) throw new ApiError(403, 'Vai trò không hợp lệ hoặc ngoài phạm vi tài khoản');
   const permissions = await listLegacyPermissionsForRole(user.role);
   return {
     access_token: jwt.sign(
