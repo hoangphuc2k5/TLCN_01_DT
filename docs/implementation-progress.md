@@ -8,7 +8,7 @@ Cập nhật: 06/09/2026. Đã rà lại checklist Đợt 0 và sửa thêm các
 - Sửa scope/quyền dashboard, đọc đơn của custom role, học liệu chưa chia sẻ, thi theo môn và đề toàn trường, lịch/thông báo theo lớp/vai trò nhận, hạnh kiểm lớp chủ nhiệm. Thu gọn hồ sơ trong tra cứu học vụ; đồng bộ nút duyệt CSVC với API.
 - Thêm 11 test backend tái hiện lỗi; thêm 2 E2E với fixture có liên kết con khác trường và học liệu riêng. Chạy lại đầy đủ: **93/93 backend, 9/9 frontend, 24/24 E2E**, build đạt; `git diff --check` đạt.
 - Đây là kết quả nền tảng 0.1–0.6 trong phạm vi ghi nhận; không xác nhận mọi tổ hợp quyền hoặc toàn bộ nghiệp vụ/spec. Giới hạn và hướng tiếp tục: [phase0-review-2026-09-06.md](phase0-review-2026-09-06.md), [phase0-qa.md](phase0-qa.md).
-- Bàn giao nhánh sửa và merge vào `integration/phase0`; giữ nguyên `main` và hai file cấu hình người dùng chưa track.
+- Đã push nhánh sửa tại `e75aaa0` và merge/push `integration/phase0` tại `8b7441a`. Cây file sau merge giống hệt nhánh đã kiểm thử; không có xung đột. Giữ nguyên `main` và hai file cấu hình người dùng chưa track.
 
 ## Nhánh tổng hợp Đợt 0
 

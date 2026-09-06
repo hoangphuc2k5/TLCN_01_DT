@@ -45,7 +45,7 @@ Các file chính: `dashboardFactory.js`, `dashboardService.js`, `dataScope.js`, 
 - Frontend: `cd ReactJS`, `npm test` — **9/9 đạt**; `npm run build` — đạt, vẫn có cảnh báo chunk JS lớn khoảng 1,49 MB.
 - Browser: `npm run test:e2e` — **24/24 đạt** (1,2 phút), không skip/retry. Thêm PH có parentOf chứa học sinh trường khác và tài liệu riêng của quản trị vào fixture; thêm hai ca E2E tương ứng.
 - `git diff --check` đạt. Test dùng MongoDB tạm và tài khoản giả, không chạy seedDemo hay kết nối database người dùng.
-- Sau kiểm thử: commit/push nhánh sửa rồi merge vào `integration/phase0`; giữ các nhánh chức năng để review. Không merge `main`.
+- Đã commit/push `fix/phase0-read-path-audit` tại `e75aaa0`, merge/push `integration/phase0` tại `8b7441a`. `git diff --exit-code fix/phase0-read-path-audit HEAD` ngay sau merge xác nhận cây file không đổi so với bản được kiểm thử. Giữ các nhánh chức năng để review. Không merge `main`.
 
 ## Giới hạn để tiếp tục
 
