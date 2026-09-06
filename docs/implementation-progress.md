@@ -88,11 +88,18 @@ Cập nhật: 06/09/2026. Đã hoàn thành checklist Đợt 0: phân quyền, t
 
 ### Bản chốt Đợt 0 — Thanh toán theo cụm và nhất quán tham chiếu
 
+| Nhánh đã push origin | Commit triển khai |
+| --- | --- |
+| feat/phase0-exam-access | 3613f88 |
+| feat/phase0-ui-actions-e2e | b223634 |
+| feat/phase0-scope-final-check | 2a5076b |
+
 - Nhánh `feat/phase0-scope-final-check`, nền `feat/phase0-ui-actions-e2e` (b223634). Nhánh này chứa toàn bộ chuỗi thay đổi Đợt 0, chưa merge main.
 - Payment list dùng schoolScope để tài khoản quản trị cụm được cấp fees.view không đọc toàn hệ thống; query invoice chỉ thu hẹp phạm vi. Không thay đổi luồng hạch toán.
 - Tạo học liệu/đề/lịch/thông báo lớp bắt buộc classId thuộc đúng schoolId được chọn, kể cả Super Admin. Thông báo suy cluster từ trường, không nhận clusterId giả từ payload; thông báo cụm kiểm tra cụm tồn tại.
 - Login từ chối role vô hiệu/ngoài tenant trước khi phát token, bên cạnh kiểm tra từng request đã có.
 - Backend `npm test`: **82/82 đạt**. Sau các thay đổi cuối, E2E chạy lại **4/4** luồng liên quan (tạo học liệu, nộp bài, ghi điểm, quyền admin sau reload) đạt. Bộ đầy đủ **22/22**, frontend policy **9/9** và build đã đạt trên b223634; không có thay đổi UI sản phẩm sau đó.
+- Ca giáo viên được chạy lại thêm 1/1 sau khi chờ modal đóng trước chụp ảnh; ảnh xác nhận bảng đã cập nhật điểm 9 và thông báo lưu thành công. Server fixture/Vite đã dừng sau kiểm thử.
 - Đã hoàn thành checklist nền tảng 0.1–0.6 trong tài liệu này. Không đồng nghĩa đã làm tất cả chức năng thiếu của spec hoặc kiểm thử mọi kịch bản nghiệp vụ. Danh sách giới hạn xem [phase0-qa.md](phase0-qa.md).
 
 ### Bàn giao 0.2b — Quyền thao tác UI và E2E
