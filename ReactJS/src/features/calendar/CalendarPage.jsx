@@ -3,16 +3,12 @@ import { Button, Form, Input, Modal, Popconfirm, Select, Space, Table, Tag, mess
 import dayjs from 'dayjs';
 import { createCalendarApi, deleteCalendarApi, downloadExport, getCalendarApi } from '../../api';
 import { useSelector } from 'react-redux';
+import { can, canExport } from '../../util/permissions';
 import { ROLES } from '../../constants/roles';
 
 const CalendarPage = () => {
   const { user } = useSelector((s) => s.auth);
-  const canCreate = [
-    ROLES.SCHOOL_ADMIN,
-    ROLES.ACADEMIC_AFFAIRS,
-    ROLES.HOMEROOM_TEACHER,
-    ROLES.SUPER_ADMIN,
-  ].includes(user?.role);
+  const canCreate = can(user, 'announcements', 'create');
   const [rows, setRows] = useState([]);
   const [open, setOpen] = useState(false);
   const [form] = Form.useForm();
@@ -34,15 +30,15 @@ const CalendarPage = () => {
             Thêm sự kiện
           </Button>
         )}
-        <Button onClick={() => downloadExport('grades').catch((e) => message.error(e.message))}>
+        {canExport(user, 'grades') && <Button onClick={() => downloadExport('grades').catch((e) => message.error(e.message))}>
           Xuất Excel điểm
-        </Button>
-        <Button onClick={() => downloadExport('fees').catch((e) => message.error(e.message))}>
+        </Button>}
+        {canExport(user, 'fees') && <Button onClick={() => downloadExport('fees').catch((e) => message.error(e.message))}>
           Xuất Excel học phí
-        </Button>
-        <Button onClick={() => downloadExport('attendance').catch((e) => message.error(e.message))}>
+        </Button>}
+        {canExport(user, 'attendance') && <Button onClick={() => downloadExport('attendance').catch((e) => message.error(e.message))}>
           Xuất Excel điểm danh
-        </Button>
+        </Button>}
       </Space>
       <Table
         rowKey="_id"
@@ -68,7 +64,7 @@ const CalendarPage = () => {
           { title: 'Người tạo', render: (_, r) => r.createdBy?.name },
           {
             title: 'Xóa',
-            render: (_, r) => (
+            render: (_, r) => can(user, 'announcements', 'delete') && ((r.createdBy?._id || r.createdBy) === user?._id || [ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.ACADEMIC_AFFAIRS].includes(user?.role)) && (
               <Popconfirm
                 title="Xóa sự kiện?"
                 onConfirm={async () => {

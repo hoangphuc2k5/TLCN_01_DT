@@ -13,7 +13,7 @@ Cập nhật: 06/09/2026. Đang thực hiện Đợt 0: phân quyền, tenant v�
 
 - [x] 0.1 Quyền API theo hành động ở các route dùng MANAGE_*, từ chối role vô hiệu hóa; kiểm thử hồi quy.
 - [x] 0.2a Menu/route theo permission; nút user/role và quyền lưu/duyệt TKB, đơn từ.
-- [ ] 0.2b Chuyển các nút còn lại (điểm, điểm danh, phí, thi, học liệu, thư viện, CSVC, mẫu…) theo action; kiểm thử UI đầu cuối.
+- [x] 0.2b Chuyển các nút còn lại theo action và quy tắc nghiệp vụ; kiểm thử UI đầu cuối 22/22 đạt.
 - [x] 0.3 Scope báo cáo Excel: tenant, lớp/môn, bản thân/con em, lọc records điểm danh.
 - [x] 0.4 Scope duyệt đơn, TKB, gửi tin nhắn; chống tự duyệt/duyệt lặp.
 - [x] 0.5a Đồng bộ scope API xem điểm/điểm danh/học phí với export, lọc records điểm danh trước trả JSON.
@@ -85,6 +85,18 @@ Cập nhật: 06/09/2026. Đang thực hiện Đợt 0: phân quyền, tenant v�
 - Push: thành công lên origin, commit `3fd8973`.
 
 ## Điểm tiếp tục chính xác
+
+### Bàn giao 0.2b — Quyền thao tác UI và E2E
+
+- Nhánh `feat/phase0-ui-actions-e2e`, nền `feat/phase0-exam-access` (3613f88).
+- Các trang điểm/điểm danh/phí/thi/học liệu/thư viện/CSVC/hạnh kiểm/mẫu/hỗ trợ kiểm tra action riêng; import/upsert cần create + update. Xuất báo cáo cho tài khoản chỉ xem/HS/PH theo cùng policy với API.
+- Lịch/thông báo ẩn nút xóa theo quyền và chủ sở hữu/phạm vi. Đơn và CSVC ẩn tự duyệt. Thư viện tách cho mượn (create) và trả (execute). Thi hiển thị “Chưa công bố” khi API che điểm.
+- Lớp học ẩn nút tạo khi không có classes.create; trang cụm/trường/subscription giữ các giới hạn vai trò nghiệp vụ tương ứng API. Những thao tác chỉ Super Admin/cấp quản trị không tự mở cho custom role chỉ vì có permission.
+- Picker học sinh/GV ở phí, thư viện, lớp và TKB dùng danh bạ tối thiểu, không yêu cầu quyền quản lý user. Sửa role dựa thêm quyền sở hữu school/cluster; so sánh ID hỗ trợ cả chuỗi lẫn object từ auth/me.
+- Thêm `ExpressJS/scripts/phase0-fixture.js`, `ReactJS/playwright.config.js`, `ReactJS/e2e/phase0.spec.js`. Fixture tạo MongoDB tạm riêng, chỉ listen 127.0.0.1:8091, không dùng DB từ .env hoặc seedDemo. Vite test dùng 5175 và API_PROXY_TARGET; không tái sử dụng server đang chạy.
+- Kiểm thử: backend trước phần UI **78/78**, frontend policy **9/9**, production build đạt; E2E Chromium **22/22** (1,2 phút). Kiểm tra 15 màn hình chỉ xem, URL bị cấm, custom create-only, PH chỉ thấy con, HS nộp bài ẩn điểm, thủ thư chọn HS/duyệt người khác, GV lưu điểm, quyền sở hữu sau reload.
+- Công cụ browser tích hợp lỗi môi trường `missing sandboxPolicy`; E2E thực chạy bằng Playwright cục bộ. Lượt đầu chỉnh locator theo bản dịch Ant Design; kết quả cuối không bỏ qua hoặc retry test thất bại.
+- Cách chạy lại và giới hạn: [phase0-qa.md](phase0-qa.md). Còn rà cuối payment list theo cụm trước khi đánh dấu 0.5b hoàn thành.
 
 ### Bàn giao tiếp: thi online và các đường truy cập còn hở
 

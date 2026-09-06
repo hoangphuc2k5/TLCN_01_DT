@@ -20,11 +20,15 @@ import {
   getAssignmentsApi,
   getClassesApi,
   getSubjectsApi,
-  getUsersApi,
+  getUserDirectoryApi,
 } from '../../api';
+import { useSelector } from 'react-redux';
+import { can } from '../../util/permissions';
 import { ROLES } from '../../constants/roles';
 
 const ClassesPage = () => {
+  const { user } = useSelector(s => s.auth);
+  const canCreate = can(user, 'classes', 'create');
   const [classes, setClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [years, setYears] = useState([]);
@@ -45,7 +49,7 @@ const ClassesPage = () => {
       getSubjectsApi(),
       getAcademicYearsApi(),
       getAssignmentsApi(),
-      getUsersApi({ role: ROLES.SUBJECT_TEACHER }),
+      getUserDirectoryApi({ role: ROLES.SUBJECT_TEACHER }),
     ]);
     if (c?.EC === 0) setClasses(c.data || []);
     if (s?.EC === 0) setSubjects(s.data || []);
@@ -68,10 +72,10 @@ const ClassesPage = () => {
             children: (
               <>
                 <Space style={{ marginBottom: 16 }}>
-                  <Button type="primary" onClick={() => setOpenClass(true)}>
+                  {canCreate && <Button type="primary" onClick={() => setOpenClass(true)}>
                     Thêm lớp
-                  </Button>
-                  <Button onClick={() => setOpenYear(true)}>Thêm năm học</Button>
+                  </Button>}
+                  {canCreate && <Button onClick={() => setOpenYear(true)}>Thêm năm học</Button>}
                 </Space>
                 <Table
                   rowKey="_id"
@@ -98,13 +102,13 @@ const ClassesPage = () => {
             label: 'Môn học',
             children: (
               <>
-                <Button
+                {canCreate && <Button
                   type="primary"
                   style={{ marginBottom: 16 }}
                   onClick={() => setOpenSubject(true)}
                 >
                   Thêm môn
-                </Button>
+                </Button>}
                 <Table
                   rowKey="_id"
                   dataSource={subjects}
@@ -126,13 +130,13 @@ const ClassesPage = () => {
             label: 'Phân công giảng dạy',
             children: (
               <>
-                <Button
+                {canCreate && <Button
                   type="primary"
                   style={{ marginBottom: 16 }}
                   onClick={() => setOpenAssign(true)}
                 >
                   Phân công
-                </Button>
+                </Button>}
                 <Table
                   rowKey="_id"
                   dataSource={assignments}

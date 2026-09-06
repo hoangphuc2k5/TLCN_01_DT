@@ -1,8 +1,11 @@
+import { useSelector } from 'react-redux';
 import { useEffect, useState } from 'react';
 import { Button, Form, Input, Modal, Select, Space, Table, message, Popconfirm } from 'antd';
 import { createClusterApi, deleteClusterApi, getClustersApi, updateClusterApi } from '../../api';
 
 const ClustersPage = () => {
+  const { user } = useSelector(s => s.auth);
+  const canManage = user?.role === 'SUPER_ADMIN';
   const [rows, setRows] = useState([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -34,7 +37,7 @@ const ClustersPage = () => {
   return (
     <div>
       <Space style={{ marginBottom: 16 }}>
-        <Button
+        {canManage && <Button
           type="primary"
           onClick={() => {
             setEditing(null);
@@ -44,7 +47,7 @@ const ClustersPage = () => {
           }}
         >
           Thêm cụm
-        </Button>
+        </Button>}
       </Space>
       <Table
         rowKey="_id"
@@ -58,7 +61,7 @@ const ClustersPage = () => {
             title: 'Thao tác',
             render: (_, r) => (
               <Space>
-                <Button
+                {canManage && <Button
                   size="small"
                   onClick={() => {
                     setEditing(r);
@@ -72,7 +75,7 @@ const ClustersPage = () => {
                   }}
                 >
                   Sửa
-                </Button>
+                </Button>}
                 <Popconfirm
                   title="Xóa cụm?"
                   onConfirm={async () => {
@@ -83,9 +86,9 @@ const ClustersPage = () => {
                     } else message.error(res?.EM);
                   }}
                 >
-                  <Button size="small" danger>
+                  {canManage && <Button size="small" danger>
                     Xóa
-                  </Button>
+                  </Button>}
                 </Popconfirm>
               </Space>
             ),

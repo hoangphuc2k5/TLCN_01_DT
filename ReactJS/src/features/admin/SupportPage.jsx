@@ -3,6 +3,7 @@ import { Button, Form, Input, Modal, Select, Table, Tag, message } from 'antd';
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
 import { createTicketApi, getTicketsApi, updateTicketApi } from '../../api';
+import { can } from '../../util/permissions';
 import { ROLES } from '../../constants/roles';
 
 const SupportPage = () => {
@@ -23,7 +24,7 @@ const SupportPage = () => {
 
   return (
     <div>
-      {!isSuper && (
+      {!isSuper && can(user, 'support', 'create') && (
         <Button type="primary" style={{ marginBottom: 16 }} onClick={() => setOpen(true)}>
           Tạo ticket hỗ trợ
         </Button>
@@ -47,7 +48,7 @@ const SupportPage = () => {
             dataIndex: 'createdAt',
             render: (v) => dayjs(v).format('DD/MM/YYYY'),
           },
-          isSuper
+          can(user, 'support', 'update')
             ? {
                 title: 'Xử lý',
                 render: (_, r) =>

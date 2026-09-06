@@ -7,7 +7,7 @@ import {
   getClassesApi,
   getSubjectsApi,
   getTimetablesApi,
-  getUsersApi,
+  getUserDirectoryApi,
   upsertTimetableApi,
 } from '../../api';
 import { ROLES } from '../../constants/roles';
@@ -40,7 +40,7 @@ const TimetablePage = () => {
         getClassesApi(),
         getSubjectsApi(),
         getAcademicYearsApi(),
-        getUsersApi({ role: ROLES.SUBJECT_TEACHER }),
+        getUserDirectoryApi({ role: ROLES.SUBJECT_TEACHER }),
       ]);
       if (c?.EC === 0) setClasses(c.data || []);
       if (s?.EC === 0) setSubjects(s.data || []);

@@ -23,7 +23,7 @@ import {
   updateRoleApi,
 } from '../../api';
 import { canManageLevel, PEER_MANAGE_ROLES, ROLES } from '../../constants/roles';
-import { can } from '../../util/permissions';
+import { can, ownsRole } from '../../util/permissions';
 
 const ACTION_LABELS = {
   view: 'Xem',
@@ -75,7 +75,7 @@ const RolesPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [me?.role, myLevel]);
 
-  const canManage = (role) => canManageLevel(me?.role, myLevel, role?.level ?? 999);
+  const canManage = (role) => canManageLevel(me?.role, myLevel, role?.level ?? 999) && ownsRole(me, role);
 
   const openCreate = () => {
     setEditing(null);

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { can, canVisit } from '../src/util/permissions.js';
+import { can, canVisit, canExport } from '../src/util/permissions.js';
 
 const reader = { role: 'CUSTOM_READER', permissionEntries: [{ resource: 'users', actions: ['view'] }] };
 test('custom reader sees users route but not roles or subscriptions', () => {
@@ -30,3 +30,17 @@ test('unauthenticated and unknown routes fail closed', () => {
   assert.equal(canVisit(reader, '/unregistered'), false);
 });
 test('super admin retains management access', () => assert.equal(canVisit({ role: 'SUPER_ADMIN' }, '/users'), true));
+test('report reader can open and export academic reports without mutation permissions', () => {
+  const user = { role: 'REPORT_READER', permissionEntries: [{ resource: 'reports', actions: ['view'] }] };
+  for (const resource of ['grades', 'fees', 'attendance']) {
+    assert.equal(canVisit(user, '/' + resource), true);
+    assert.equal(canExport(user, resource), true);
+    assert.equal(can(user, resource, 'create'), false);
+  }
+});
+test('teacher export requires module view and personal export requires own_data', () => {
+  const reports = [{ resource: 'reports', actions: ['view'] }];
+  assert.equal(canExport({ role: 'SUBJECT_TEACHER', permissionEntries: reports }, 'fees'), false);
+  assert.equal(canExport({ role: 'PARENT', permissionEntries: reports }, 'grades'), false);
+  assert.equal(canExport(reader, 'unknown'), false);
+});
