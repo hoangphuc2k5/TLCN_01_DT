@@ -25,11 +25,12 @@ const updateUser = asyncHandler(async (req, res) => {
   return success(res, data, 'Cập nhật người dùng thành công');
 });
 const resetUserPassword = asyncHandler(async (req, res) => {
+  res.set('Cache-Control', 'no-store');
   const data = await userService.resetPassword(req.user, req.params.id);
   return success(
     res,
     data,
-    `Đã reset mật khẩu về mặc định: ${data.defaultPassword}`
+    'Đã tạo mật khẩu tạm mới; người dùng phải đổi khi đăng nhập.'
   );
 });
 const deleteUser = asyncHandler(async (req, res) => {
