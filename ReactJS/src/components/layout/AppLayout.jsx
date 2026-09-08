@@ -88,6 +88,7 @@ const menuByRole = (role, user) => {
       { key: '/fees', icon: <DollarOutlined />, label: <Link to="/fees">Học phí</Link> },
       { key: '/exams', icon: <ExperimentOutlined />, label: <Link to="/exams">Thi online</Link> },
       { key: '/materials', icon: <BookOutlined />, label: <Link to="/materials">Học liệu</Link> },
+      { key: '/assignments', icon: <FormOutlined />, label: <Link to="/assignments">Bài tập</Link> },
       { key: '/conduct', icon: <SmileOutlined />, label: <Link to="/conduct">Hạnh kiểm</Link> },
       { key: '/templates', icon: <FileDoneOutlined />, label: <Link to="/templates">Mẫu dùng chung</Link> },
       { key: '/support', icon: <CustomerServiceOutlined />, label: <Link to="/support">Hỗ trợ KT</Link> },
@@ -99,6 +100,7 @@ const menuByRole = (role, user) => {
       { key: '/attendance', icon: <CheckSquareOutlined />, label: <Link to="/attendance">Điểm danh</Link> },
       { key: '/exams', icon: <ExperimentOutlined />, label: <Link to="/exams">Thi online</Link> },
       { key: '/materials', icon: <BookOutlined />, label: <Link to="/materials">Học liệu</Link> },
+      { key: '/assignments', icon: <FormOutlined />, label: <Link to="/assignments">Bài tập</Link> },
       { key: '/facilities', icon: <ToolOutlined />, label: <Link to="/facilities">Phòng/TB</Link> },
     ],
     [ROLES.SUBJECT_TEACHER]: [
@@ -107,6 +109,7 @@ const menuByRole = (role, user) => {
       { key: '/grades', icon: <FormOutlined />, label: <Link to="/grades">Nhập điểm</Link> },
       { key: '/exams', icon: <ExperimentOutlined />, label: <Link to="/exams">Thi online</Link> },
       { key: '/materials', icon: <BookOutlined />, label: <Link to="/materials">Học liệu</Link> },
+      { key: '/assignments', icon: <FormOutlined />, label: <Link to="/assignments">Bài tập</Link> },
       { key: '/facilities', icon: <ToolOutlined />, label: <Link to="/facilities">Mượn phòng/TB</Link> },
     ],
     [ROLES.HOMEROOM_TEACHER]: [
@@ -116,6 +119,7 @@ const menuByRole = (role, user) => {
       { key: '/conduct', icon: <SmileOutlined />, label: <Link to="/conduct">Hạnh kiểm</Link> },
       { key: '/exams', icon: <ExperimentOutlined />, label: <Link to="/exams">Thi online</Link> },
       { key: '/materials', icon: <BookOutlined />, label: <Link to="/materials">Học liệu</Link> },
+      { key: '/assignments', icon: <FormOutlined />, label: <Link to="/assignments">Bài tập</Link> },
       { key: '/facilities', icon: <ToolOutlined />, label: <Link to="/facilities">Mượn phòng/TB</Link> },
     ],
     [ROLES.ACCOUNTANT]: [
@@ -131,6 +135,7 @@ const menuByRole = (role, user) => {
       { key: '/fees', icon: <DollarOutlined />, label: <Link to="/fees">Học phí</Link> },
       { key: '/exams', icon: <ExperimentOutlined />, label: <Link to="/exams">Thi online</Link> },
       { key: '/materials', icon: <BookOutlined />, label: <Link to="/materials">Học liệu</Link> },
+      { key: '/assignments', icon: <FormOutlined />, label: <Link to="/assignments">Bài tập</Link> },
       { key: '/library', icon: <BookOutlined />, label: <Link to="/library">Thư viện</Link> },
       { key: '/conduct', icon: <SmileOutlined />, label: <Link to="/conduct">Hạnh kiểm</Link> },
     ],
@@ -140,6 +145,7 @@ const menuByRole = (role, user) => {
       { key: '/fees', icon: <DollarOutlined />, label: <Link to="/fees">Học phí</Link> },
       { key: '/exams', icon: <ExperimentOutlined />, label: <Link to="/exams">Kết quả thi</Link> },
       { key: '/conduct', icon: <SmileOutlined />, label: <Link to="/conduct">Hạnh kiểm</Link> },
+      { key: '/assignments', icon: <FormOutlined />, label: <Link to="/assignments">Bài tập</Link> },
       { key: '/library', icon: <BookOutlined />, label: <Link to="/library">Mượn sách</Link> },
     ],
   };

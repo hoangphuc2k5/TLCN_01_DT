@@ -144,6 +144,18 @@ router.post('/exam-attempts/:attemptId/grade', authorizePermissionAction('update
 router.get('/exam-attempts', authorizeRead('exams', { personal: true }), a.listAttempts);
 
 // Materials
+const homework = require('../controllers/homeworkController');
+// Online homework uses /homeworks to keep the existing teacher-assignment API at /assignments.
+router.get('/homeworks', authorizeRead('assignments', { personal: true }), homework.list);
+router.get('/homeworks/:id', authorizeRead('assignments', { personal: true }), homework.get);
+router.get('/homeworks/:id/submissions', authorizeRead('assignments', { personal: true }), homework.submissions);
+router.post('/homeworks', authorizePermissionAction('create', PERMISSIONS.MANAGE_ASSIGNMENTS), audit('CREATE', 'Homework'), homework.create);
+router.put('/homeworks/:id', authorizePermissionAction('update', PERMISSIONS.MANAGE_ASSIGNMENTS), audit('UPDATE', 'Homework'), homework.update);
+router.patch('/homeworks/:id/publish', authorizePermissionAction('execute', PERMISSIONS.MANAGE_ASSIGNMENTS), audit('PUBLISH', 'Homework'), homework.publish);
+router.patch('/homeworks/:id/close', authorizePermissionAction('execute', PERMISSIONS.MANAGE_ASSIGNMENTS), audit('CLOSE', 'Homework'), homework.close);
+router.post('/homeworks/:id/submissions', authorizePermissionAction('create', PERMISSIONS.SUBMIT_ASSIGNMENTS), audit('SUBMIT', 'HomeworkSubmission'), homework.submit);
+router.patch('/assignment-submissions/:submissionId/grade', authorizePermissionAction('update', PERMISSIONS.MANAGE_ASSIGNMENTS), audit('GRADE', 'HomeworkSubmission'), homework.grade);
+
 router.get('/materials', authorizeRead('materials', { personal: true }), a.listMaterials);
 router.post('/materials', authorizePermissionAction('create', PERMISSIONS.MANAGE_MATERIALS), audit('CREATE', 'LearningMaterial'), a.createMaterial);
 router.delete('/materials/:id', authorizePermissionAction('delete', PERMISSIONS.MANAGE_MATERIALS), a.deleteMaterial);

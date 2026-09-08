@@ -1,5 +1,12 @@
 # Tiến trình triển khai
 
+## Phase 2.2 - Online homework
+
+- Branch `feat/phase2-online-assignments`, based on `integration/phase1`.
+- Implemented homework lifecycle, scoped student submissions, resubmission before grading, teacher grading/feedback, late policy, close policy, permissions, API and React page. API path is `/v1/api/homeworks` to preserve the existing teacher-assignment endpoints at `/v1/api/assignments`.
+- Tests: backend homework **7/7**, full backend suite **172/172**, frontend policy **10/10**, build passed, dedicated E2E **2/2**, full E2E **31/31**.
+- Details and continuation notes: [phase2-online-assignments.md](phase2-online-assignments.md).
+
 Cập nhật: 08/09/2026. Đã hoàn tất và kiểm thử nhánh tổng hợp Phase 1 (`integration/phase1`): backend 165/165, policy frontend 10/10, E2E Phase 0 + Phase 1 29/29, build đạt. Chi tiết merge và phạm vi xem [bàn giao Phase 1](phase1-integration.md). Phase 2 tiếp tục ở nhánh chức năng riêng; chưa merge main.
 
 ## Nhánh tổng hợp Phase 1

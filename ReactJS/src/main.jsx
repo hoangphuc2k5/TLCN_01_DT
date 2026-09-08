@@ -34,6 +34,7 @@ import TemplatesPage from './features/admin/TemplatesPage.jsx';
 import MessagesPage from './features/messages/MessagesPage.jsx';
 import CalendarPage from './features/calendar/CalendarPage.jsx';
 import JobsPage from './features/admin/JobsPage.jsx';
+import AssignmentsPage from './features/assignments/AssignmentsPage.jsx';
 import { ROLES } from './constants/roles.js';
 import './styles/global.css';
 
@@ -83,6 +84,7 @@ const router = createBrowserRouter([
               { path: 'conduct', element: <ConductPage /> },
               { path: 'templates', element: <TemplatesPage /> },
               { path: 'jobs', element: <JobsPage /> },
+              { path: 'assignments', element: <AssignmentsPage /> },
             ],
           },
         ],

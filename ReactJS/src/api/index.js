@@ -155,6 +155,15 @@ export const gradeAttemptApi = (attemptId, grades) =>
 export const getAttemptsApi = (params) => axios.get('/v1/api/exam-attempts', { params });
 
 export const getMaterialsApi = (params) => axios.get('/v1/api/materials', { params });
+export const getHomeworksApi = (params) => axios.get('/v1/api/homeworks', { params });
+export const getHomeworkApi = (id) => axios.get(`/v1/api/homeworks/${id}`);
+export const createHomeworkApi = (data) => axios.post('/v1/api/homeworks', data);
+export const updateHomeworkApi = (id, data) => axios.put(`/v1/api/homeworks/${id}`, data);
+export const publishHomeworkApi = (id) => axios.patch(`/v1/api/homeworks/${id}/publish`);
+export const closeHomeworkApi = (id) => axios.patch(`/v1/api/homeworks/${id}/close`);
+export const getHomeworkSubmissionsApi = (id) => axios.get(`/v1/api/homeworks/${id}/submissions`);
+export const submitHomeworkApi = (id, data) => axios.post(`/v1/api/homeworks/${id}/submissions`, data);
+export const gradeHomeworkApi = (id, data) => axios.patch(`/v1/api/assignment-submissions/${id}/grade`, data);
 export const getJobsApi = params => axios.get('/v1/api/jobs', { params });
 export const retryJobApi = (id, data = {}) => axios.post(`/v1/api/jobs/${id}/retry`, data);
 export const cancelJobApi = id => axios.post(`/v1/api/jobs/${id}/cancel`);

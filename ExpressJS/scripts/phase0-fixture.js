@@ -55,6 +55,7 @@ async function start() {
     const admin = await user('admin', 'SCHOOL_ADMIN');
     await require('../src/models/Job').create({ schoolId: school._id, kind: 'NOTIFICATION_EMAIL', resourceId: new mongoose.Types.ObjectId(), label: `QA Job ${i}`, status: 'FAILED', attempts: 2, maxAttempts: 2, totalAttempts: 2, lastError: 'SMTP_UNCONFIGURED' });
     await Assignment.create({ schoolId: school._id, teacherId: teacher._id, classId: cls._id, subjectId: subject._id, academicYearId: year._id });
+    await require('../src/models/Homework').create({ schoolId: school._id, classId: cls._id, subjectId: subject._id, academicYearId: year._id, teacherId: teacher._id, title: `QA Homework ${i}`, instructions: 'Submit a short solution.', availableFrom: '2026-08-15T00:00:00.000Z', dueAt: '2027-01-15T23:59:00.000Z', maxScore: 10, status: 'PUBLISHED' });
     for (const pupil of [student, peer]) {
       await require('../src/models/Grade').create({ schoolId: school._id, classId: cls._id, subjectId: subject._id, academicYearId: year._id, studentId: pupil._id, teacherId: teacher._id, average: 8 });
       await require('../src/models/FeeInvoice').create({ schoolId: school._id, studentId: pupil._id, academicYearId: year._id, title: `QA Tuition ${pupil.name}`, amount: 100, dueDate: '2027-01-01' });
