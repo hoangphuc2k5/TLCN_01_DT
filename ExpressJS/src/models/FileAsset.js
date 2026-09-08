@@ -12,5 +12,6 @@ const schema = new mongoose.Schema({
   bucket: { type: String, default: '' },
   key: { type: String, required: true, unique: true },
   status: { type: String, enum: ['UPLOADING', 'READY', 'DELETING'], default: 'UPLOADING', index: true },
+  deleteJobEnqueued: { type: Boolean, default: false, select: false },
 }, { timestamps: true });
 module.exports = mongoose.model('FileAsset', schema);

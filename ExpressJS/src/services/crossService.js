@@ -3,7 +3,6 @@ const Message = require('../models/Message');
 const CalendarEvent = require('../models/CalendarEvent');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
-const { notifyUserByEmail } = require('./mailService');
 const { ROLES } = require('../constants/roles');
 const XLSX = require('xlsx');
 const Grade = require('../models/Grade');
@@ -30,6 +29,7 @@ const sendMessage = async (actor, data) => {
   if (!data.receiverId || !data.body) {
     throw new ApiError(400, 'Thiếu người nhận hoặc nội dung');
   }
+  const emailRunAt = require('./jobService').scheduleDate(data.emailRunAt);
   const receiver = await User.findById(objectId(data.receiverId, 'receiverId'));
   if (!receiver) throw new ApiError(404, 'Không tìm thấy người nhận');
   if (actor.role !== ROLES.SUPER_ADMIN && receiver.role !== ROLES.SUPER_ADMIN) {
@@ -62,13 +62,10 @@ const sendMessage = async (actor, data) => {
     title: 'Tin nhắn mới',
     message: `${actor.name}: ${(data.subject || data.body).slice(0, 80)}`,
     type: 'MESSAGE',
+    emailState: 'PENDING',
+    emailRunAt,
     meta: { messageId: msg._id },
   });
-
-  notifyUserByEmail(receiver, {
-    title: 'Tin nhắn mới trên School MS',
-    message: `${actor.name} đã gửi: ${data.subject || data.body}`,
-  }).catch(() => {});
 
   return msg;
 };

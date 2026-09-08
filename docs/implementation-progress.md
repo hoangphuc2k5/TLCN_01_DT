@@ -1,6 +1,18 @@
 # Tiến trình triển khai
 
-Cập nhật: 06/09/2026. Đã bắt đầu Phase 1 với kho file học liệu theo trường. Backend hiện đạt 106/106, frontend policy 9/9; E2E đầy đủ 25/25, build đạt. Điểm bàn giao mới ở mục Phase 1 bên dưới; lịch sử Phase 0 được giữ lại để đối chiếu.
+Cập nhật: 06/09/2026. Phase 1 đã có kho file (1.1) và job/queue (1.2). Backend hiện đạt 123/123, frontend policy 10/10; E2E đầy đủ 27/27, build đạt. Điểm bàn giao mới ở mục 1.2 bên dưới; lịch sử trước đó được giữ lại để đối chiếu.
+
+## Phase 1 — 1.2 Job/queue
+
+- Nhánh `feat/phase1-job-queue`, nền `feat/phase1-file-storage` tại `9f27526`. Chưa merge vào main hoặc integration/phase0.
+- Đã push code/test tại `5a41949` lên `origin/feat/phase1-job-queue`. Lấy nhánh này làm nền cho Phase 1.3.
+- Job MongoDB có unique key theo tenant/loại/nguồn; lịch runAt, atomic claim, lease/heartbeat, retry backoff, giới hạn attempts, giữ totalAttempts và mã lỗi an toàn. Worker cũ mất lease không ack/ghi đè worker mới.
+- Handler thật: email từ Notification đã lưu và xóa file DELETING/hoàn quota. Dispatcher đọc ý định bền vững, khôi phục khoảng gián đoạn enqueue/đánh dấu nguồn. Không tự gửi notification cũ, không tự xóa UPLOADING.
+- Email tin nhắn/điểm danh/thông báo/kết quả duyệt đơn chuyển khỏi request sang worker. Message API hỗ trợ emailRunAt một lần; SMTP chưa cấu hình được ghi lỗi/retry, không báo đã gửi.
+- Thêm trang Tác vụ nền và quyền jobs.view/jobs.execute: xem/lọc/phân trang, thử lại ngay hoặc theo lịch, hủy job chờ. Scope trường/cụm áp dụng ở API; retry/hủy có audit. Role cũ không tự bị ghi đè quyền.
+- Kiểm thử: **123/123 backend**, **10/10 frontend policy**, **27/27 E2E**, build đạt. Test dùng MongoDB tạm, file thật trong thư mục tạm, SMTP giả; chưa kết nối Atlas hoặc gửi email Gmail thật. Thêm guard dừng nhận việc khi worker được yêu cầu dừng.
+- Chạy worker riêng từ ExpressJS bằng `npm run worker`, dùng cùng cấu hình DB/storage với API. Chưa khởi động worker trên môi trường người dùng. Cấu hình, trạng thái, giới hạn và cách vận hành: [phase1-job-queue.md](phase1-job-queue.md).
+- Giới hạn: lịch một lần, SMTP có thể trùng nếu crash sau khi nhà cung cấp nhận thư nhưng trước ack; Observer trước bước lưu Notification chưa thành transactional outbox. UPLOADING vẫn xử lý khi bảo trì. Không coi 1.3/1.4 là đã làm.
 
 ## Phase 1 — 1.1 Kho file học liệu
 
@@ -16,7 +28,7 @@ Cập nhật: 06/09/2026. Đã bắt đầu Phase 1 với kho file học liệu 
 ### Checklist Phase 1
 
 - [x] 1.1 Kho file theo tenant tích hợp học liệu: code, kiểm thử local, adapter S3 và tài liệu.
-- [ ] 1.2 Job/queue: retry, idempotency, trạng thái, lịch chạy và xử lý công việc thật; tích hợp phục hồi file khi có cơ chế điều phối an toàn.
+- [x] 1.2 Job/queue: retry, idempotency, trạng thái, lịch chạy một lần và handler email/xóa file; phục hồi DELETING, giữ UPLOADING cho bảo trì.
 - [ ] 1.3 2FA và password policy (spec 2.6).
 - [ ] 1.4 Backup/restore (spec 2.7).
 - [ ] Smoke test S3/IAM thực tế trước khi chọn triển khai adapter S3; không chặn dùng local.
@@ -199,10 +211,10 @@ Cập nhật: 06/09/2026. Đã bắt đầu Phase 1 với kho file học liệu 
 
 ## Việc tiếp theo — tiếp tục Phase 1
 
-1. Tiếp tục từ `feat/phase1-file-storage`; kiểm tra git status trước khi sửa. File kế hoạch cũ `docs/feature-gap-implementation-plan.md` không tồn tại trong checkout này; tài liệu này là điểm bàn giao hiện hành.
+1. Tiếp tục từ `feat/phase1-job-queue`; kiểm tra git status trước khi sửa. File kế hoạch cũ `docs/feature-gap-implementation-plan.md` không tồn tại trong checkout này; tài liệu này là điểm bàn giao hiện hành.
 2. Kho file local và adapter S3 đã có. Không tự chuyển storage hoặc chạy lệnh bảo trì apply trên database đang phục vụ; đọc hướng dẫn vận hành trước. Chưa chọn dịch vụ cloud hoặc cấp secret mới.
-3. Mục code kế tiếp là nền job/queue: retry, idempotency, trạng thái và lịch chạy để phục vụ thông báo/backup; không tạo job giả chỉ đổi trạng thái.
-4. Tiếp đó 2FA và password policy (spec 2.6), rồi backup/restore (2.7); từng chức năng phải có kiểm thử, nhánh riêng, push và bổ sung tài liệu trước khi chuyển tiếp.
+3. Job/queue đã có, đọc `phase1-job-queue.md` trước khi bổ sung handler. API không tự chạy worker; không tự gửi email thử tới người dùng hoặc chạy job trên DB thật trong phiên code.
+4. Mục code kế tiếp: 2FA và password policy (spec 2.6), rồi backup/restore (2.7); từng chức năng phải có kiểm thử, nhánh riêng, push và bổ sung tài liệu trước khi chuyển tiếp.
 5. Giữ riêng các việc nghiệp vụ: thời lượng/tự nộp thi, giao dịch đồng thời học phí/tồn kho, di chuyển trường giữa cụm và migration dữ liệu liên quan, bộ duyệt custom role, Google/SMTP/SMS/Zalo/payment thật. Chưa có kết quả UAT cho các phần này.
 
 Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend và 4 ở frontend từ cây dependency; chưa chạy audit fix vì có thể thay major/ngoài scope. File .env và hai file untracked ban đầu không thuộc các commit bàn giao.
