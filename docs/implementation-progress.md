@@ -1,6 +1,21 @@
 # Tiến trình triển khai
 
-Cập nhật: 06/09/2026. Phase 1 đã có kho file (1.1), job/queue (1.2), 2FA và password policy (1.3). Backend hiện đạt 145/145, frontend policy 10/10; E2E đầy đủ 29/29, build đạt. Điểm bàn giao mới ở mục 1.3 bên dưới; lịch sử trước đó được giữ lại để đối chiếu.
+Cập nhật: 07/09/2026. Phase 1 đã có code 1.1–1.4 trong phạm vi ghi bên dưới. Backend toàn bộ đạt 165/165. Frontend không thay đổi trong 1.4; kết quả gần nhất ở 1.3 là policy 10/10, E2E 29/29 và build đạt. Điểm bàn giao mới ở mục 1.4; chưa xác nhận dịch vụ thật hoặc toàn bộ yêu cầu triển khai production.
+
+## Phase 1 — 1.4 Backup/Restore
+
+- Nhánh bàn giao `feat/phase1-backup-restore`, nền `feat/phase1-auth-security` tại `2ee28d1`; không merge main/integration/phase0.
+- Đã commit/push code, test và runbook tại `142dc50` lên `origin/feat/phase1-backup-restore`; dùng nhánh này làm nền phiên tiếp theo.
+- Thêm `npm run backup -- create|verify|restore`: sao lưu logic toàn database ứng dụng + file FileAsset local/S3, raw BSON, index, collection rỗng, validator/collation. Archive AES-256-GCM, kiểm tra lại toàn bộ trước khi công bố file đích; không ghi đè backup cũ.
+- Restore mặc định chỉ lập kế hoạch, `--apply --maintenance` mới ghi. Đích bắt buộc DB rỗng khác tên nguồn và thư mục local mới; không drop/overwrite hoặc tự chuyển cấu hình. Toàn bộ tag mã hóa/cấu trúc/checksum/tenant/quota được kiểm tra trước khi ghi; lỗi index/validator hoặc lỗi ghi vẫn có thể xảy ra và giữ marker chặn đích.
+- `restoreguard` claim bền vững chặn restore cạnh tranh; trạng thái COMPLETE là điểm commit sau khi DB/file/index/report hoàn tất. API/worker probe guard trước Mongoose tự tạo collection/index/seed; sai trạng thái hoặc fingerprint khóa thì không khởi động. Guard COMPLETE được giữ lại; backup tiếp theo kiểm tra và bỏ marker nội bộ khỏi archive.
+- Bảo toàn ID/quan hệ/secret TOTP; buộc JWT secret mới, xóa challenge/setup/auth attempts và mã khôi phục cũ, chống phục hồi lại mã đã dùng sau snapshot. Người dùng 2FA đăng nhập bằng authenticator gốc và tạo mã khôi phục mới. Giữ lịch sử job, hủy QUEUED/RUNNING và tắt ý định email cũ để không tự gửi lại.
+- Cấu trúc: Facade `backupService`, adapter `mongoSnapshot`/reader local-S3, codec streaming `archive`, state machine `snapshotValidator`, policy đường dẫn/kích thước và `restoreGuard`. Không thêm dependency, không thêm HTTP restore hoặc logic này vào controller nghiệp vụ.
+- Kiểm thử: **165/165 backend toàn bộ**, gồm **20 test backup**. Test dùng replica set tạm, file thật, native BSON, CLI create/verify/plan/apply, lỗi giữa chừng, đích không rỗng, concurrent restore, sai khóa/tamper/checksum, symlink, startup API/worker và TOTP login/download qua API sau restore. S3 reader dùng adapter giả. `git diff --check` đạt; frontend không thay đổi và không chạy lại build/E2E trong đợt này.
+- Chưa kết nối Atlas, chưa chạy backup/restore trên DB người dùng, chưa gửi mail hoặc truy cập bucket thật. Giữ các `.env` thực tế và hai file untracked ban đầu. `.env.example` bổ sung BACKUP_ENCRYPTION_KEY, BACKUP_STAGING_ROOT, BACKUP_MAX_BYTES và các biến RESTORE_*.
+- Hướng dẫn cấu hình, lệnh, commit marker, lỗi và giới hạn: [phase1-backup-restore.md](phase1-backup-restore.md). Phải dừng API/worker/mọi writer khi tạo snapshot; --maintenance chỉ là xác nhận vận hành. Staging có plaintext tạm và cần ACL riêng; snapshot không chứa khóa JWT/TOTP/backup nên phải sao lưu khóa riêng.
+- Giới hạn: công cụ bảo trì toàn instance, restore local mới; chưa có UI, scheduler/retention/offsite tự động, tenant-only restore, restore S3, PITR/oplog, key rotation hay UAT hạ tầng thật. Không gọi toàn bộ spec backup doanh nghiệp là hoàn tất.
+- Điểm tiếp tục: code nền 1.1–1.4 đã có; tiếp tục nghiệp vụ còn thiếu theo spec từ nhánh này. Các kiểm chứng Atlas/S3/Google/SMTP và diễn tập restore hạ tầng thật vẫn là việc triển khai riêng, chưa được đánh dấu đạt.
 
 ## Phase 1 — 1.3 2FA và password policy
 
@@ -45,7 +60,7 @@ Cập nhật: 06/09/2026. Phase 1 đã có kho file (1.1), job/queue (1.2), 2FA 
 - [x] 1.1 Kho file theo tenant tích hợp học liệu: code, kiểm thử local, adapter S3 và tài liệu.
 - [x] 1.2 Job/queue: retry, idempotency, trạng thái, lịch chạy một lần và handler email/xóa file; phục hồi DELETING, giữ UPLOADING cho bảo trì.
 - [x] 1.3 TOTP/recovery + password policy chung, thu hồi phiên và bắt đổi mật khẩu tạm; giới hạn triển khai ghi ở mục 1.3.
-- [ ] 1.4 Backup/restore (spec 2.7).
+- [x] 1.4 Backup/verify/restore bằng CLI bảo trì, archive mã hóa và DB/local root mới; giới hạn ở mục 1.4.
 - [ ] Smoke test S3/IAM thực tế trước khi chọn triển khai adapter S3; không chặn dùng local.
 
 ## Rà soát bổ sung sau tổng hợp Phase 0
@@ -224,12 +239,12 @@ Cập nhật: 06/09/2026. Phase 1 đã có kho file (1.1), job/queue (1.2), 2FA 
 - Schema thêm trường nullable, không cần migration phá dữ liệu. Cache/API trả scope role để frontend kiểm tra nút quản lý.
 - `npm test` backend: **68/68 đạt**. Chưa hoàn tất thi online và nút nghiệp vụ/E2E.
 
-## Việc tiếp theo — tiếp tục Phase 1
+## Việc tiếp theo — sau nền tảng Phase 1
 
-1. Tiếp tục từ `feat/phase1-job-queue`; kiểm tra git status trước khi sửa. File kế hoạch cũ `docs/feature-gap-implementation-plan.md` không tồn tại trong checkout này; tài liệu này là điểm bàn giao hiện hành.
+1. Tiếp tục từ `feat/phase1-backup-restore`; kiểm tra git status trước khi sửa. File kế hoạch cũ `docs/feature-gap-implementation-plan.md` không tồn tại trong checkout này; tài liệu này là điểm bàn giao hiện hành.
 2. Kho file local và adapter S3 đã có. Không tự chuyển storage hoặc chạy lệnh bảo trì apply trên database đang phục vụ; đọc hướng dẫn vận hành trước. Chưa chọn dịch vụ cloud hoặc cấp secret mới.
 3. Job/queue đã có, đọc `phase1-job-queue.md` trước khi bổ sung handler. API không tự chạy worker; không tự gửi email thử tới người dùng hoặc chạy job trên DB thật trong phiên code.
-4. Mục code kế tiếp: 2FA và password policy (spec 2.6), rồi backup/restore (2.7); từng chức năng phải có kiểm thử, nhánh riêng, push và bổ sung tài liệu trước khi chuyển tiếp.
+4. 2FA/password policy và backup/restore đã có trong phạm vi mục 1.3/1.4. Đọc runbook trước khi vận hành; không tự chạy restore --apply trên DB thật. Chọn nghiệp vụ tiếp theo từ danh sách spec còn thiếu, lập phạm vi cụ thể rồi kiểm thử, tạo nhánh/push và ghi tài liệu sau từng chức năng.
 5. Giữ riêng các việc nghiệp vụ: thời lượng/tự nộp thi, giao dịch đồng thời học phí/tồn kho, di chuyển trường giữa cụm và migration dữ liệu liên quan, bộ duyệt custom role, Google/SMTP/SMS/Zalo/payment thật. Chưa có kết quả UAT cho các phần này.
 
 Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend và 4 ở frontend từ cây dependency; chưa chạy audit fix vì có thể thay major/ngoài scope. File .env và hai file untracked ban đầu không thuộc các commit bàn giao.

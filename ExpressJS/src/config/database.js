@@ -7,10 +7,18 @@ const connection = async () => {
 
   // Singleton: reuse existing connection if present
   if (mongoose.connection.readyState === 1) {
+    await require('../backup/restoreGuard').assertUsable(mongoose.connection.db);
     console.log('Reusing existing MongoDB connection (Singleton)');
     return mongoose.connection;
   }
 
+  // Probe before connecting Mongoose: model auto-create/index work must not touch
+  // a partially restored target before its guard has been checked.
+  const probe = new mongoose.mongo.MongoClient(uri);
+  try {
+    await probe.connect();
+    await require('../backup/restoreGuard').assertUsable(probe.db());
+  } finally { await probe.close(); }
   await mongoose.connect(uri);
   console.log('Connected to MongoDB');
   return mongoose.connection;
