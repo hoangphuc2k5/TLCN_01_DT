@@ -1,6 +1,12 @@
 # Tiến trình triển khai
 
-Cập nhật: 07/09/2026. Phase 1 đã có code 1.1–1.4 trong phạm vi ghi bên dưới. Backend toàn bộ đạt 165/165. Frontend không thay đổi trong 1.4; kết quả gần nhất ở 1.3 là policy 10/10, E2E 29/29 và build đạt. Điểm bàn giao mới ở mục 1.4; chưa xác nhận dịch vụ thật hoặc toàn bộ yêu cầu triển khai production.
+Cập nhật: 08/09/2026. Đã hoàn tất và kiểm thử nhánh tổng hợp Phase 1 (`integration/phase1`): backend 165/165, policy frontend 10/10, E2E Phase 0 + Phase 1 29/29, build đạt. Chi tiết merge và phạm vi xem [bàn giao Phase 1](phase1-integration.md). Phase 2 tiếp tục ở nhánh chức năng riêng; chưa merge main.
+
+## Nhánh tổng hợp Phase 1
+
+- `integration/phase1` được tạo từ `integration/phase0` tại `cdbdb11`, merge tuần tự bốn nhánh Phase 1 bằng `--no-ff`. Các merge commit lần lượt là `0073e94`, `dbd607a`, `2e09242`, `418a4ee`.
+- Kiểm thử trên đúng cây tổng hợp: backend **165/165**, frontend policy **10/10**, E2E **29/29**, build đạt và `git diff --check` đạt.
+- Phase 2.1 xin nghỉ dạy/dạy bù đang ở `feat/phase2-teaching-schedule`, không đưa vào `integration/phase1`.
 
 ## Phase 1 — 1.4 Backup/Restore
 
