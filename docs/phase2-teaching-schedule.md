@@ -1,6 +1,6 @@
 # Phase 2.1 — Xin nghỉ dạy và lịch dạy bù
 
-Cập nhật 08/09/2026. Spec liên quan: **5.8 / 6.1.10**. Nền: `feat/phase1-backup-restore` tại `a25f216`. Nhánh chức năng: `feat/phase2-teaching-schedule`.
+Cập nhật 08/09/2026. Spec liên quan: **5.8 / 6.1.10**. Nền: `feat/phase1-backup-restore` tại `a25f216`. Nhánh chức năng: `feat/phase2-teaching-schedule`. Code/test tại `fc4825e`, đã push lên origin; main và integration/phase0 không thay đổi.
 
 ## Phạm vi đã làm
 

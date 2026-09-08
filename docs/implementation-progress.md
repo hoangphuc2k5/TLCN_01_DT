@@ -4,7 +4,7 @@ Cập nhật: 08/09/2026. Phase 1 có code 1.1–1.4 trong phạm vi ghi bên d�
 
 ## Phase 2 — 2.1 Xin nghỉ dạy, dạy bù và lịch theo ngày
 
-- Nhánh `feat/phase2-teaching-schedule`, nền `feat/phase1-backup-restore` tại `a25f216`; không merge main/integration/phase0. Commit/push được ghi lại sau khi hoàn thành bước Git.
+- Nhánh `feat/phase2-teaching-schedule`, nền `feat/phase1-backup-restore` tại `a25f216`; không merge main/integration/phase0. Code/test/tài liệu đã commit tại `fc4825e` và push thành công lên `origin/feat/phase2-teaching-schedule`; dùng nhánh này làm nền phiên tiếp theo.
 - Duyệt nghỉ dạy tự đánh dấu tiết nghỉ theo ngày; giáo viên chọn tiết gốc, ngày/tiết/phòng bù, người duyệt kiểm tra và duyệt để lịch lớp/HS/PH cập nhật. Có hủy lịch bù kèm lý do, người/thời điểm hủy, giữ lịch sử duyệt và cho gửi lại đề xuất.
 - Thêm snapshot `LeaveRequest.makeup`, trạng thái CANCELLED, metadata hủy, index và `School.scheduleRevision`. TKB tuần không bị viết đè bởi nghỉ/bù; lịch bù được chiếu từ đơn APPROVED, nên vẫn thấy khi TKB tuần đang sửa bản nháp.
 - API mới: `GET /timetables/schedule` (1–31 ngày, lọc lớp/năm/trường trong scope), `PATCH /leave-requests/:id/cancel-makeup`. Đơn bù dùng API tạo/duyệt hiện có với payload có cấu trúc; server tự xác định lớp/môn/năm/giáo viên.
