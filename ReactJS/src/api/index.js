@@ -70,11 +70,13 @@ export const getAnnouncementsApi = () => axios.get('/v1/api/announcements');
 export const createAnnouncementApi = (data) => axios.post('/v1/api/announcements', data);
 export const deleteAnnouncementApi = (id) => axios.delete(`/v1/api/announcements/${id}`);
 
+export const cancelMakeupApi = (id, data) => axios.patch(`/v1/api/leave-requests/${id}/cancel-makeup`, data);
 export const getLeavesApi = (params) => axios.get('/v1/api/leave-requests', { params });
 export const createLeaveApi = (data) => axios.post('/v1/api/leave-requests', data);
 export const reviewLeaveApi = (id, data) =>
   axios.patch(`/v1/api/leave-requests/${id}/review`, data);
 
+export const getDatedScheduleApi = (params) => axios.get('/v1/api/timetables/schedule', { params });
 export const getTimetablesApi = (params) => axios.get('/v1/api/timetables', { params });
 export const upsertTimetableApi = (data) => axios.post('/v1/api/timetables', data);
 export const approveTimetableApi = (id) => axios.patch(`/v1/api/timetables/${id}/approve`);

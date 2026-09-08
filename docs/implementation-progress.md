@@ -1,6 +1,19 @@
 # Tiến trình triển khai
 
-Cập nhật: 07/09/2026. Phase 1 đã có code 1.1–1.4 trong phạm vi ghi bên dưới. Backend toàn bộ đạt 165/165. Frontend không thay đổi trong 1.4; kết quả gần nhất ở 1.3 là policy 10/10, E2E 29/29 và build đạt. Điểm bàn giao mới ở mục 1.4; chưa xác nhận dịch vụ thật hoặc toàn bộ yêu cầu triển khai production.
+Cập nhật: 08/09/2026. Phase 1 có code 1.1–1.4 trong phạm vi ghi bên dưới. Đã triển khai tiếp Phase 2.1 xin nghỉ dạy/dạy bù theo spec 5.8 / 6.1.10. Kết quả hiện tại: **192/192 backend**, **10/10 policy frontend**, **31/31 E2E**, build đạt. Điểm bàn giao mới ở mục Phase 2.1; chưa xác nhận dịch vụ thật hoặc toàn bộ yêu cầu production.
+
+## Phase 2 — 2.1 Xin nghỉ dạy, dạy bù và lịch theo ngày
+
+- Nhánh `feat/phase2-teaching-schedule`, nền `feat/phase1-backup-restore` tại `a25f216`; không merge main/integration/phase0. Commit/push được ghi lại sau khi hoàn thành bước Git.
+- Duyệt nghỉ dạy tự đánh dấu tiết nghỉ theo ngày; giáo viên chọn tiết gốc, ngày/tiết/phòng bù, người duyệt kiểm tra và duyệt để lịch lớp/HS/PH cập nhật. Có hủy lịch bù kèm lý do, người/thời điểm hủy, giữ lịch sử duyệt và cho gửi lại đề xuất.
+- Thêm snapshot `LeaveRequest.makeup`, trạng thái CANCELLED, metadata hủy, index và `School.scheduleRevision`. TKB tuần không bị viết đè bởi nghỉ/bù; lịch bù được chiếu từ đơn APPROVED, nên vẫn thấy khi TKB tuần đang sửa bản nháp.
+- API mới: `GET /timetables/schedule` (1–31 ngày, lọc lớp/năm/trường trong scope), `PATCH /leave-requests/:id/cancel-makeup`. Đơn bù dùng API tạo/duyệt hiện có với payload có cấu trúc; server tự xác định lớp/môn/năm/giáo viên.
+- Tách policy ngày, scope, service tính lịch và transaction. Ghi/duyệt TKB, nghỉ/bù và hủy lịch bù cùng dùng transaction ghi School trước đọc lịch; kiểm thử cạnh tranh xác nhận không nhận hai lịch xung đột. Kiểm tra lại phân công, trạng thái GV, tiết gốc, ngày/năm học, trùng lớp/GV/phòng và tiết gốc đã bù.
+- UI: form chọn tiết nghỉ thay đề xuất văn bản tự do; bảng đơn hiển thị lịch gốc/lịch bù/lý do hủy; trang TKB có lịch theo ngày, trạng thái nghỉ/bù. Lịch học sinh/phụ huynh không lộ lý do nghỉ hoặc thông tin liên hệ của GV.
+- Kiểm thử: **192/192 backend toàn bộ**, gồm **26 ca lịch dạy + 1 ca standalone mới**; **10/10 policy frontend**, **31/31 Playwright**, build đạt, `git diff --check` đạt. E2E mới chạy chuỗi GV → admin → PH, hủy và đọc lại; kiểm tra HS trường khác và khoảng ngày quá dài. Test chạy MongoDB tạm, không kết nối Atlas/DB người dùng; worker thật không chạy.
+- Cần MongoDB replica set cho ghi lịch. Fixture standalone cũ được giữ standalone để kiểm tra trả 503 và không đổi dữ liệu, bổ sung thư mục file tạm riêng. Không thêm dependency hoặc biến môi trường, không sửa `.env` hay stage hai file untracked ban đầu.
+- Giới hạn: nghỉ cả ngày, mỗi đơn bù một tiết, chưa lịch phiên bản theo ngày hiệu lực, nghỉ lễ/nửa ngày/GV dạy thay/tự tìm giờ tối ưu; chưa gắn phòng với FacilityRequest. Không tự thay điểm danh/điểm số. Đơn `makeupProposal` cũ không được đoán để sinh lịch; gửi lại theo cấu trúc mới. Notification vẫn Observer sau commit, chưa realtime/outbox.
+- Chi tiết API, kiến trúc, vận hành, tương thích và bước tiếp: [phase2-teaching-schedule.md](phase2-teaching-schedule.md).
 
 ## Phase 1 — 1.4 Backup/Restore
 
@@ -239,12 +252,12 @@ Cập nhật: 07/09/2026. Phase 1 đã có code 1.1–1.4 trong phạm vi ghi b�
 - Schema thêm trường nullable, không cần migration phá dữ liệu. Cache/API trả scope role để frontend kiểm tra nút quản lý.
 - `npm test` backend: **68/68 đạt**. Chưa hoàn tất thi online và nút nghiệp vụ/E2E.
 
-## Việc tiếp theo — sau nền tảng Phase 1
+## Việc tiếp theo — sau Phase 2.1
 
-1. Tiếp tục từ `feat/phase1-backup-restore`; kiểm tra git status trước khi sửa. File kế hoạch cũ `docs/feature-gap-implementation-plan.md` không tồn tại trong checkout này; tài liệu này là điểm bàn giao hiện hành.
+1. Tiếp tục từ `feat/phase2-teaching-schedule`; kiểm tra git status trước khi sửa. Đọc `phase2-teaching-schedule.md` để nắm thay đổi nghỉ/bù và yêu cầu transaction. File kế hoạch cũ `docs/feature-gap-implementation-plan.md` không tồn tại trong checkout này; tài liệu này là điểm bàn giao hiện hành.
 2. Kho file local và adapter S3 đã có. Không tự chuyển storage hoặc chạy lệnh bảo trì apply trên database đang phục vụ; đọc hướng dẫn vận hành trước. Chưa chọn dịch vụ cloud hoặc cấp secret mới.
 3. Job/queue đã có, đọc `phase1-job-queue.md` trước khi bổ sung handler. API không tự chạy worker; không tự gửi email thử tới người dùng hoặc chạy job trên DB thật trong phiên code.
-4. 2FA/password policy và backup/restore đã có trong phạm vi mục 1.3/1.4. Đọc runbook trước khi vận hành; không tự chạy restore --apply trên DB thật. Chọn nghiệp vụ tiếp theo từ danh sách spec còn thiếu, lập phạm vi cụ thể rồi kiểm thử, tạo nhánh/push và ghi tài liệu sau từng chức năng.
+4. 2FA/password policy và backup/restore đã có trong phạm vi mục 1.3/1.4. Đọc runbook trước khi vận hành; không tự chạy restore --apply trên DB thật. Phần nghỉ dạy/dạy bù đã có trong mục 2.1. Nghiệp vụ tiếp theo đề xuất: giao/nộp/chấm bài tập (6.1.4–6.1.6), mở rộng FileAsset với purpose/scope riêng. Chốt phạm vi cụ thể, kiểm thử, tạo nhánh/push và ghi tài liệu sau từng chức năng.
 5. Giữ riêng các việc nghiệp vụ: thời lượng/tự nộp thi, giao dịch đồng thời học phí/tồn kho, di chuyển trường giữa cụm và migration dữ liệu liên quan, bộ duyệt custom role, Google/SMTP/SMS/Zalo/payment thật. Chưa có kết quả UAT cho các phần này.
 
 Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend và 4 ở frontend từ cây dependency; chưa chạy audit fix vì có thể thay major/ngoài scope. File .env và hai file untracked ban đầu không thuộc các commit bàn giao.

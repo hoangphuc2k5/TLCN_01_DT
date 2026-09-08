@@ -1,80 +1,72 @@
 const ApiError = require('../utils/ApiError');
 const { timetableRepo } = require('../repositories');
 const { ROLES } = require('../constants/roles');
-const { schoolScope, personalStudentIds, teacherClassScope, objectId } = require('./dataScope');
-const User = require('../models/User');
+const { schoolScope, personalStudentIds, objectId } = require('./dataScope');
 const Class = require('../models/Class');
+const User = require('../models/User');
 const AcademicYear = require('../models/AcademicYear');
 const Subject = require('../models/Subject');
+const scopeFor = require('./timetableScope');
+const transaction = require('./scheduleTransaction');
+const schedule = require('./teachingScheduleService');
+const dates = require('./scheduleDates');
 
 const listTimetables = async (actor, query = {}) => {
-  const clauses = [await schoolScope(actor), await teacherClassScope(actor, 'timetable')];
-  if (query.classId) clauses.push({ classId: objectId(query.classId, 'classId') });
-  if (query.academicYearId) clauses.push({ academicYearId: objectId(query.academicYearId, 'academicYearId') });
-  const studentIds = await personalStudentIds(actor);
-  if (studentIds !== null) {
-    const students = await User.find({ _id: { $in: studentIds } }).select('classId');
-    clauses.push({ classId: { $in: students.map(s => s.classId).filter(Boolean) }, status: 'APPROVED' });
-  }
-  const filter = { $and: clauses };
+  const scope = await scopeFor(actor, query);
+  if (await personalStudentIds(actor) !== null) scope.$and.push({ status: 'APPROVED' });
+  return timetableRepo.find(scope, { populate: 'classId slots.subjectId slots.teacherId academicYearId', limit: 50 });
+};
 
-  return timetableRepo.find(filter, {
-    populate: 'classId slots.subjectId slots.teacherId academicYearId',
-    limit: 50,
+const validateReferences = async (schoolId, academicYearId, classId, slots, session = null) => {
+  if (!(await Class.exists({ _id: objectId(classId), schoolId, academicYearId: objectId(academicYearId) }).session(session)) ||
+      !(await AcademicYear.exists({ _id: academicYearId, schoolId }).session(session))) throw new ApiError(403, 'Lớp/năm học không thuộc trường');
+  const teachers = [...new Set(slots.map(s => String(s.teacherId)))];
+  const subjects = [...new Set(slots.map(s => String(s.subjectId)))];
+  const teacherCount = await User.countDocuments({ _id: { $in: teachers }, schoolId, status: 'ACTIVE', role: { $in: [ROLES.SUBJECT_TEACHER, ROLES.HOMEROOM_TEACHER] } }).session(session);
+  const subjectCount = await Subject.countDocuments({ _id: { $in: subjects }, schoolId }).session(session);
+  if (teacherCount !== teachers.length || subjectCount !== subjects.length) throw new ApiError(403, 'Giáo viên/môn học không thuộc trường hoặc đã ngừng hoạt động');
+};
+const normalizeSlots = slots => {
+  if (!Array.isArray(slots) || slots.length > 70) throw new ApiError(400, 'TKB tối đa 70 tiết mỗi tuần');
+  const occupied = new Set();
+  return slots.map(slot => {
+    if (!slot || !Number.isInteger(slot.dayOfWeek) || slot.dayOfWeek < 1 || slot.dayOfWeek > 7) throw new ApiError(400, 'Thứ phải là số nguyên từ 1 đến 7');
+    const period = dates.period(slot.period);
+    const key = `${slot.dayOfWeek}:${period}`;
+    if (occupied.has(key)) throw new ApiError(400, 'Một lớp không thể có hai môn trong cùng tiết');
+    occupied.add(key);
+    return { dayOfWeek: slot.dayOfWeek, period, teacherId: objectId(slot.teacherId, 'teacherId'),
+      subjectId: objectId(slot.subjectId, 'subjectId'), room: dates.room(slot.room) };
   });
 };
-
 const upsertTimetable = async (actor, data) => {
-  const { academicYearId, classId, slots = [], status = 'DRAFT' } = data;
+  const { academicYearId, classId, status = 'DRAFT' } = data;
   if (!academicYearId || !classId) throw new ApiError(400, 'Thiếu academicYearId/classId');
   if (status !== 'DRAFT') throw new ApiError(400, 'Lưu bản nháp trước khi duyệt TKB');
-  if (!Array.isArray(slots)) throw new ApiError(400, 'slots phải là danh sách');
-  if (!(await Class.exists({ _id: objectId(classId), schoolId: actor.schoolId, academicYearId: objectId(academicYearId) })) ||
-      !(await AcademicYear.exists({ _id: academicYearId, schoolId: actor.schoolId }))) {
-    throw new ApiError(403, 'Lớp/năm học không thuộc trường');
-  }
-  for (const slot of slots) {
-    if (!(await User.exists({ _id: objectId(slot.teacherId, 'teacherId'), schoolId: actor.schoolId, role: { $in: [ROLES.SUBJECT_TEACHER, ROLES.HOMEROOM_TEACHER] } })) ||
-        !(await Subject.exists({ _id: objectId(slot.subjectId, 'subjectId'), schoolId: actor.schoolId }))) {
-      throw new ApiError(403, 'Giáo viên/môn học không thuộc trường');
-    }
-  }
-
-  // basic conflict check: same teacher same day/period
-  const teacherSlots = {};
-  for (const slot of slots) {
-    const key = `${slot.teacherId}-${slot.dayOfWeek}-${slot.period}`;
-    if (teacherSlots[key]) {
-      throw new ApiError(400, `Trùng lịch giáo viên: ngày ${slot.dayOfWeek} tiết ${slot.period}`);
-    }
-    teacherSlots[key] = true;
-  }
-
-  const filter = {
-    schoolId: actor.schoolId,
-    academicYearId,
-    classId,
-  };
-  const existing = await timetableRepo.findOne(filter);
-  if (existing) {
-    return timetableRepo.updateById(existing._id, { slots, status, approvedBy: null });
-  }
-  return timetableRepo.create({ ...filter, slots, status });
+  const slots = normalizeSlots(data.slots || []);
+  await validateReferences(actor.schoolId, academicYearId, classId, slots);
+  return transaction(actor.schoolId, async session => {
+    await validateReferences(actor.schoolId, academicYearId, classId, slots, session);
+    const filter = { schoolId: actor.schoolId, academicYearId, classId };
+    return timetableRepo.model.findOneAndUpdate(filter, { slots, status, approvedBy: null },
+      { new: true, upsert: true, runValidators: true, session });
+  });
 };
-
 const approveTimetable = async (actor, id) => {
-  if (![ROLES.SCHOOL_ADMIN].includes(actor.role)) {
-    throw new ApiError(403, 'Chỉ Hiệu trưởng được duyệt TKB');
-  }
+  if (actor.role !== ROLES.SCHOOL_ADMIN) throw new ApiError(403, 'Chỉ Hiệu trưởng được duyệt TKB');
   const scope = await schoolScope(actor);
-  const existing = await timetableRepo.findOne({ ...scope, _id: objectId(id) });
+  const filter = { ...scope, _id: objectId(id) };
+  const existing = await timetableRepo.findOne(filter);
   if (!existing) throw new ApiError(404, 'Không tìm thấy TKB');
-  const tt = await timetableRepo.model.findOneAndUpdate({ ...scope, _id: existing._id, status: 'DRAFT' }, {
-    status: 'APPROVED',
-    approvedBy: actor._id,
-  }, { new: true, runValidators: true });
-  if (!tt) throw new ApiError(409, 'TKB đã được duyệt');
-  return tt;
+  return transaction(existing.schoolId, async session => {
+    const table = await timetableRepo.model.findOne(filter).session(session);
+    if (!table || table.status !== 'DRAFT') throw new ApiError(409, 'TKB đã được duyệt');
+    normalizeSlots(table.slots);
+    await validateReferences(table.schoolId, table.academicYearId, table.classId, table.slots, session);
+    await schedule.validateWeekly(table, session);
+    table.status = 'APPROVED';
+    table.approvedBy = actor._id;
+    return table.save({ session });
+  });
 };
-
 module.exports = { listTimetables, upsertTimetable, approveTimetable };

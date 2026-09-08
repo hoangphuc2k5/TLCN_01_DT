@@ -122,6 +122,8 @@ router.post('/leave-requests', authorizePermissionAction('create', PERMISSIONS.M
 router.patch('/leave-requests/:id/review', authorizePermissionAction('execute', PERMISSIONS.MANAGE_LEAVE), authorizeRoles(ROLES.SCHOOL_ADMIN, ROLES.ACADEMIC_AFFAIRS, ROLES.HOMEROOM_TEACHER, ROLES.CLUSTER_ADMIN), audit('REVIEW', 'LeaveRequest'), c.reviewLeave);
 
 // Timetable
+router.patch('/leave-requests/:id/cancel-makeup', authorizePermissionAction('execute', PERMISSIONS.MANAGE_LEAVE), audit('CANCEL_MAKEUP', 'LeaveRequest'), c.cancelMakeup);
+router.get('/timetables/schedule', authorizeRead('timetable', { personal: true, personalRoles: [ROLES.STUDENT, ROLES.PARENT, ROLES.SUBJECT_TEACHER, ROLES.HOMEROOM_TEACHER] }), c.datedSchedule);
 router.get('/timetables', c.listTimetables);
 router.post('/timetables', authorizePermissionAction(['create', 'update'], PERMISSIONS.MANAGE_TIMETABLE), audit('UPSERT', 'Timetable'), c.upsertTimetable);
 router.patch('/timetables/:id/approve', authorizePermissionAction('execute', PERMISSIONS.MANAGE_TIMETABLE), authorizeRoles(ROLES.SCHOOL_ADMIN), c.approveTimetable);
