@@ -169,6 +169,13 @@ export const createContactBookApi = (data) => axios.post('/v1/api/contact-books'
 export const updateContactBookApi = (id, data) => axios.put(`/v1/api/contact-books/${id}`, data);
 export const publishContactBookApi = (id) => axios.patch(`/v1/api/contact-books/${id}/publish`);
 export const replyContactBookApi = (id, parentReply) => axios.patch(`/v1/api/contact-books/${id}/reply`, { parentReply });
+export const getClassActivitiesApi = (params) => axios.get('/v1/api/class-activities', { params });
+export const createClassActivityApi = (data) => axios.post('/v1/api/class-activities', data);
+export const publishClassActivityApi = (id) => axios.patch(`/v1/api/class-activities/${id}/publish`);
+export const getParentMeetingsApi = () => axios.get('/v1/api/parent-meetings');
+export const createParentMeetingApi = (data) => axios.post('/v1/api/parent-meetings', data);
+export const cancelParentMeetingApi = (id) => axios.patch(`/v1/api/parent-meetings/${id}/cancel`);
+export const rsvpParentMeetingApi = (id, data) => axios.patch(`/v1/api/parent-meetings/${id}/rsvp`, data);
 export const getJobsApi = params => axios.get('/v1/api/jobs', { params });
 export const retryJobApi = (id, data = {}) => axios.post(`/v1/api/jobs/${id}/retry`, data);
 export const cancelJobApi = id => axios.post(`/v1/api/jobs/${id}/cancel`);

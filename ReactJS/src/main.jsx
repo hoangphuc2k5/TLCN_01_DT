@@ -36,6 +36,7 @@ import CalendarPage from './features/calendar/CalendarPage.jsx';
 import JobsPage from './features/admin/JobsPage.jsx';
 import AssignmentsPage from './features/assignments/AssignmentsPage.jsx';
 import ContactBookPage from './features/contactBook/ContactBookPage.jsx';
+import ClassLifePage from './features/classLife/ClassLifePage.jsx';
 import { ROLES } from './constants/roles.js';
 import './styles/global.css';
 
@@ -87,6 +88,7 @@ const router = createBrowserRouter([
               { path: 'jobs', element: <JobsPage /> },
   { path: 'assignments', element: <AssignmentsPage /> },
   { path: 'contact-book', element: <ContactBookPage /> },
+  { path: 'class-life', element: <ClassLifePage /> },
             ],
           },
         ],

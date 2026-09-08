@@ -164,6 +164,15 @@ router.put('/contact-books/:id', authorizePermissionAction('update', PERMISSIONS
 router.patch('/contact-books/:id/publish', authorizePermissionAction('execute', PERMISSIONS.MANAGE_CONTACT_BOOKS), audit('PUBLISH', 'ContactBookEntry'), contactBooks.publish);
 router.patch('/contact-books/:id/reply', authorizeRead('contact_books', { personal: true }), audit('REPLY', 'ContactBookEntry'), contactBooks.reply);
 
+const classLife = require('../controllers/classLifeController');
+router.get('/class-activities', authorizeRead('class_activities', { personal: true }), classLife.listActivities);
+router.post('/class-activities', authorizePermissionAction('create', PERMISSIONS.MANAGE_CLASS_ACTIVITIES), audit('CREATE', 'ClassActivity'), classLife.createActivity);
+router.patch('/class-activities/:id/publish', authorizePermissionAction('execute', PERMISSIONS.MANAGE_CLASS_ACTIVITIES), audit('PUBLISH', 'ClassActivity'), classLife.publishActivity);
+router.get('/parent-meetings', authorizeRead('parent_meetings', { personal: true }), classLife.listMeetings);
+router.post('/parent-meetings', authorizePermissionAction('create', PERMISSIONS.MANAGE_PARENT_MEETINGS), audit('CREATE', 'ParentMeeting'), classLife.createMeeting);
+router.patch('/parent-meetings/:id/cancel', authorizePermissionAction('execute', PERMISSIONS.MANAGE_PARENT_MEETINGS), audit('CANCEL', 'ParentMeeting'), classLife.cancelMeeting);
+router.patch('/parent-meetings/:id/rsvp', authorizeRead('parent_meetings', { personal: true }), audit('RSVP', 'ParentMeetingResponse'), classLife.rsvp);
+
 router.get('/materials', authorizeRead('materials', { personal: true }), a.listMaterials);
 router.post('/materials', authorizePermissionAction('create', PERMISSIONS.MANAGE_MATERIALS), audit('CREATE', 'LearningMaterial'), a.createMaterial);
 router.delete('/materials/:id', authorizePermissionAction('delete', PERMISSIONS.MANAGE_MATERIALS), a.deleteMaterial);
