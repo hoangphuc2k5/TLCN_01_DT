@@ -1,6 +1,25 @@
 # Tiến trình triển khai
 
-Cập nhật: 06/09/2026. Đã rà lại checklist Đợt 0 và sửa thêm các đường đọc chưa được test cũ bao phủ. Kết quả mới: backend 93/93, frontend 9/9, E2E 24/24, build đạt. Phạm vi và giới hạn được ghi cụ thể trong [báo cáo rà soát](phase0-review-2026-09-06.md).
+Cập nhật: 06/09/2026. Đã bắt đầu Phase 1 với kho file học liệu theo trường. Backend hiện đạt 106/106, frontend policy 9/9; E2E đầy đủ 25/25, build đạt. Điểm bàn giao mới ở mục Phase 1 bên dưới; lịch sử Phase 0 được giữ lại để đối chiếu.
+
+## Phase 1 — 1.1 Kho file học liệu
+
+- Nhánh `feat/phase1-file-storage`, nền `integration/phase0` tại `cdbdb11`. Không nhập code Phase 1 vào nhánh tổng hợp Phase 0.
+- Đã commit/push code và test tại `f73ec42`; nhánh đang track `origin/feat/phase1-file-storage`. Phiên tiếp theo lấy nhánh này làm nền cho 1.2.
+- Thêm FileAsset, storageUsedBytes, liên kết fileAssetId; adapter local/S3, API upload/metadata/download/usage; dùng scope và quyền học liệu hiện hành. File mới tải qua JWT, không expose thư mục public.
+- Giao dịch MongoDB giữ chỗ dung lượng và metadata; chống vượt quota khi upload đồng thời. Xóa file trước khi hoàn quota; trạng thái UPLOADING/READY/DELETING và lệnh bảo trì giúp phục hồi gián đoạn.
+- UI Học liệu hỗ trợ tải file hoặc liên kết, chia sẻ/riêng tư, hiển thị hạn mức, download đúng tên và xóa. Giữ tên file tiếng Việt.
+- Thêm 13 test backend so với Phase 0: **106/106 đạt**. Frontend **9/9**, build đạt (còn cảnh báo chunk lớn). E2E đầy đủ **25/25**, gồm upload → download so sánh bytes → xóa; chạy lại riêng luồng file sau chỉnh phục hồi/tên file.
+- Yêu cầu mới: MongoDB replica set cho upload/xóa. Test dùng replica set/thư mục tạm; không kết nối database người dùng, không đổi `.env`. S3 được kiểm tra bằng adapter test, chưa smoke test bucket thật. Local đã kiểm tra end-to-end.
+- Cấu hình, API, quyền, lệnh phục hồi và giới hạn: [phase1-file-storage.md](phase1-file-storage.md). `.env.example` có biến mẫu mới; giữ nguyên file production example chưa track và package-lock ở root của người dùng.
+
+### Checklist Phase 1
+
+- [x] 1.1 Kho file theo tenant tích hợp học liệu: code, kiểm thử local, adapter S3 và tài liệu.
+- [ ] 1.2 Job/queue: retry, idempotency, trạng thái, lịch chạy và xử lý công việc thật; tích hợp phục hồi file khi có cơ chế điều phối an toàn.
+- [ ] 1.3 2FA và password policy (spec 2.6).
+- [ ] 1.4 Backup/restore (spec 2.7).
+- [ ] Smoke test S3/IAM thực tế trước khi chọn triển khai adapter S3; không chặn dùng local.
 
 ## Rà soát bổ sung sau tổng hợp Phase 0
 
@@ -178,11 +197,11 @@ Cập nhật: 06/09/2026. Đã rà lại checklist Đợt 0 và sửa thêm các
 - Schema thêm trường nullable, không cần migration phá dữ liệu. Cache/API trả scope role để frontend kiểm tra nút quản lý.
 - `npm test` backend: **68/68 đạt**. Chưa hoàn tất thi online và nút nghiệp vụ/E2E.
 
-## Việc tiếp theo — Đợt 1 chưa bắt đầu
+## Việc tiếp theo — tiếp tục Phase 1
 
-1. Bắt đầu từ `integration/phase0`; kiểm tra git status trước khi sửa. File kế hoạch cũ `docs/feature-gap-implementation-plan.md` không tồn tại trong checkout này; tài liệu này là điểm bàn giao hiện hành.
-2. Triển khai kho file theo tenant: metadata FileAsset, adapter lưu trữ local/S3 theo cấu hình, upload/download có scope, hạn mức dung lượng, kiểm thử truy cập chéo trường. Chưa chọn dịch vụ cloud hoặc cần secret mới.
-3. Tiếp đó nền job/queue: retry, idempotency, trạng thái và lịch chạy để phục vụ thông báo/backup; không tạo job giả chỉ đổi trạng thái.
+1. Tiếp tục từ `feat/phase1-file-storage`; kiểm tra git status trước khi sửa. File kế hoạch cũ `docs/feature-gap-implementation-plan.md` không tồn tại trong checkout này; tài liệu này là điểm bàn giao hiện hành.
+2. Kho file local và adapter S3 đã có. Không tự chuyển storage hoặc chạy lệnh bảo trì apply trên database đang phục vụ; đọc hướng dẫn vận hành trước. Chưa chọn dịch vụ cloud hoặc cấp secret mới.
+3. Mục code kế tiếp là nền job/queue: retry, idempotency, trạng thái và lịch chạy để phục vụ thông báo/backup; không tạo job giả chỉ đổi trạng thái.
 4. Tiếp đó 2FA và password policy (spec 2.6), rồi backup/restore (2.7); từng chức năng phải có kiểm thử, nhánh riêng, push và bổ sung tài liệu trước khi chuyển tiếp.
 5. Giữ riêng các việc nghiệp vụ: thời lượng/tự nộp thi, giao dịch đồng thời học phí/tồn kho, di chuyển trường giữa cụm và migration dữ liệu liên quan, bộ duyệt custom role, Google/SMTP/SMS/Zalo/payment thật. Chưa có kết quả UAT cho các phần này.
 

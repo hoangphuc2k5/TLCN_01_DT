@@ -6,7 +6,7 @@ const subscriptionSchema = new mongoose.Schema(
     plan: { type: String, enum: ['FREE', 'BASIC', 'PREMIUM'], default: 'FREE' },
     maxStudents: { type: Number, default: 100 },
     maxTeachers: { type: Number, default: 20 },
-    storageGb: { type: Number, default: 5 },
+    storageGb: { type: Number, default: 5, min: 0 },
     features: [{ type: String }],
     expiresAt: { type: Date, default: null },
     status: { type: String, enum: ['ACTIVE', 'EXPIRED', 'CANCELLED'], default: 'ACTIVE' },

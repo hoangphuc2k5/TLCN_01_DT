@@ -10,7 +10,7 @@ const User = require('../models/User');
 const Subject = require('../models/Subject');
 
 // Materials
-const listMaterials = async (actor, query = {}) => {
+const materialScope = async (actor, query = {}) => {
   const filter = await schoolScope(actor);
   if (query.subjectId) filter.subjectId = query.subjectId;
   if (query.classId) filter.classId = query.classId;
@@ -21,19 +21,22 @@ const listMaterials = async (actor, query = {}) => {
   } else if (![ROLES.SUPER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.ACADEMIC_AFFAIRS].includes(actor.role)) {
     filter.$or = [{ uploadedBy: actor._id }, { isShared: true }];
   }
-  return LearningMaterial.find(filter)
+  return filter;
+};
+const listMaterials = async (actor, query = {}) => {
+  return LearningMaterial.find(await materialScope(actor, query))
     .populate('subjectId', 'name')
     .populate('classId', 'name')
     .populate('uploadedBy', 'name')
     .sort({ createdAt: -1 });
 };
 
-const createMaterial = async (actor, data) => {
+const materialPayload = async (actor, data) => {
   if (!data.title) throw new ApiError(400, 'Thiếu tiêu đề');
   const schoolId = await targetSchool(actor, data.schoolId);
   if (data.classId) await academicReferences(actor, data, { expectedSchoolId: schoolId });
   if (data.subjectId) await reference(Subject, data.subjectId, schoolId);
-  return LearningMaterial.create({
+  return {
     schoolId,
     title: data.title,
     subjectId: data.subjectId || null,
@@ -44,8 +47,9 @@ const createMaterial = async (actor, data) => {
     topic: data.topic || '',
     description: data.description || '',
     isShared: data.isShared !== false,
-  });
+  };
 };
+const createMaterial = async (actor, data) => LearningMaterial.create(await materialPayload(actor, data));
 
 const deleteMaterial = async (actor, id) => {
   const item = await scopedDocument(LearningMaterial, actor, id);
@@ -56,7 +60,8 @@ const deleteMaterial = async (actor, id) => {
   ) {
     throw new ApiError(403, 'Không có quyền xóa');
   }
-  await item.deleteOne();
+  if (item.fileAssetId) await require('./fileService').deleteAsset(item.fileAssetId);
+  else await item.deleteOne();
   return true;
 };
 
@@ -178,6 +183,8 @@ const reviewFacility = async (actor, id, data) => {
 };
 
 module.exports = {
+  materialScope,
+  materialPayload,
   listMaterials,
   createMaterial,
   deleteMaterial,
