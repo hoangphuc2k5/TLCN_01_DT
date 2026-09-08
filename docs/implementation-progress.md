@@ -7,6 +7,12 @@
 - Tests: backend homework **7/7**, full backend suite **172/172**, frontend policy **10/10**, build passed, dedicated E2E **2/2**, full E2E **31/31**.
 - Details and continuation notes: [phase2-online-assignments.md](phase2-online-assignments.md).
 
+## Phase 2.3 - Periodic contact book
+
+- Branch `feat/phase2-contact-book`, based on `feat/phase2-online-assignments`.
+- Added scoped weekly/monthly/term contact-book entries, teacher draft/publish flow and parent reply at `/contact-book`; API is `/v1/api/contact-books`.
+- Dedicated backend test: **3/3**; full backend **175/175**, frontend policy **10/10**, build passed, dedicated E2E **1/1**, full E2E **32/32**. Details: [phase2-contact-book.md](phase2-contact-book.md).
+
 Cập nhật: 08/09/2026. Đã hoàn tất và kiểm thử nhánh tổng hợp Phase 1 (`integration/phase1`): backend 165/165, policy frontend 10/10, E2E Phase 0 + Phase 1 29/29, build đạt. Chi tiết merge và phạm vi xem [bàn giao Phase 1](phase1-integration.md). Phase 2 tiếp tục ở nhánh chức năng riêng; chưa merge main.
 
 ## Nhánh tổng hợp Phase 1

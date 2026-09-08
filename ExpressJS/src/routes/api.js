@@ -156,6 +156,14 @@ router.patch('/homeworks/:id/close', authorizePermissionAction('execute', PERMIS
 router.post('/homeworks/:id/submissions', authorizePermissionAction('create', PERMISSIONS.SUBMIT_ASSIGNMENTS), audit('SUBMIT', 'HomeworkSubmission'), homework.submit);
 router.patch('/assignment-submissions/:submissionId/grade', authorizePermissionAction('update', PERMISSIONS.MANAGE_ASSIGNMENTS), audit('GRADE', 'HomeworkSubmission'), homework.grade);
 
+const contactBooks = require('../controllers/contactBookController');
+router.get('/contact-books', authorizeRead('contact_books', { personal: true }), contactBooks.list);
+router.get('/contact-books/:id', authorizeRead('contact_books', { personal: true }), contactBooks.get);
+router.post('/contact-books', authorizePermissionAction('create', PERMISSIONS.MANAGE_CONTACT_BOOKS), audit('CREATE', 'ContactBookEntry'), contactBooks.create);
+router.put('/contact-books/:id', authorizePermissionAction('update', PERMISSIONS.MANAGE_CONTACT_BOOKS), audit('UPDATE', 'ContactBookEntry'), contactBooks.update);
+router.patch('/contact-books/:id/publish', authorizePermissionAction('execute', PERMISSIONS.MANAGE_CONTACT_BOOKS), audit('PUBLISH', 'ContactBookEntry'), contactBooks.publish);
+router.patch('/contact-books/:id/reply', authorizeRead('contact_books', { personal: true }), audit('REPLY', 'ContactBookEntry'), contactBooks.reply);
+
 router.get('/materials', authorizeRead('materials', { personal: true }), a.listMaterials);
 router.post('/materials', authorizePermissionAction('create', PERMISSIONS.MANAGE_MATERIALS), audit('CREATE', 'LearningMaterial'), a.createMaterial);
 router.delete('/materials/:id', authorizePermissionAction('delete', PERMISSIONS.MANAGE_MATERIALS), a.deleteMaterial);

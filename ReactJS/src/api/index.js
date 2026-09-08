@@ -164,6 +164,11 @@ export const closeHomeworkApi = (id) => axios.patch(`/v1/api/homeworks/${id}/clo
 export const getHomeworkSubmissionsApi = (id) => axios.get(`/v1/api/homeworks/${id}/submissions`);
 export const submitHomeworkApi = (id, data) => axios.post(`/v1/api/homeworks/${id}/submissions`, data);
 export const gradeHomeworkApi = (id, data) => axios.patch(`/v1/api/assignment-submissions/${id}/grade`, data);
+export const getContactBooksApi = (params) => axios.get('/v1/api/contact-books', { params });
+export const createContactBookApi = (data) => axios.post('/v1/api/contact-books', data);
+export const updateContactBookApi = (id, data) => axios.put(`/v1/api/contact-books/${id}`, data);
+export const publishContactBookApi = (id) => axios.patch(`/v1/api/contact-books/${id}/publish`);
+export const replyContactBookApi = (id, parentReply) => axios.patch(`/v1/api/contact-books/${id}/reply`, { parentReply });
 export const getJobsApi = params => axios.get('/v1/api/jobs', { params });
 export const retryJobApi = (id, data = {}) => axios.post(`/v1/api/jobs/${id}/retry`, data);
 export const cancelJobApi = id => axios.post(`/v1/api/jobs/${id}/cancel`);
