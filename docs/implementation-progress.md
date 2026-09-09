@@ -358,3 +358,12 @@ Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend 
 - Nhanh: `feat/phase2-teaching-schedule`, da merge vao `integration/phase2`.
 - Them nghi day/day bu theo tiet/ngay, snapshot makeup, lich theo ngay va transaction chong xung dot; lich HS/PH cap nhat sau duyet.
 - Test branch: backend **192/192**, frontend policy **10/10**, Playwright **31/31**, build dat. Chi tiet: [phase2-teaching-schedule.md](phase2-teaching-schedule.md).
+
+## Phase 2 - Tong hop va kiem thu cuoi
+
+- Nhanh tong hop: `integration/phase2`; da merge cac nhanh nghiep vu Phase 2, bao gom `feat/phase2-teaching-schedule`.
+- Sua phan hoi review CSVC: SCHOOL_ADMIN nhan 403 khi yeu cau ton tai nhung nam ngoai tenant; cac vai tro khac van giu 404 de khong lo du lieu cross-school.
+- Backend regression voi `node --test --test-concurrency=1`: **222/222 pass**, 0 fail. Chay tuan tu de moi bo test MongoMemoryServer co vong doi Mongo rieng va tranh tranh chap tai nguyen khi chay song song.
+- Frontend policy tests: **10/10 pass**. Production build `npm run build`: thanh cong (chi con canh bao bundle chinh lon hon 500 kB).
+- Playwright E2E: **38/38 pass**, gom Phase 0, Phase 1 va cac luong Phase 2 tren fixture API + Vite proxy.
+- Cac adapter payment, SSO, SMS/Zalo/push va S3 da co cau hinh/kiem thu mock; chua goi dich vu that trong regression vi khong co credential production. PDF bang diem tao native nhe va Word export dang RTF `.doc`.
