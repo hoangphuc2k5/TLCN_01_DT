@@ -11,6 +11,7 @@ const a = require('../controllers/advancedController');
 const router = express.Router();
 const onlinePayments = require('../controllers/onlinePaymentController');
 const appointments = require('../controllers/appointmentController');
+const rewards = require('../controllers/rewardController');
 const jobs = require('../controllers/jobController');
 router.get('/jobs', authorizeRead('jobs'), jobs.list);
 router.post('/jobs/:id/retry', authorizePermissionAction('execute', PERMISSIONS.MANAGE_JOBS), audit('RETRY', 'Job'), jobs.retry);
@@ -125,6 +126,11 @@ router.patch('/appointments/:id/review', authorizePermissionAction('update', PER
 router.patch('/appointments/:id/cancel', authorizePermissionAction('update', PERMISSIONS.REQUEST_APPOINTMENTS, PERMISSIONS.MANAGE_APPOINTMENTS), appointments.cancel);
 router.get('/surveys', authorizePermissionAction('view', PERMISSIONS.MANAGE_APPOINTMENTS, PERMISSIONS.SUBMIT_SURVEYS), appointments.surveys);
 router.post('/appointments/:id/survey', authorizePermissionAction('create', PERMISSIONS.SUBMIT_SURVEYS), appointments.submitSurvey);
+
+// Rewards and discipline records (in addition to semester conduct ratings)
+router.get('/rewards', authorizeRead('rewards', { personal: true }), rewards.list);
+router.post('/rewards', authorizePermissionAction(['create', 'update'], PERMISSIONS.MANAGE_REWARDS), audit('CREATE', 'RewardDisciplineRecord'), rewards.create);
+router.patch('/rewards/:id/review', authorizePermissionAction('execute', PERMISSIONS.MANAGE_REWARDS), rewards.review);
 
 // Announcements
 router.get('/announcements', c.listAnnouncements);

@@ -30,10 +30,11 @@ const resources = {
   'class-life': 'class_activities',
   activities: 'clubs',
   appointments: 'appointments',
+  rewards: 'rewards',
   'audit-logs': 'audit', support: 'support', conduct: 'conduct', templates: 'templates',
 };
 const common = new Set(['dashboard', 'profile', 'messages', 'calendar', 'announcements', 'leave', 'timetable', 'schools']);
-const personal = new Set(['grades', 'attendance', 'fees', 'exams', 'materials', 'assignments', 'contact-book', 'class-life', 'activities', 'appointments', 'library', 'conduct']);
+const personal = new Set(['grades', 'attendance', 'fees', 'exams', 'materials', 'assignments', 'contact-book', 'class-life', 'activities', 'appointments', 'rewards', 'library', 'conduct']);
 
 export const canVisit = (user, pathname) => {
   if (!user) return false;

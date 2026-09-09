@@ -298,3 +298,11 @@ Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend 
 - Them TeacherAppointment va SatisfactionSurvey; parent dat lich cho con, giao vien xac nhan/tu choi/hoan tat, parent huy va danh gia 1-5. Scope theo truong, child relation, teacher owner va unique survey.
 - API: GET/POST `/appointments`, PATCH review/cancel, POST survey, GET surveys; React page `/appointments`.
 - Test rieng: `node --test test/appointments-surveys.test.js` - **2/2**. Chi tiet: [phase2-appointments-surveys.md](phase2-appointments-surveys.md).
+
+
+## Phase 2.8 - Khen thuong va ky luat (4.10)
+
+- Nhanh: `feat/phase2-rewards-discipline`.
+- Them RewardDisciplineRecord (REWARD/DISCIPLINE) tach khoi xep loai hanh kiem; giao vien tao cho lop duoc phan cong, quan ly duyet, HS/PH chi xem ban ghi APPROVED cua minh.
+- API `/rewards` va giao dien React them tao/duyet, co scope truong va ca nhan.
+- Test rieng: `node --test test/rewards-discipline.test.js` - **2/2**. Chi tiet: [phase2-rewards-discipline.md](phase2-rewards-discipline.md).

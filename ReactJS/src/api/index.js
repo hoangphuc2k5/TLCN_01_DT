@@ -74,6 +74,9 @@ export const reviewAppointmentApi = (id, data) => axios.patch(`/v1/api/appointme
 export const cancelAppointmentApi = (id) => axios.patch(`/v1/api/appointments/${id}/cancel`);
 export const getSurveysApi = () => axios.get('/v1/api/surveys');
 export const submitSurveyApi = (id, data) => axios.post(`/v1/api/appointments/${id}/survey`, data);
+export const getRewardsApi = (params) => axios.get('/v1/api/rewards', { params });
+export const createRewardApi = (data) => axios.post('/v1/api/rewards', data);
+export const reviewRewardApi = (id, data) => axios.patch(`/v1/api/rewards/${id}/review`, data);
 
 export const getAnnouncementsApi = () => axios.get('/v1/api/announcements');
 export const createAnnouncementApi = (data) => axios.post('/v1/api/announcements', data);

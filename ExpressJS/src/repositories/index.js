@@ -17,6 +17,7 @@ const Payment = require('../models/Payment');
 const OnlinePayment = require('../models/OnlinePayment');
 const TeacherAppointment = require('../models/TeacherAppointment');
 const SatisfactionSurvey = require('../models/SatisfactionSurvey');
+const RewardDisciplineRecord = require('../models/RewardDisciplineRecord');
 
 module.exports = {
   userRepo: new BaseRepository(User),
@@ -37,4 +38,5 @@ module.exports = {
   onlinePaymentRepo: new BaseRepository(OnlinePayment),
   appointmentRepo: new BaseRepository(TeacherAppointment),
   surveyRepo: new BaseRepository(SatisfactionSurvey),
+  rewardRepo: new BaseRepository(RewardDisciplineRecord),
 };

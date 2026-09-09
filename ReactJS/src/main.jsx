@@ -19,6 +19,7 @@ import AttendancePage from './features/attendance/AttendancePage.jsx';
 import GradesPage from './features/grades/GradesPage.jsx';
 import FeesPage from './features/fees/FeesPage.jsx';
 import AppointmentsPage from './features/appointments/AppointmentsPage.jsx';
+import RewardsPage from './features/rewards/RewardsPage.jsx';
 import AnnouncementsPage from './features/announcements/AnnouncementsPage.jsx';
 import LeavePage from './features/leave/LeavePage.jsx';
 import TimetablePage from './features/timetable/TimetablePage.jsx';
@@ -74,6 +75,7 @@ const router = createBrowserRouter([
               { path: 'grades', element: <GradesPage /> },
               { path: 'fees', element: <FeesPage /> },
               { path: 'appointments', element: <AppointmentsPage /> },
+              { path: 'rewards', element: <RewardsPage /> },
               { path: 'announcements', element: <AnnouncementsPage /> },
               { path: 'messages', element: <MessagesPage /> },
               { path: 'calendar', element: <CalendarPage /> },
