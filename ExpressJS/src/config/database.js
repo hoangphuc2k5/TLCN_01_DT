@@ -1,5 +1,11 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
+const dns = require('node:dns');
+
+// Optional process-local override for networks that refuse Atlas SRV/TXT queries.
+// Configure before opening connections; never change the machine's DNS settings.
+const dnsServers = (process.env.DNS_SERVERS || '').split(',').map(value => value.trim()).filter(Boolean);
+if (dnsServers.length) dns.setServers(dnsServers);
 
 const connection = async () => {
   const uri = process.env.MONGO_DB_URL;
