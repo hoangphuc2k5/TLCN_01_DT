@@ -36,11 +36,13 @@ const RESOURCES = [
   { key: 'reports', label: 'Báo cáo' },
   { key: 'own_data', label: 'Dữ liệu cá nhân' },
   { key: 'jobs', label: 'Tác vụ nền' },
+  { key: 'monitoring', label: 'Giám sát hệ thống' },
 ];
 
 /** Legacy flat permission → resource/actions */
 const LEGACY_PERMISSION_MAP = {
   MANAGE_JOBS: { resource: 'jobs', actions: ['view', 'execute'] },
+  VIEW_MONITORING: { resource: 'monitoring', actions: ['view'] },
   MANAGE_TENANTS: { resource: 'schools', actions: ['view', 'create', 'update', 'delete'] },
   MANAGE_CLUSTERS: { resource: 'clusters', actions: ['view', 'create', 'update', 'delete'] },
   MANAGE_USERS: { resource: 'users', actions: ['view', 'create', 'update', 'delete'] },

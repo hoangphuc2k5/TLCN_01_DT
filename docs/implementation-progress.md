@@ -345,3 +345,10 @@ Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend 
 - Them signed enterprise SSO assertion, phone OTP 5 phut/5 lan va adapter SMS; them adapter SMS/Zalo/push co timeout, khong gui that khi chua cau hinh.
 - Them SSE `/notifications/stream` co auth, hook Notification -> eventBus va endpoint yeu cau delivery; frontend co API/thunk va form OTP.
 - Test backend rieng **2/2** (OTP, SSO, SSE, delivery); production build dat. Chi tiet: [phase2-sso-phone-realtime.md](phase2-sso-phone-realtime.md).
+
+## Phase 2.14 - Nen tang van hanh va bao cao (2.4, 2.5/3.3, 3.4, 2.2, subdomain)
+
+- Nhanh: `feat/phase2-platform-hardening`.
+- Them monitoring database/process/storage, TemplateDeployment dong bo full content/version, bao cao doi chieu lien truong, enforce gioi han hoc sinh/GV theo subscription va tenant routing theo `TENANT_BASE_DOMAIN`.
+- React them man hinh monitoring va doi chieu; API `/monitoring`, `/reports/schools/compare`, `/template-deployments`.
+- Test backend rieng **2/2**; production build dat. Chi tiet: [phase2-platform-hardening.md](phase2-platform-hardening.md).

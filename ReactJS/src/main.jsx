@@ -45,6 +45,8 @@ import ActivitiesPage from './features/activities/ActivitiesPage.jsx';
 import StudentDocumentsPage from './features/studentDocuments/StudentDocumentsPage.jsx';
 import PayrollPage from './features/fees/PayrollPage.jsx';
 import EquipmentMaintenancePage from './features/facilities/EquipmentMaintenancePage.jsx';
+import MonitoringPage from './features/admin/MonitoringPage.jsx';
+import SchoolComparisonPage from './features/admin/SchoolComparisonPage.jsx';
 import { ROLES } from './constants/roles.js';
 import './styles/global.css';
 
@@ -82,6 +84,8 @@ const router = createBrowserRouter([
               { path: 'fees', element: <FeesPage /> },
               { path: 'payroll', element: <PayrollPage /> },
               { path: 'equipment-maintenance', element: <EquipmentMaintenancePage /> },
+              { path: 'monitoring', element: <MonitoringPage /> },
+              { path: 'school-comparison', element: <SchoolComparisonPage /> },
               { path: 'appointments', element: <AppointmentsPage /> },
               { path: 'rewards', element: <RewardsPage /> },
               { path: 'admissions', element: <AdmissionsPage /> },

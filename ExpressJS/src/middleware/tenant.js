@@ -1,13 +1,27 @@
 const { ROLES } = require('../constants/roles');
 const ApiError = require('../utils/ApiError');
+const School = require('../models/School');
 
 /**
  * Tenant isolation middleware
  * Injects req.tenantFilter based on role scope.
  */
-const tenantContext = (req, res, next) => {
+const tenantContext = async (req, res, next) => {
+ try {
   const user = req.user;
   if (!user) return next();
+
+  const baseDomain = String(process.env.TENANT_BASE_DOMAIN || '').toLowerCase().replace(/^\.+|\.+$/g, '');
+  if (baseDomain && req.hostname.toLowerCase().endsWith(`.${baseDomain}`)) {
+    const subdomain = req.hostname.toLowerCase().slice(0, -baseDomain.length - 1).split('.')[0];
+    if (subdomain && !['www', 'api'].includes(subdomain)) {
+      const school = await School.findOne({ subdomain }).select('_id clusterId status');
+      if (!school || school.status !== 'ACTIVE') throw new ApiError(404, 'Subdomain truong khong ton tai');
+      if (user.role === ROLES.CLUSTER_ADMIN && String(school.clusterId) !== String(user.clusterId)) throw new ApiError(403, 'Subdomain ngoai pham vi cum');
+      if (user.role !== ROLES.SUPER_ADMIN && user.role !== ROLES.CLUSTER_ADMIN && String(school._id) !== String(user.schoolId)) throw new ApiError(403, 'Subdomain ngoai pham vi truong');
+      req.schoolSubdomain = school.subdomain; req.tenantSchoolId = school._id;
+    }
+  }
 
   if (user.role === ROLES.SUPER_ADMIN) {
     req.tenantFilter = {};
@@ -34,6 +48,7 @@ const tenantContext = (req, res, next) => {
   req.schoolId = user.schoolId;
   req.clusterId = user.clusterId;
   next();
+ } catch (error) { next(error); }
 };
 
 module.exports = tenantContext;

@@ -35,6 +35,8 @@ const resources = {
   'student-documents': 'student_documents',
   payroll: 'fees',
   'equipment-maintenance': 'facilities',
+  monitoring: 'monitoring',
+  'school-comparison': 'reports',
   'audit-logs': 'audit', support: 'support', conduct: 'conduct', templates: 'templates',
 };
 const common = new Set(['dashboard', 'profile', 'messages', 'calendar', 'announcements', 'leave', 'timetable', 'schools']);

@@ -4,11 +4,23 @@ const SubscriptionInvoice = require('../models/SubscriptionInvoice');
 const { ROLES } = require('../constants/roles');
 const { schoolScope, objectId } = require('./dataScope');
 const { targetSchool } = require('./writeScope');
+const User = require('../models/User');
 
 const PLAN_DEFAULTS = {
   FREE: { maxStudents: 100, maxTeachers: 20, storageGb: 5, amount: 0 },
   BASIC: { maxStudents: 500, maxTeachers: 50, storageGb: 20, amount: 2000000 },
   PREMIUM: { maxStudents: 2000, maxTeachers: 200, storageGb: 100, amount: 5000000 },
+};
+
+const assertWithinLimits = async (schoolId, role) => {
+  if (!schoolId || !['STUDENT', 'SUBJECT_TEACHER', 'HOMEROOM_TEACHER'].includes(role)) return true;
+  const subscription = await Subscription.findOne({ schoolId, status: 'ACTIVE', $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }] });
+  const defaults = PLAN_DEFAULTS[subscription?.plan] || PLAN_DEFAULTS.FREE;
+  const limit = role === 'STUDENT' ? subscription?.maxStudents ?? defaults.maxStudents : subscription?.maxTeachers ?? defaults.maxTeachers;
+  const roles = role === 'STUDENT' ? ['STUDENT'] : ['SUBJECT_TEACHER', 'HOMEROOM_TEACHER'];
+  const count = await User.countDocuments({ schoolId, role: { $in: roles }, status: 'ACTIVE' });
+  if (count >= limit) throw Object.assign(new ApiError(409, `Subscription limit reached for ${role === 'STUDENT' ? 'students' : 'teachers'}`), { code: 'SUBSCRIPTION_LIMIT' });
+  return true;
 };
 
 const listSubscriptions = async (actor, query = {}) => {
@@ -86,4 +98,5 @@ module.exports = {
   markInvoicePaid,
   listInvoices,
   PLAN_DEFAULTS,
+  assertWithinLimits,
 };

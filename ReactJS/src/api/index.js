@@ -115,6 +115,8 @@ export const upsertTimetableApi = (data) => axios.post('/v1/api/timetables', dat
 export const approveTimetableApi = (id) => axios.patch(`/v1/api/timetables/${id}/approve`);
 
 export const getAuthConfigApi = () => axios.get('/v1/api/auth/config');
+export const getMonitoringApi = () => axios.get('/v1/api/monitoring');
+export const compareSchoolsApi = (schoolIds) => axios.get('/v1/api/reports/schools/compare', { params: { schoolIds: schoolIds.join(',') } });
 export const loginGoogleApi = (credential) =>
   axios.post('/v1/api/auth/google', { credential });
 export const requestPhoneLoginApi = phone => axios.post('/v1/api/auth/phone/request', { phone });

@@ -18,6 +18,8 @@ const studentDocuments = require('../controllers/studentDocumentController');
 const payroll = require('../controllers/payrollController');
 const equipment = require('../controllers/equipmentController');
 const notificationController = require('../controllers/notificationController');
+const monitoringController = require('../controllers/monitoringController');
+const platformController = require('../controllers/platformController');
 router.get('/jobs', authorizeRead('jobs'), jobs.list);
 router.post('/jobs/:id/retry', authorizePermissionAction('execute', PERMISSIONS.MANAGE_JOBS), audit('RETRY', 'Job'), jobs.retry);
 router.post('/jobs/:id/cancel', authorizePermissionAction('execute', PERMISSIONS.MANAGE_JOBS), audit('CANCEL', 'Job'), jobs.cancel);
@@ -32,6 +34,8 @@ router.get('/student-documents/:id/download', authorizeRead('student_documents',
 router.get('/students/:studentId/certificate/:format', authorizeRead('student_documents', { personal: true }), studentDocuments.certificate);
 
 router.get('/health', (req, res) => res.json({ EC: 0, EM: 'OK', data: { status: 'up' } }));
+router.get('/monitoring', authorizePermissionAction('view', PERMISSIONS.VIEW_MONITORING), monitoringController.metrics);
+router.get('/reports/schools/compare', authorizePermissionAction('view', PERMISSIONS.VIEW_REPORTS), platformController.compareSchools);
 
 // Auth
 const authSecurity = require('../controllers/authSecurityController');
@@ -184,6 +188,7 @@ router.post('/subscriptions', authorizePermissionAction(['create', 'update'], PE
 router.get('/subscription-invoices', authorizePermissionAction('view', PERMISSIONS.MANAGE_SUBSCRIPTIONS), a.listSubInvoices);
 router.post('/subscription-invoices', authorizePermissionAction('create', PERMISSIONS.MANAGE_SUBSCRIPTIONS), audit('CREATE', 'SubscriptionInvoice'), a.createSubInvoice);
 router.patch('/subscription-invoices/:id/paid', authorizePermissionAction('execute', PERMISSIONS.MANAGE_SUBSCRIPTIONS), a.markSubInvoicePaid);
+router.get('/template-deployments', authorizePermissionAction('view', PERMISSIONS.MANAGE_TEMPLATES), a.listTemplateDeployments);
 
 // Exams
 router.get('/exams', authorizeRead('exams', { personal: true }), a.listExams);
