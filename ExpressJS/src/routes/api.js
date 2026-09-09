@@ -12,6 +12,7 @@ const router = express.Router();
 const onlinePayments = require('../controllers/onlinePaymentController');
 const appointments = require('../controllers/appointmentController');
 const rewards = require('../controllers/rewardController');
+const admissions = require('../controllers/admissionController');
 const jobs = require('../controllers/jobController');
 router.get('/jobs', authorizeRead('jobs'), jobs.list);
 router.post('/jobs/:id/retry', authorizePermissionAction('execute', PERMISSIONS.MANAGE_JOBS), audit('RETRY', 'Job'), jobs.retry);
@@ -131,6 +132,12 @@ router.post('/appointments/:id/survey', authorizePermissionAction('create', PERM
 router.get('/rewards', authorizeRead('rewards', { personal: true }), rewards.list);
 router.post('/rewards', authorizePermissionAction(['create', 'update'], PERMISSIONS.MANAGE_REWARDS), audit('CREATE', 'RewardDisciplineRecord'), rewards.create);
 router.patch('/rewards/:id/review', authorizePermissionAction('execute', PERMISSIONS.MANAGE_REWARDS), rewards.review);
+
+// Public application and tracking endpoints; staff management remains scoped and authenticated.
+router.post('/admissions/public', admissions.createPublic);
+router.get('/admissions/public/:code', admissions.getPublic);
+router.get('/admissions', authorizePermissionAction('view', PERMISSIONS.MANAGE_ADMISSIONS), admissions.list);
+router.patch('/admissions/:id/review', authorizePermissionAction('execute', PERMISSIONS.MANAGE_ADMISSIONS), admissions.review);
 
 // Announcements
 router.get('/announcements', c.listAnnouncements);

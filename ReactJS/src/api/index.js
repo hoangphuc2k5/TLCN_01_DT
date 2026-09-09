@@ -77,6 +77,10 @@ export const submitSurveyApi = (id, data) => axios.post(`/v1/api/appointments/${
 export const getRewardsApi = (params) => axios.get('/v1/api/rewards', { params });
 export const createRewardApi = (data) => axios.post('/v1/api/rewards', data);
 export const reviewRewardApi = (id, data) => axios.patch(`/v1/api/rewards/${id}/review`, data);
+export const createAdmissionApi = (data) => axios.post('/v1/api/admissions/public', data);
+export const getAdmissionStatusApi = (code) => axios.get(`/v1/api/admissions/public/${encodeURIComponent(code)}`);
+export const getAdmissionsApi = (params) => axios.get('/v1/api/admissions', { params });
+export const reviewAdmissionApi = (id, data) => axios.patch(`/v1/api/admissions/${id}/review`, data);
 
 export const getAnnouncementsApi = () => axios.get('/v1/api/announcements');
 export const createAnnouncementApi = (data) => axios.post('/v1/api/announcements', data);

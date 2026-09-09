@@ -18,6 +18,7 @@ const OnlinePayment = require('../models/OnlinePayment');
 const TeacherAppointment = require('../models/TeacherAppointment');
 const SatisfactionSurvey = require('../models/SatisfactionSurvey');
 const RewardDisciplineRecord = require('../models/RewardDisciplineRecord');
+const AdmissionApplication = require('../models/AdmissionApplication');
 
 module.exports = {
   userRepo: new BaseRepository(User),
@@ -39,4 +40,5 @@ module.exports = {
   appointmentRepo: new BaseRepository(TeacherAppointment),
   surveyRepo: new BaseRepository(SatisfactionSurvey),
   rewardRepo: new BaseRepository(RewardDisciplineRecord),
+  admissionRepo: new BaseRepository(AdmissionApplication),
 };

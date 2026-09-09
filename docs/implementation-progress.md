@@ -306,3 +306,11 @@ Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend 
 - Them RewardDisciplineRecord (REWARD/DISCIPLINE) tach khoi xep loai hanh kiem; giao vien tao cho lop duoc phan cong, quan ly duyet, HS/PH chi xem ban ghi APPROVED cua minh.
 - API `/rewards` va giao dien React them tao/duyet, co scope truong va ca nhan.
 - Test rieng: `node --test test/rewards-discipline.test.js` - **2/2**. Chi tiet: [phase2-rewards-discipline.md](phase2-rewards-discipline.md).
+
+
+## Phase 2.9 - Tuyen sinh online (4.6)
+
+- Nhanh: `feat/phase2-online-admissions`.
+- Them AdmissionApplication, form public theo ma truong/subdomain, tracking code va tra cuu trang thai; staff scope theo truong/cum duyet UNDER_REVIEW/ACCEPTED/REJECTED/WAITLISTED.
+- API public `/admissions/public`, quan ly `/admissions`; React form `/admissions/apply` va bang duyet.
+- Test backend rieng **2/2**, Playwright E2E **1/1**, build dat. Chi tiet: [phase2-online-admissions.md](phase2-online-admissions.md).

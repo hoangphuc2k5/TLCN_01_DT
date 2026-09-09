@@ -31,6 +31,7 @@ const resources = {
   activities: 'clubs',
   appointments: 'appointments',
   rewards: 'rewards',
+  admissions: 'admissions',
   'audit-logs': 'audit', support: 'support', conduct: 'conduct', templates: 'templates',
 };
 const common = new Set(['dashboard', 'profile', 'messages', 'calendar', 'announcements', 'leave', 'timetable', 'schools']);

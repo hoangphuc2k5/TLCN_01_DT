@@ -20,6 +20,8 @@ import GradesPage from './features/grades/GradesPage.jsx';
 import FeesPage from './features/fees/FeesPage.jsx';
 import AppointmentsPage from './features/appointments/AppointmentsPage.jsx';
 import RewardsPage from './features/rewards/RewardsPage.jsx';
+import AdmissionApplyPage from './features/admissions/AdmissionApplyPage.jsx';
+import AdmissionsPage from './features/admissions/AdmissionsPage.jsx';
 import AnnouncementsPage from './features/announcements/AnnouncementsPage.jsx';
 import LeavePage from './features/leave/LeavePage.jsx';
 import TimetablePage from './features/timetable/TimetablePage.jsx';
@@ -48,6 +50,7 @@ const router = createBrowserRouter([
     path: '/login',
     element: <LoginPage />,
   },
+  { path: '/admissions/apply', element: <AdmissionApplyPage /> },
   {
     path: '/',
     element: <App />,
@@ -76,6 +79,7 @@ const router = createBrowserRouter([
               { path: 'fees', element: <FeesPage /> },
               { path: 'appointments', element: <AppointmentsPage /> },
               { path: 'rewards', element: <RewardsPage /> },
+              { path: 'admissions', element: <AdmissionsPage /> },
               { path: 'announcements', element: <AnnouncementsPage /> },
               { path: 'messages', element: <MessagesPage /> },
               { path: 'calendar', element: <CalendarPage /> },

@@ -230,7 +230,7 @@ const seedSystemRoles = async ({ force = false } = {}) => {
       const newBaseline = [ROLES.STUDENT, ROLES.PARENT].includes(code)
         ? (code === ROLES.PARENT ? ['PAY_ONLINE', 'REQUEST_APPOINTMENTS', 'SUBMIT_SURVEYS'] : ['PAY_ONLINE'])
         : [ROLES.SCHOOL_ADMIN, ROLES.ACADEMIC_AFFAIRS, ROLES.SUBJECT_TEACHER, ROLES.HOMEROOM_TEACHER].includes(code)
-          ? ['MANAGE_APPOINTMENTS', 'MANAGE_REWARDS'] : [];
+          ? ['MANAGE_APPOINTMENTS', 'MANAGE_REWARDS', ...([ROLES.SCHOOL_ADMIN, ROLES.ACADEMIC_AFFAIRS].includes(code) ? ['MANAGE_ADMISSIONS'] : [])] : [];
       if (newBaseline.length) {
         const next = mergePermissionEntries([
           ...(existing.permissions || []),
