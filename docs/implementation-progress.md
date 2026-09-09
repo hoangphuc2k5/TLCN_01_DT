@@ -379,3 +379,4 @@ Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend 
 - E2E chạy lại riêng với fixture sạch: **39/39 đạt**, 0 fail/flaky/skipped. Bao gồm Return chờ IPN → đã ghi nhận, chữ ký sai không xóa phiên. Lần chạy trước đồng thời với backend mất kết nối Vite sau 24 ca đạt; không tính lần đó là đạt.
 - Cấu hình sandbox được lưu trong `.env` local và không commit secret. Gọi trực tiếp VNPay trả lỗi **71 — terminal chưa được duyệt**. Chưa có giao dịch ngân hàng/OTP/IPN thật thành công; cần VNPay duyệt terminal và đăng ký IPN HTTPS công khai.
 - Chi tiết và hướng dẫn tiếp tục: [phase2-vnpay-sandbox.md](phase2-vnpay-sandbox.md).
+- Đã push nhánh tính năng tại `a13a1cb`; merge không xung đột vào `integration/phase2` tại `b55c7a3` và push thành công. Nhánh tổng hợp chứa cùng nội dung mã nguồn đã kiểm thử.
