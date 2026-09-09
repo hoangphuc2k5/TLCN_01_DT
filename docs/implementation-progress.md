@@ -20,6 +20,12 @@
 - Dedicated backend test: **2/2**, frontend policy **10/10**, build passed, dedicated E2E **1/1**. Details: [phase2-parent-meetings.md](phase2-parent-meetings.md).
 - Full backend regression after this branch: **177/177**.
 
+## Phase 2.5 - CLB and retake requests
+
+- Branch `feat/phase2-clubs-retakes`, based on `feat/phase2-parent-meetings`.
+- Added school-scoped clubs with capacity/registration and student retake requests with administrative review at `/activities`.
+- Dedicated backend test **1/1**, build passed, dedicated E2E **1/1**. Details: [phase2-clubs-retakes.md](phase2-clubs-retakes.md).
+
 Cập nhật: 08/09/2026. Đã hoàn tất và kiểm thử nhánh tổng hợp Phase 1 (`integration/phase1`): backend 165/165, policy frontend 10/10, E2E Phase 0 + Phase 1 29/29, build đạt. Chi tiết merge và phạm vi xem [bàn giao Phase 1](phase1-integration.md). Phase 2 tiếp tục ở nhánh chức năng riêng; chưa merge main.
 
 ## Nhánh tổng hợp Phase 1
