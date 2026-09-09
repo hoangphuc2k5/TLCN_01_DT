@@ -380,3 +380,13 @@ Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend 
 - Cấu hình sandbox được lưu trong `.env` local và không commit secret. Gọi trực tiếp VNPay trả lỗi **71 — terminal chưa được duyệt**. Chưa có giao dịch ngân hàng/OTP/IPN thật thành công; cần VNPay duyệt terminal và đăng ký IPN HTTPS công khai.
 - Chi tiết và hướng dẫn tiếp tục: [phase2-vnpay-sandbox.md](phase2-vnpay-sandbox.md).
 - Đã push nhánh tính năng tại `a13a1cb`; merge không xung đột vào `integration/phase2` tại `b55c7a3` và push thành công. Nhánh tổng hợp chứa cùng nội dung mã nguồn đã kiểm thử.
+
+## Chẩn đoán app không chạy — DNS/Atlas
+
+- Frontend cổng 5173 vẫn trả HTTP 200; backend 8080 không lắng nghe nên API qua Vite trả 500.
+- Tái hiện startup: `querySrv ECONNREFUSED`. Resolver hệ thống thất bại; Cloudflare/Google phân giải được SRV (3 bản ghi) và TXT của Atlas.
+- Thêm `DNS_SERVERS` tùy chọn cho tiến trình Node trong `src/config/database.js`, trước khi mở kết nối. `.env` local cấu hình `1.1.1.1,8.8.8.8`; `.env.example` để trống. Không thay DNS toàn máy hay URI database.
+- Kiểm tra cú pháp và xác nhận cả callback/promise DNS API nhận đúng resolver: đạt.
+- Sau sửa DNS, kết nối Atlas thật vẫn thất bại với `ERR_SSL_TLSV1_ALERT_INTERNAL_ERROR` (TLS alert 80), tái hiện cả TLS 1.2/1.3. Chưa phục hồi backend, chưa chạy được Atlas ping. Không suy ra lỗi code VNPay từ lỗi này.
+- Bước tiếp: kiểm tra cluster đang hoạt động và Network Access cho IP public của máy chạy backend; nếu IP đã được cho phép, kiểm tra VPN/firewall/TLS interception. Sau khi sửa quyền mạng, khởi động lại backend bằng `npm run dev`, kiểm tra `/v1/api/health` trực tiếp và qua Vite.
+- Nguồn: [Atlas connection troubleshooting](https://www.mongodb.com/docs/atlas/troubleshoot-connection/), [Node DNS configuration](https://nodejs.org/api/dns.html#dnssetserversservers).
