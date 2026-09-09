@@ -18,6 +18,7 @@
 - Branch `feat/phase2-parent-meetings`, based on `feat/phase2-contact-book`.
 - Added class activity publishing, online parent-meeting scheduling/cancellation and parent RSVP at `/class-life`; APIs are `/v1/api/class-activities` and `/v1/api/parent-meetings`.
 - Dedicated backend test: **2/2**, frontend policy **10/10**, build passed, dedicated E2E **1/1**. Details: [phase2-parent-meetings.md](phase2-parent-meetings.md).
+- Full backend regression after this branch: **177/177**.
 
 Cập nhật: 08/09/2026. Đã hoàn tất và kiểm thử nhánh tổng hợp Phase 1 (`integration/phase1`): backend 165/165, policy frontend 10/10, E2E Phase 0 + Phase 1 29/29, build đạt. Chi tiết merge và phạm vi xem [bàn giao Phase 1](phase1-integration.md). Phase 2 tiếp tục ở nhánh chức năng riêng; chưa merge main.
 
