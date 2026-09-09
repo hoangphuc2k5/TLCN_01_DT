@@ -28,30 +28,38 @@ const refreshInvoiceStatus = invoice => {
   return invoice;
 };
 
-const createOnlinePayment = async (actor, data = {}) => {
+const createOnlinePayment = async (actor, data = {}, context = {}) => {
   if (!data.invoiceId) throw new ApiError(400, 'Thiếu invoiceId');
   const invoice = await FeeInvoice.findOne({ _id: objectId(data.invoiceId, 'invoiceId'), ...(await invoiceFilter(actor)) });
   if (!invoice) throw new ApiError(404, 'Không tìm thấy hóa đơn trong phạm vi');
   const outstanding = roundMoney(Number(invoice.amount) - Number(invoice.paidAmount || 0));
   if (outstanding <= 0) throw new ApiError(409, 'Hóa đơn đã được thanh toán đủ');
 
-  const provider = String(data.provider || 'MOCK').toUpperCase();
+  const provider = String(data.provider || process.env.PAYMENT_DEFAULT_PROVIDER || 'VNPAY').toUpperCase();
   const gateway = getGateway(provider);
   const requestKey = data.clientRequestId
     ? `${invoice.schoolId}:${invoice.studentId}:${String(data.clientRequestId).trim().slice(0, 120)}` : null;
   if (requestKey) {
     const previous = await OnlinePayment.findOne({ requestKey });
-    if (previous) return previous;
+    if (previous) {
+      if (String(previous.invoiceId) !== String(invoice._id) || previous.provider !== provider) throw new ApiError(409, 'Mã yêu cầu đã dùng cho giao dịch khác');
+      return previous;
+    }
   }
   const active = await OnlinePayment.findOne({ invoiceId: invoice._id, provider, status: 'PENDING', expiresAt: { $gt: new Date() } });
   if (active) return active;
 
-  const orderId = `${provider}_${invoice._id}_${Date.now()}_${new mongoose.Types.ObjectId().toString().slice(-6)}`;
+  const orderId = `${provider}${new mongoose.Types.ObjectId()}`;
+  const ttl = Number(process.env.ONLINE_PAYMENT_TTL_MS || 900000);
+  if (!Number.isFinite(ttl) || ttl < 60000 || ttl > 86400000) throw new ApiError(503, 'ONLINE_PAYMENT_TTL_MS không hợp lệ');
+  const expiresAt = new Date(Date.now() + ttl);
   const gatewayPayment = await gateway.createPayment({
     orderId,
     amount: outstanding,
     invoice,
     returnUrl: data.returnUrl,
+    ipAddress: context.ipAddress,
+    expiresAt,
   });
   try {
     return await OnlinePayment.create({
@@ -64,8 +72,8 @@ const createOnlinePayment = async (actor, data = {}) => {
       requestKey,
       status: 'PENDING',
       checkoutUrl: gatewayPayment.checkoutUrl,
-      returnUrl: data.returnUrl || '',
-      expiresAt: new Date(Date.now() + Number(process.env.ONLINE_PAYMENT_TTL_MS || 15 * 60 * 1000)),
+      returnUrl: gatewayPayment.payload?.vnp_ReturnUrl || data.returnUrl || '',
+      expiresAt,
     });
   } catch (error) {
     if (error.code === 11000 && requestKey) return OnlinePayment.findOne({ requestKey });
@@ -99,9 +107,10 @@ const webhook = async (providerName, payload = {}, signature) => {
   if (!normalized.orderId) throw new ApiError(400, 'Webhook thiếu mã giao dịch');
   const row = await OnlinePayment.findOne({ provider, providerOrderId: normalized.orderId });
   if (!row) throw new ApiError(404, 'Không tìm thấy giao dịch online');
+  if (provider === 'VNPAY') validateVnpayPayload(payload, row);
   if (row.status === 'PAID' || row.status === 'FAILED' || row.status === 'CANCELLED') return row;
 
-  const paidAmount = payload.amount != null ? Number(payload.amount)
+  const paidAmount = provider === 'VNPAY' ? Number(payload.vnp_Amount) / 100 : payload.amount != null ? Number(payload.amount)
     : payload.vnp_Amount != null ? Number(payload.vnp_Amount) / 100 : null;
   if (normalized.status === 'PAID' && paidAmount != null && roundMoney(paidAmount) !== roundMoney(row.amount)) {
     throw new ApiError(409, 'Số tiền webhook không khớp hóa đơn');
@@ -154,4 +163,33 @@ const webhook = async (providerName, payload = {}, signature) => {
   return result || OnlinePayment.findById(row._id);
 };
 
-module.exports = { createOnlinePayment, listOnlinePayments, getOnlinePayment, webhook };
+const validateVnpayPayload = (payload, row) => {
+  if (payload.vnp_TmnCode !== process.env.VNPAY_TMN_CODE) throw new ApiError(400, 'Sai mã website', 'VNPAY_MERCHANT');
+  if (!/^\d{1,12}$/.test(payload.vnp_Amount || '') || Number(payload.vnp_Amount) !== Math.round(row.amount * 100)) throw new ApiError(409, 'Sai số tiền', 'VNPAY_AMOUNT');
+  if (!/^\d{2}$/.test(payload.vnp_ResponseCode || '') || !/^\d{2}$/.test(payload.vnp_TransactionStatus || '') || !/^\d{1,15}$/.test(payload.vnp_TransactionNo || '')) throw new ApiError(400, 'Thiếu kết quả giao dịch');
+};
+const vnpayResult = async payload => {
+  const gateway = getGateway('VNPAY');
+  if (!gateway.verifyWebhook(payload, payload.vnp_SecureHash)) throw new ApiError(401, 'Chữ ký VNPay không hợp lệ');
+  if (typeof payload.vnp_TxnRef !== 'string') throw new ApiError(400, 'Thiếu mã giao dịch');
+  const row = await OnlinePayment.findOne({ provider: 'VNPAY', providerOrderId: payload.vnp_TxnRef });
+  if (!row) throw new ApiError(404, 'Không tìm thấy giao dịch');
+  validateVnpayPayload(payload, row);
+  return row;
+};
+const vnpayIpn = async payload => {
+  try {
+    const row = await vnpayResult(payload);
+    if (row.status !== 'PENDING') return { RspCode: '02', Message: 'Order already confirmed' };
+    await webhook('VNPAY', payload, payload.vnp_SecureHash);
+    return { RspCode: '00', Message: 'Confirm Success' };
+  } catch (error) {
+    const code = error.statusCode === 401 ? '97' : error.statusCode === 404 ? '01' : error.errorCode === 'VNPAY_AMOUNT' ? '04' : '99';
+    return { RspCode: code, Message: { '97': 'Invalid signature', '01': 'Order not found', '04': 'Invalid amount', '99': 'Unable to confirm payment' }[code] };
+  }
+};
+const vnpayReturn = async payload => {
+  const row = await vnpayResult(payload);
+  return { orderId: row.providerOrderId, status: row.status, gatewayStatus: getGateway('VNPAY').normalizeWebhook(payload).status };
+};
+module.exports = { createOnlinePayment, listOnlinePayments, getOnlinePayment, webhook, vnpayIpn, vnpayReturn };

@@ -164,18 +164,7 @@ const createFacility = async (actor, data) => {
 };
 
 const reviewFacility = async (actor, id, data) => {
-  let item;
-  try {
-    item = await scopedDocument(FacilityRequest, actor, id);
-  } catch (error) {
-    // A school administrator is explicitly told when a request exists outside
-    // the tenant it administers. Other roles keep the usual 404 response to
-    // avoid disclosing cross-school facility records.
-    if (error.statusCode === 404 && actor.role === ROLES.SCHOOL_ADMIN && await FacilityRequest.exists({ _id: id })) {
-      throw new ApiError(403, 'Yêu cầu cơ sở vật chất ngoài phạm vi trường');
-    }
-    throw error;
-  }
+  const item = await scopedDocument(FacilityRequest, actor, id);
   if (!item) throw new ApiError(404, 'Không tìm thấy yêu cầu');
   if (!['APPROVED', 'REJECTED', 'RETURNED'].includes(data.status)) {
     throw new ApiError(400, 'status không hợp lệ');

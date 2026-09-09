@@ -361,9 +361,21 @@ Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend 
 
 ## Phase 2 - Tong hop va kiem thu cuoi
 
+> Cập nhật 09/09/2026: phần tổng hợp cũ dưới đây ghi kết quả tại thời điểm đó. Đợt rà soát VNPay bên dưới thay thế kết luận về scope CSVC và khả năng dùng VNPay sandbox thật.
+
 - Nhanh tong hop: `integration/phase2`; da merge cac nhanh nghiep vu Phase 2, bao gom `feat/phase2-teaching-schedule`.
 - Sua phan hoi review CSVC: SCHOOL_ADMIN nhan 403 khi yeu cau ton tai nhung nam ngoai tenant; cac vai tro khac van giu 404 de khong lo du lieu cross-school.
 - Backend regression voi `node --test --test-concurrency=1`: **222/222 pass**, 0 fail. Chay tuan tu de moi bo test MongoMemoryServer co vong doi Mongo rieng va tranh tranh chap tai nguyen khi chay song song.
 - Frontend policy tests: **10/10 pass**. Production build `npm run build`: thanh cong (chi con canh bao bundle chinh lon hon 500 kB).
 - Playwright E2E: **38/38 pass**, gom Phase 0, Phase 1 va cac luong Phase 2 tren fixture API + Vite proxy.
 - Cac adapter payment, SSO, SMS/Zalo/push va S3 da co cau hinh/kiem thu mock; chua goi dich vu that trong regression vi khong co credential production. PDF bang diem tao native nhe va Word export dang RTF `.doc`.
+
+## Rà soát Phase 2 và VNPay sandbox — 09/09/2026
+
+- Nhánh tính năng `feat/phase2-vnpay-sandbox`, đích gộp `integration/phase2`. Tất cả nhánh tính năng Phase 2 cũ đã nằm trong nhánh tổng hợp.
+- Thay adapter VNPay, nối giao diện thanh toán, IPN GET và trang Return; xác thực checksum/merchant/amount/status, giờ GMT+7, expiry và Return URL do server quản lý.
+- Sửa giao dịch thu tay để không đua với IPN; bỏ tùy chọn ghi tay ONLINE. Sửa CSVC để không truy vấn ngoài tenant nhằm phân biệt mã lỗi. Sửa test quyền tương ứng.
+- Backend toàn bộ `npm test`: **231/231 đạt**. Frontend policy **10/10 đạt**; production build đạt, vẫn có cảnh báo bundle lớn.
+- E2E chạy lại riêng với fixture sạch: **39/39 đạt**, 0 fail/flaky/skipped. Bao gồm Return chờ IPN → đã ghi nhận, chữ ký sai không xóa phiên. Lần chạy trước đồng thời với backend mất kết nối Vite sau 24 ca đạt; không tính lần đó là đạt.
+- Cấu hình sandbox được lưu trong `.env` local và không commit secret. Gọi trực tiếp VNPay trả lỗi **71 — terminal chưa được duyệt**. Chưa có giao dịch ngân hàng/OTP/IPN thật thành công; cần VNPay duyệt terminal và đăng ký IPN HTTPS công khai.
+- Chi tiết và hướng dẫn tiếp tục: [phase2-vnpay-sandbox.md](phase2-vnpay-sandbox.md).

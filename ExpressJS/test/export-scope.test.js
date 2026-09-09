@@ -244,7 +244,10 @@ test('material and facility mutations require both permission and tenant scope',
   const material = await Material.create({ schoolId: schools[1]._id, title: 'Foreign', uploadedBy: actors.teacher._id });
   assert.equal((await write(`/materials/${material._id}`, actors.school, {}, 'DELETE')).status, 404);
   const facility = await Facility.create({ schoolId: schools[1]._id, requesterId: actors.teacher._id, itemName: 'Room', from: new Date(), to: new Date() });
-  assert.equal((await write(`/facilities/${facility._id}/review`, actors.school, { status: 'APPROVED' })).status, 403);
+  // School admins now have facility permission, but foreign records stay hidden.
+  assert.equal((await write(`/facilities/${facility._id}/review`, actors.school, { status: 'APPROVED' })).status, 404);
+  assert.equal((await write(`/facilities/${facility._id}/review`, actors.reader, { status: 'APPROVED' })).status, 403);
+  assert.equal((await Facility.findById(facility._id)).status, 'PENDING');
   assert.equal((await write(`/facilities/${facility._id}/review`, actors.librarian, { status: 'APPROVED' })).status, 404);
 });
 test('template apply rejects foreign-cluster template and role owner cannot edit global template', async () => {

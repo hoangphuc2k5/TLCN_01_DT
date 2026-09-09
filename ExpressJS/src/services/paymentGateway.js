@@ -51,44 +51,7 @@ const mockGateway = {
   },
 };
 
-const vnpayFields = (payload) => Object.keys(payload)
-  .filter(key => key.startsWith('vnp_') && key !== 'vnp_SecureHash' && key !== 'vnp_SecureHashType')
-  .sort()
-  .map(key => `${key}=${encodeURIComponent(String(payload[key])).replace(/%20/g, '+')}`)
-  .join('&');
-
-const vnpayGateway = {
-  provider: 'VNPAY',
-  async createPayment({ orderId, amount, returnUrl }) {
-    const tmnCode = process.env.VNPAY_TMN_CODE;
-    const secret = process.env.VNPAY_HASH_SECRET;
-    if (!tmnCode || !secret) throw new ApiError(503, 'Chưa cấu hình VNPAY_TMN_CODE/VNPAY_HASH_SECRET');
-    const payload = {
-      vnp_Version: '2.1.0', vnp_Command: 'pay', vnp_TmnCode: tmnCode,
-      vnp_Amount: Math.round(Number(amount) * 100), vnp_CurrCode: 'VND',
-      vnp_TxnRef: orderId, vnp_OrderInfo: `Thanh toan hoc phi ${orderId}`,
-      vnp_OrderType: 'billpayment', vnp_Locale: 'vn', vnp_ReturnUrl: returnUrl || process.env.FRONTEND_URL || '',
-      vnp_IpAddr: '127.0.0.1', vnp_CreateDate: new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14),
-    };
-    const query = vnpayFields(payload);
-    const signature = crypto.createHmac('sha512', secret).update(query).digest('hex');
-    const base = process.env.VNPAY_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html';
-    return { checkoutUrl: `${base}?${query}&vnp_SecureHash=${signature}`, payload };
-  },
-  verifyWebhook(payload, signature) {
-    const secret = process.env.VNPAY_HASH_SECRET;
-    if (!secret || !signature) return false;
-    const query = vnpayFields(payload);
-    return safeEqual(crypto.createHmac('sha512', secret).update(query).digest('hex'), signature);
-  },
-  normalizeWebhook(payload) {
-    return {
-      orderId: payload.vnp_TxnRef,
-      status: String(payload.vnp_ResponseCode) === '00' ? 'PAID' : 'FAILED',
-      transactionId: payload.vnp_TransactionNo || payload.vnp_TxnRef,
-    };
-  },
-};
+const vnpayGateway = require('./vnpayGateway');
 
 const momoGateway = {
   provider: 'MOMO',
@@ -118,6 +81,7 @@ const momoGateway = {
 const gateways = { MOCK: mockGateway, MOMO: momoGateway, VNPAY: vnpayGateway };
 const getGateway = provider => {
   const key = String(provider || 'MOCK').toUpperCase();
+  if (key === 'MOCK' && !['test', 'development'].includes(process.env.NODE_ENV)) throw new ApiError(503, 'Mock payment is disabled outside local testing');
   const gateway = gateways[key];
   if (!gateway) throw new ApiError(400, 'Cổng thanh toán không hợp lệ');
   return gateway;

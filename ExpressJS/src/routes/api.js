@@ -143,6 +143,8 @@ router.get('/equipment-maintenance', authorizeRead('facilities', { personal: tru
 router.post('/equipment-maintenance', authorizePermissionAction('create', PERMISSIONS.MANAGE_FACILITIES), audit('CREATE', 'EquipmentMaintenance'), equipment.createMaintenance);
 router.patch('/equipment-maintenance/:id', authorizePermissionAction('execute', PERMISSIONS.MANAGE_FACILITIES), audit('UPDATE', 'EquipmentMaintenance'), equipment.updateMaintenance);
 // Gateway callbacks are authenticated by an HMAC signature in the provider adapter.
+router.get('/online-payments/vnpay/ipn', onlinePayments.vnpayIpn);
+router.get('/online-payments/vnpay/return', onlinePayments.vnpayReturn);
 router.post('/online-payments/webhook/:provider', onlinePayments.webhook);
 router.post('/online-payments', authorizePermissionAction('create', PERMISSIONS.PAY_ONLINE), onlinePayments.create);
 router.get('/online-payments', authorizePermissionAction('view', PERMISSIONS.PAY_ONLINE, PERMISSIONS.MANAGE_FEES), onlinePayments.list);

@@ -297,3 +297,5 @@ export const createTemplateApi = (data) => axios.post('/v1/api/templates', data)
 export const updateTemplateApi = (id, data) => axios.put(`/v1/api/templates/${id}`, data);
 export const applyTemplateApi = (schoolId, templateId) =>
   axios.post(`/v1/api/schools/${schoolId}/apply-template`, { templateId });
+
+export const verifyVnpayReturnApi = query => axios.get(`/v1/api/online-payments/vnpay/return${query}`);
