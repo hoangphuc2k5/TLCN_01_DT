@@ -68,6 +68,12 @@ export const recordPaymentApi = (data) => axios.post('/v1/api/payments', data);
 export const createOnlinePaymentApi = (data) => axios.post('/v1/api/online-payments', data);
 export const getOnlinePaymentsApi = (params) => axios.get('/v1/api/online-payments', { params });
 export const getOnlinePaymentApi = (id) => axios.get(`/v1/api/online-payments/${id}`);
+export const getAppointmentsApi = (params) => axios.get('/v1/api/appointments', { params });
+export const createAppointmentApi = (data) => axios.post('/v1/api/appointments', data);
+export const reviewAppointmentApi = (id, data) => axios.patch(`/v1/api/appointments/${id}/review`, data);
+export const cancelAppointmentApi = (id) => axios.patch(`/v1/api/appointments/${id}/cancel`);
+export const getSurveysApi = () => axios.get('/v1/api/surveys');
+export const submitSurveyApi = (id, data) => axios.post(`/v1/api/appointments/${id}/survey`, data);
 
 export const getAnnouncementsApi = () => axios.get('/v1/api/announcements');
 export const createAnnouncementApi = (data) => axios.post('/v1/api/announcements', data);

@@ -227,10 +227,14 @@ const seedSystemRoles = async ({ force = false } = {}) => {
       }
       // Add newly introduced baseline capabilities without overwriting
       // permissions that an operator may have customized on a system role.
-      if ([ROLES.STUDENT, ROLES.PARENT].includes(code)) {
+      const newBaseline = [ROLES.STUDENT, ROLES.PARENT].includes(code)
+        ? (code === ROLES.PARENT ? ['PAY_ONLINE', 'REQUEST_APPOINTMENTS', 'SUBMIT_SURVEYS'] : ['PAY_ONLINE'])
+        : [ROLES.SCHOOL_ADMIN, ROLES.ACADEMIC_AFFAIRS, ROLES.SUBJECT_TEACHER, ROLES.HOMEROOM_TEACHER].includes(code)
+          ? ['MANAGE_APPOINTMENTS'] : [];
+      if (newBaseline.length) {
         const next = mergePermissionEntries([
           ...(existing.permissions || []),
-          ...legacyPermissionsToEntries(['PAY_ONLINE']),
+          ...legacyPermissionsToEntries(newBaseline),
         ]);
         if (JSON.stringify(next) !== JSON.stringify(existing.permissions || [])) {
           existing.permissions = next;

@@ -290,3 +290,11 @@ Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend 
 - API: POST/GET `/online-payments`, GET `/online-payments/:id`, POST `/online-payments/webhook/:provider`. Fees page co nut tao checkout MOCK.
 - Test rieng: `node --test test/online-payment.test.js` - **2/2**; frontend `npm run build` - dat.
 - Cau hinh gateway qua `PAYMENT_MOCK_SECRET`, `VNPAY_*`, `MOMO_*`; khong commit secret. Chi tiet: [phase2-online-payments.md](phase2-online-payments.md).
+
+
+## Phase 2.7 - Hen giao vien va khao sat hai long (8.6/8.8)
+
+- Nhanh: `feat/phase2-appointments-surveys`.
+- Them TeacherAppointment va SatisfactionSurvey; parent dat lich cho con, giao vien xac nhan/tu choi/hoan tat, parent huy va danh gia 1-5. Scope theo truong, child relation, teacher owner va unique survey.
+- API: GET/POST `/appointments`, PATCH review/cancel, POST survey, GET surveys; React page `/appointments`.
+- Test rieng: `node --test test/appointments-surveys.test.js` - **2/2**. Chi tiet: [phase2-appointments-surveys.md](phase2-appointments-surveys.md).

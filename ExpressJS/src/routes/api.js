@@ -10,6 +10,7 @@ const a = require('../controllers/advancedController');
 
 const router = express.Router();
 const onlinePayments = require('../controllers/onlinePaymentController');
+const appointments = require('../controllers/appointmentController');
 const jobs = require('../controllers/jobController');
 router.get('/jobs', authorizeRead('jobs'), jobs.list);
 router.post('/jobs/:id/retry', authorizePermissionAction('execute', PERMISSIONS.MANAGE_JOBS), audit('RETRY', 'Job'), jobs.retry);
@@ -116,6 +117,14 @@ router.post('/online-payments/webhook/:provider', onlinePayments.webhook);
 router.post('/online-payments', authorizePermissionAction('create', PERMISSIONS.PAY_ONLINE), onlinePayments.create);
 router.get('/online-payments', authorizePermissionAction('view', PERMISSIONS.PAY_ONLINE, PERMISSIONS.MANAGE_FEES), onlinePayments.list);
 router.get('/online-payments/:id', authorizePermissionAction('view', PERMISSIONS.PAY_ONLINE, PERMISSIONS.MANAGE_FEES), onlinePayments.get);
+
+// Teacher appointments and parent satisfaction surveys
+router.get('/appointments', authorizePermissionAction('view', PERMISSIONS.MANAGE_APPOINTMENTS, PERMISSIONS.REQUEST_APPOINTMENTS), appointments.list);
+router.post('/appointments', authorizePermissionAction('create', PERMISSIONS.REQUEST_APPOINTMENTS), appointments.create);
+router.patch('/appointments/:id/review', authorizePermissionAction('update', PERMISSIONS.MANAGE_APPOINTMENTS), appointments.review);
+router.patch('/appointments/:id/cancel', authorizePermissionAction('update', PERMISSIONS.REQUEST_APPOINTMENTS, PERMISSIONS.MANAGE_APPOINTMENTS), appointments.cancel);
+router.get('/surveys', authorizePermissionAction('view', PERMISSIONS.MANAGE_APPOINTMENTS, PERMISSIONS.SUBMIT_SURVEYS), appointments.surveys);
+router.post('/appointments/:id/survey', authorizePermissionAction('create', PERMISSIONS.SUBMIT_SURVEYS), appointments.submitSurvey);
 
 // Announcements
 router.get('/announcements', c.listAnnouncements);

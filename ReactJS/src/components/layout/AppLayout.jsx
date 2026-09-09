@@ -91,6 +91,7 @@ const menuByRole = (role, user) => {
       { key: '/assignments', icon: <FormOutlined />, label: <Link to="/assignments">Bài tập</Link> },
       { key: '/contact-book', icon: <FormOutlined />, label: <Link to="/contact-book">Sổ liên lạc</Link> },
       { key: '/class-life', icon: <FormOutlined />, label: <Link to="/class-life">Sinh hoạt lớp</Link> },
+      { key: '/appointments', icon: <CalendarOutlined />, label: <Link to="/appointments">Appointments</Link> },
       { key: '/activities', icon: <FormOutlined />, label: <Link to="/activities">CLB & thi lại</Link> },
       { key: '/conduct', icon: <SmileOutlined />, label: <Link to="/conduct">Hạnh kiểm</Link> },
       { key: '/templates', icon: <FileDoneOutlined />, label: <Link to="/templates">Mẫu dùng chung</Link> },
@@ -106,6 +107,7 @@ const menuByRole = (role, user) => {
       { key: '/assignments', icon: <FormOutlined />, label: <Link to="/assignments">Bài tập</Link> },
       { key: '/contact-book', icon: <FormOutlined />, label: <Link to="/contact-book">Sổ liên lạc</Link> },
       { key: '/class-life', icon: <FormOutlined />, label: <Link to="/class-life">Sinh hoạt lớp</Link> },
+      { key: '/appointments', icon: <CalendarOutlined />, label: <Link to="/appointments">Appointments</Link> },
       { key: '/facilities', icon: <ToolOutlined />, label: <Link to="/facilities">Phòng/TB</Link> },
     ],
     [ROLES.SUBJECT_TEACHER]: [
@@ -117,6 +119,7 @@ const menuByRole = (role, user) => {
       { key: '/assignments', icon: <FormOutlined />, label: <Link to="/assignments">Bài tập</Link> },
       { key: '/contact-book', icon: <FormOutlined />, label: <Link to="/contact-book">Sổ liên lạc</Link> },
       { key: '/class-life', icon: <FormOutlined />, label: <Link to="/class-life">Sinh hoạt lớp</Link> },
+      { key: '/appointments', icon: <CalendarOutlined />, label: <Link to="/appointments">Appointments</Link> },
       { key: '/facilities', icon: <ToolOutlined />, label: <Link to="/facilities">Mượn phòng/TB</Link> },
     ],
     [ROLES.HOMEROOM_TEACHER]: [
@@ -129,6 +132,7 @@ const menuByRole = (role, user) => {
       { key: '/assignments', icon: <FormOutlined />, label: <Link to="/assignments">Bài tập</Link> },
       { key: '/contact-book', icon: <FormOutlined />, label: <Link to="/contact-book">Sổ liên lạc</Link> },
       { key: '/class-life', icon: <FormOutlined />, label: <Link to="/class-life">Sinh hoạt lớp</Link> },
+      { key: '/appointments', icon: <CalendarOutlined />, label: <Link to="/appointments">Appointments</Link> },
       { key: '/facilities', icon: <ToolOutlined />, label: <Link to="/facilities">Mượn phòng/TB</Link> },
     ],
     [ROLES.ACCOUNTANT]: [
@@ -147,6 +151,7 @@ const menuByRole = (role, user) => {
       { key: '/assignments', icon: <FormOutlined />, label: <Link to="/assignments">Bài tập</Link> },
       { key: '/contact-book', icon: <FormOutlined />, label: <Link to="/contact-book">Sổ liên lạc</Link> },
       { key: '/class-life', icon: <FormOutlined />, label: <Link to="/class-life">Sinh hoạt lớp</Link> },
+      { key: '/appointments', icon: <CalendarOutlined />, label: <Link to="/appointments">Appointments</Link> },
       { key: '/activities', icon: <FormOutlined />, label: <Link to="/activities">CLB & thi lại</Link> },
       { key: '/library', icon: <BookOutlined />, label: <Link to="/library">Thư viện</Link> },
       { key: '/conduct', icon: <SmileOutlined />, label: <Link to="/conduct">Hạnh kiểm</Link> },
@@ -160,6 +165,7 @@ const menuByRole = (role, user) => {
       { key: '/assignments', icon: <FormOutlined />, label: <Link to="/assignments">Bài tập</Link> },
       { key: '/contact-book', icon: <FormOutlined />, label: <Link to="/contact-book">Sổ liên lạc</Link> },
       { key: '/class-life', icon: <FormOutlined />, label: <Link to="/class-life">Sinh hoạt lớp</Link> },
+      { key: '/appointments', icon: <CalendarOutlined />, label: <Link to="/appointments">Appointments</Link> },
       { key: '/library', icon: <BookOutlined />, label: <Link to="/library">Mượn sách</Link> },
     ],
   };
