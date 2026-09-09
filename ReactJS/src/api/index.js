@@ -70,6 +70,12 @@ export const runFeeRemindersApi = (data = {}) => axios.post('/v1/api/fees/remind
 export const getPayrollApi = (params) => axios.get('/v1/api/payroll', { params });
 export const createPayrollApi = (data) => axios.post('/v1/api/payroll', data);
 export const updatePayrollStatusApi = (id, status) => axios.patch(`/v1/api/payroll/${id}/status`, { status });
+export const getEquipmentApi = (params) => axios.get('/v1/api/equipment', { params });
+export const createEquipmentApi = (data) => axios.post('/v1/api/equipment', data);
+export const updateEquipmentApi = (id, data) => axios.put(`/v1/api/equipment/${id}`, data);
+export const getEquipmentMaintenanceApi = (params) => axios.get('/v1/api/equipment-maintenance', { params });
+export const createEquipmentMaintenanceApi = (data) => axios.post('/v1/api/equipment-maintenance', data);
+export const updateEquipmentMaintenanceApi = (id, data) => axios.patch(`/v1/api/equipment-maintenance/${id}`, data);
 export const createOnlinePaymentApi = (data) => axios.post('/v1/api/online-payments', data);
 export const getOnlinePaymentsApi = (params) => axios.get('/v1/api/online-payments', { params });
 export const getOnlinePaymentApi = (id) => axios.get(`/v1/api/online-payments/${id}`);

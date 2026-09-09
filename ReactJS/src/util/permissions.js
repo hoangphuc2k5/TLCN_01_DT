@@ -34,6 +34,7 @@ const resources = {
   admissions: 'admissions',
   'student-documents': 'student_documents',
   payroll: 'fees',
+  'equipment-maintenance': 'facilities',
   'audit-logs': 'audit', support: 'support', conduct: 'conduct', templates: 'templates',
 };
 const common = new Set(['dashboard', 'profile', 'messages', 'calendar', 'announcements', 'leave', 'timetable', 'schools']);

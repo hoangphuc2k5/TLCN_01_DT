@@ -16,6 +16,7 @@ const admissions = require('../controllers/admissionController');
 const jobs = require('../controllers/jobController');
 const studentDocuments = require('../controllers/studentDocumentController');
 const payroll = require('../controllers/payrollController');
+const equipment = require('../controllers/equipmentController');
 router.get('/jobs', authorizeRead('jobs'), jobs.list);
 router.post('/jobs/:id/retry', authorizePermissionAction('execute', PERMISSIONS.MANAGE_JOBS), audit('RETRY', 'Job'), jobs.retry);
 router.post('/jobs/:id/cancel', authorizePermissionAction('execute', PERMISSIONS.MANAGE_JOBS), audit('CANCEL', 'Job'), jobs.cancel);
@@ -125,6 +126,12 @@ router.post('/fees/reminders/run', authorizePermissionAction('execute', PERMISSI
 router.get('/payroll', authorizePermissionAction('view', PERMISSIONS.MANAGE_FEES), payroll.list);
 router.post('/payroll', authorizePermissionAction('create', PERMISSIONS.MANAGE_FEES), audit('CREATE', 'PayrollRecord'), payroll.create);
 router.patch('/payroll/:id/status', authorizePermissionAction('execute', PERMISSIONS.MANAGE_FEES), audit('UPDATE_STATUS', 'PayrollRecord'), payroll.status);
+router.get('/equipment', authorizeRead('facilities', { personal: true }), equipment.list);
+router.post('/equipment', authorizePermissionAction('create', PERMISSIONS.MANAGE_FACILITIES), audit('CREATE', 'EquipmentAsset'), equipment.create);
+router.put('/equipment/:id', authorizePermissionAction('update', PERMISSIONS.MANAGE_FACILITIES), audit('UPDATE', 'EquipmentAsset'), equipment.update);
+router.get('/equipment-maintenance', authorizeRead('facilities', { personal: true }), equipment.listMaintenance);
+router.post('/equipment-maintenance', authorizePermissionAction('create', PERMISSIONS.MANAGE_FACILITIES), audit('CREATE', 'EquipmentMaintenance'), equipment.createMaintenance);
+router.patch('/equipment-maintenance/:id', authorizePermissionAction('execute', PERMISSIONS.MANAGE_FACILITIES), audit('UPDATE', 'EquipmentMaintenance'), equipment.updateMaintenance);
 // Gateway callbacks are authenticated by an HMAC signature in the provider adapter.
 router.post('/online-payments/webhook/:provider', onlinePayments.webhook);
 router.post('/online-payments', authorizePermissionAction('create', PERMISSIONS.PAY_ONLINE), onlinePayments.create);

@@ -330,3 +330,11 @@ Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend 
 - Them PayrollRecord theo thang, tinh net luong va quy trinh DRAFT -> APPROVED -> PAID.
 - API `/fees/debtors`, `/fees/reminders/run`, `/payroll`; React them truong khoan thu, nut nhac no va trang bang luong.
 - Test backend rieng **2/2**; production build dat. Chi tiet: [phase2-fees-payroll.md](phase2-fees-payroll.md).
+
+## Phase 2.12 - Bao tri thiet bi chi tiet (10.4)
+
+- Nhanh: `feat/phase2-equipment-maintenance`.
+- Them EquipmentAsset va EquipmentMaintenance: ton kho, serial/vị tri/bao hanh, muc do uu tien, chi phi va quy trinh OPEN -> IN_PROGRESS -> RESOLVED/CANCELLED.
+- Bao cao su co tu dong chuyen thiet bi sang MAINTENANCE; khi xu ly phieu cuoi cung thi tra ve AVAILABLE; phan quyen manager/nguoi bao cao tach rieng.
+- API `/equipment`, `/equipment-maintenance`; React `/equipment-maintenance`.
+- Test backend rieng **1/1**; production build dat. Chi tiet: [phase2-equipment-maintenance.md](phase2-equipment-maintenance.md).
