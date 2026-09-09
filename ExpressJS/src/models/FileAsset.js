@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const schema = new mongoose.Schema({
   schoolId: { type: mongoose.Schema.Types.ObjectId, ref: 'School', required: true, index: true },
   uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  purpose: { type: String, enum: ['MATERIAL'], default: 'MATERIAL' },
+  purpose: { type: String, enum: ['MATERIAL', 'STUDENT_DOCUMENT'], default: 'MATERIAL' },
   originalName: { type: String, required: true },
   mimeType: { type: String, required: true },
   sizeBytes: { type: Number, required: true, min: 1 },

@@ -314,3 +314,11 @@ Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend 
 - Them AdmissionApplication, form public theo ma truong/subdomain, tracking code va tra cuu trang thai; staff scope theo truong/cum duyet UNDER_REVIEW/ACCEPTED/REJECTED/WAITLISTED.
 - API public `/admissions/public`, quan ly `/admissions`; React form `/admissions/apply` va bang duyet.
 - Test backend rieng **2/2**, Playwright E2E **1/1**, build dat. Chi tiet: [phase2-online-admissions.md](phase2-online-admissions.md).
+
+## Phase 2.10 - Ho so scan va chung nhan dien tu (5.4-5.5)
+
+- Nhanh: `feat/phase2-student-dossiers-certificates`.
+- Them StudentDocument, upload tai lieu quet theo hoc sinh voi quota storage va phan quyen school/cluster; HS/PH chi xem tai lieu cua minh/con.
+- Them xuat bang diem dien tu ket hop diem, hanh kiem va khen thuong/ky luat da duyet; PDF native nhe va Word-compatible RTF `.doc`.
+- API: `/student-documents/upload`, `/student-documents`, `/student-documents/:id/download`, `/students/:studentId/certificate/:format`; React `/student-documents`.
+- Test rieng backend **2/2**; production build dat. Chi tiet: [phase2-student-dossiers-certificates.md](phase2-student-dossiers-certificates.md).

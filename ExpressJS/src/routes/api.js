@@ -14,6 +14,7 @@ const appointments = require('../controllers/appointmentController');
 const rewards = require('../controllers/rewardController');
 const admissions = require('../controllers/admissionController');
 const jobs = require('../controllers/jobController');
+const studentDocuments = require('../controllers/studentDocumentController');
 router.get('/jobs', authorizeRead('jobs'), jobs.list);
 router.post('/jobs/:id/retry', authorizePermissionAction('execute', PERMISSIONS.MANAGE_JOBS), audit('RETRY', 'Job'), jobs.retry);
 router.post('/jobs/:id/cancel', authorizePermissionAction('execute', PERMISSIONS.MANAGE_JOBS), audit('CANCEL', 'Job'), jobs.cancel);
@@ -22,6 +23,10 @@ router.post('/materials/upload', authorizePermissionAction('create', PERMISSIONS
 router.get('/files/usage', authorizeRead('materials'), files.usage);
 router.get('/files/:id', authorizeRead('materials', { personal: true }), files.metadata);
 router.get('/files/:id/download', authorizeRead('materials', { personal: true }), files.download);
+router.post('/student-documents/upload', authorizePermissionAction('create', PERMISSIONS.MANAGE_DOCUMENTS), require('../middleware/fileUpload').upload, audit('CREATE', 'StudentDocument'), studentDocuments.upload);
+router.get('/student-documents', authorizeRead('student_documents', { personal: true }), studentDocuments.list);
+router.get('/student-documents/:id/download', authorizeRead('student_documents', { personal: true }), studentDocuments.download);
+router.get('/students/:studentId/certificate/:format', authorizeRead('student_documents', { personal: true }), studentDocuments.certificate);
 
 router.get('/health', (req, res) => res.json({ EC: 0, EM: 'OK', data: { status: 'up' } }));
 

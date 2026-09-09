@@ -211,6 +211,27 @@ export const uploadMaterialApi = (data, file) => {
   form.append('file', file);
   return axios.post('/v1/api/materials/upload', form);
 };
+export const getStudentDocumentsApi = (params) => axios.get('/v1/api/student-documents', { params });
+export const uploadStudentDocumentApi = (data, file) => {
+  const form = new FormData();
+  for (const [key, value] of Object.entries(data || {})) if (value !== undefined && value !== null) form.append(key, String(value));
+  form.append('file', file);
+  return axios.post('/v1/api/student-documents/upload', form);
+};
+const downloadPrivateFile = async (path, fallbackName) => {
+  const response = await fetch(`${apiOrigin()}/v1/api${path}`, { headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` } });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.EM || 'Tai file that bai');
+  }
+  const disposition = response.headers.get('content-disposition') || '';
+  const match = disposition.match(/filename="([^"]+)"/i);
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement('a'); link.href = url; link.download = match?.[1] || fallbackName; link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+export const downloadStudentDocumentApi = (id, name = 'student-document') => downloadPrivateFile(`/student-documents/${id}/download`, name);
+export const downloadCertificateApi = (studentId, format) => downloadPrivateFile(`/students/${studentId}/certificate/${format}`, `student-transcript.${format === 'pdf' ? 'pdf' : 'doc'}`);
 export const downloadFileAssetApi = async id => {
   const meta = await axios.get(`/v1/api/files/${id}`);
   if (meta?.EC !== 0) throw new Error(meta?.EM || 'Không tải được thông tin file');
