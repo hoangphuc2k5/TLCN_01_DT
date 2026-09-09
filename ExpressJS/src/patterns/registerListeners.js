@@ -62,7 +62,7 @@ const registerEventListeners = () => {
   eventBus.on('leave.reviewed', async ({ leave, requesterId }) => {
     try {
       const title = 'Kết quả duyệt đơn';
-      const message = `Đơn của bạn đã được ${leave.status === 'APPROVED' ? 'duyệt' : 'từ chối'}.`;
+      const message = `Đơn của bạn đã được ${leave.status === 'CANCELLED' ? 'hủy lịch bù' : leave.status === 'APPROVED' ? 'duyệt' : 'từ chối'}.`;
       await Notification.create({
         userId: requesterId,
         schoolId: leave.schoolId,

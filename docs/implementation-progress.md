@@ -352,3 +352,9 @@ Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend 
 - Them monitoring database/process/storage, TemplateDeployment dong bo full content/version, bao cao doi chieu lien truong, enforce gioi han hoc sinh/GV theo subscription va tenant routing theo `TENANT_BASE_DOMAIN`.
 - React them man hinh monitoring va doi chieu; API `/monitoring`, `/reports/schools/compare`, `/template-deployments`.
 - Test backend rieng **2/2**; production build dat. Chi tiet: [phase2-platform-hardening.md](phase2-platform-hardening.md).
+
+## Phase 2.1 - Xin nghi day va day bu tu cap nhat TKB (5.8, 6.1.10)
+
+- Nhanh: `feat/phase2-teaching-schedule`, da merge vao `integration/phase2`.
+- Them nghi day/day bu theo tiet/ngay, snapshot makeup, lich theo ngay va transaction chong xung dot; lich HS/PH cap nhat sau duyet.
+- Test branch: backend **192/192**, frontend policy **10/10**, Playwright **31/31**, build dat. Chi tiet: [phase2-teaching-schedule.md](phase2-teaching-schedule.md).

@@ -2,6 +2,10 @@ const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
+const fs = require('node:fs/promises');
+const path = require('node:path');
+const os = require('node:os');
+let storageRoot;
 const XLSX = require('xlsx');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 process.env.NODE_ENV = 'test';
@@ -34,6 +38,8 @@ const id = () => new mongoose.Types.ObjectId();
 let mongo, server, origin, schools, students, actors, classes, year, subjects;
 
 before(async () => {
+  storageRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'export-scope-files-'));
+  process.env.FILE_LOCAL_ROOT = storageRoot;
   mongo = await MongoMemoryServer.create();
   await mongoose.connect(mongo.getUri());
   await Role.create(Object.entries(ROLE_PERMISSIONS).map(([code, keys]) => ({ code, name: code, level: 20, permissions: legacyPermissionsToEntries(keys) })));
@@ -65,6 +71,7 @@ after(async () => {
   if (server) await new Promise(resolve => server.close(resolve));
   await mongoose.disconnect();
   if (mongo) await mongo.stop();
+  if (storageRoot && path.dirname(storageRoot) === path.resolve(os.tmpdir()) && path.basename(storageRoot).startsWith('export-scope-files-')) await fs.rm(storageRoot, { recursive: true, force: true });
 });
 
 const request = (type, actor, query = '') => fetch(`${origin}/v1/api/export/${type}${query}`, { headers: { Authorization: `Bearer ${jwt.sign({ _id: actor._id }, process.env.JWT_SECRET)}` } });
@@ -146,12 +153,12 @@ test('invalid leave date interval is rejected', async () => {
   const result = await write('/leave-requests', students[0], { type: 'STUDENT_ABSENCE', reason: 'Test', fromDate: '2026-09-07', toDate: '2026-09-05' }, 'POST');
   assert.equal(result.status, 400);
 });
-test('timetable approval enforces school scope and draft state', async () => {
+test('timetable approval enforces school scope and fails closed on standalone', async () => {
   const own = await Timetable.create({ schoolId: schools[0]._id, classId: classes[0]._id, academicYearId: year._id, slots: [] });
   const foreign = await Timetable.create({ schoolId: schools[1]._id, classId: classes[2]._id, academicYearId: year._id, slots: [] });
   assert.equal((await write(`/timetables/${foreign._id}/approve`, actors.school, {})).status, 404);
-  assert.equal((await write(`/timetables/${own._id}/approve`, actors.school, {})).status, 200);
-  assert.equal((await write(`/timetables/${own._id}/approve`, actors.school, {})).status, 409);
+  assert.equal((await write(`/timetables/${own._id}/approve`, actors.school, {})).status, 503);
+  assert.equal((await Timetable.findById(own._id)).status, 'DRAFT');
 });
 test('saving timetable cannot bypass approval or inject a foreign class', async () => {
   assert.equal((await write('/timetables', actors.school, { academicYearId: year._id, classId: classes[1]._id, status: 'APPROVED', slots: [] }, 'POST')).status, 400);

@@ -60,6 +60,7 @@ async function start() {
     await require('../src/models/ClassActivity').create({ schoolId: school._id, classId: cls._id, academicYearId: year._id, organizerId: teacher._id, title: `QA Class Activity ${i}`, scheduledAt: '2026-09-20T09:00:00.000Z', agenda: 'Class review', status: 'PUBLISHED', publishedAt: new Date() });
     await require('../src/models/ParentMeeting').create({ schoolId: school._id, classId: cls._id, academicYearId: year._id, organizerId: teacher._id, title: `QA Parent Meeting ${i}`, scheduledAt: '2026-10-01T09:00:00.000Z', meetingUrl: 'https://meet.example.test/qa', agenda: 'Term review', status: 'SCHEDULED' });
     await require('../src/models/Club').create({ schoolId: school._id, name: `QA Science Club ${i}`, description: 'Fixture club', capacity: 20, coordinatorId: admin._id, status: 'OPEN' });
+    await require('../src/models/Timetable').create({ schoolId: school._id, classId: cls._id, academicYearId: year._id, status: 'APPROVED', slots: [{ dayOfWeek: 1, period: 1, teacherId: teacher._id, subjectId: subject._id, room: `QA Room ${i}` }] });
     for (const pupil of [student, peer]) {
       await require('../src/models/Grade').create({ schoolId: school._id, classId: cls._id, subjectId: subject._id, academicYearId: year._id, studentId: pupil._id, teacherId: teacher._id, average: 8 });
       await require('../src/models/FeeInvoice').create({ schoolId: school._id, studentId: pupil._id, academicYearId: year._id, title: `QA Tuition ${pupil.name}`, amount: 100, dueDate: '2027-01-01' });
