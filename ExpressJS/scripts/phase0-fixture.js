@@ -1,5 +1,8 @@
 // Local E2E only: never connects to MONGODB_URI or imports the production seed.
 Object.assign(process.env, {
+  VNPAY_TMN_CODE: 'TESTCODE', VNPAY_HASH_SECRET: 'isolated-vnpay-fixture-secret',
+  VNPAY_URL: 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
+  VNPAY_RETURN_URL: 'http://127.0.0.1:5175/payments/vnpay-return',
   NODE_ENV: 'test', JWT_SECRET: 'phase0-local-fixture-secret', AUTH_MFA_ENCRYPTION_KEY: 'ab'.repeat(32),
   ALLOW_PASSWORD_LOGIN: 'true', AUTH_GMAIL_ONLY: 'false',
   GOOGLE_CLIENT_ID: '', GMAIL_USER: '', GMAIL_APP_PASSWORD: '',

@@ -17,6 +17,7 @@ import RolesPage from './features/roles/RolesPage.jsx';
 import ClassesPage from './features/classes/ClassesPage.jsx';
 import AttendancePage from './features/attendance/AttendancePage.jsx';
 import GradesPage from './features/grades/GradesPage.jsx';
+import VnpayReturnPage from './features/fees/VnpayReturnPage.jsx';
 import FeesPage from './features/fees/FeesPage.jsx';
 import AppointmentsPage from './features/appointments/AppointmentsPage.jsx';
 import RewardsPage from './features/rewards/RewardsPage.jsx';
@@ -51,6 +52,7 @@ import { ROLES } from './constants/roles.js';
 import './styles/global.css';
 
 const router = createBrowserRouter([
+  { path: '/payments/vnpay-return', element: <VnpayReturnPage /> },
   {
     path: '/login',
     element: <LoginPage />,

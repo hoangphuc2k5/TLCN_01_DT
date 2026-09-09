@@ -35,7 +35,7 @@ instance.interceptors.request.use(
 instance.interceptors.response.use(
   (response) => (response?.data !== undefined ? response.data : response),
   (error) => {
-    if (error?.response?.status === 401) {
+    if (error?.response?.status === 401 && !error.config?.url?.startsWith('/v1/api/online-payments/vnpay/return')) {
       localStorage.removeItem('access_token');
     }
     if (error?.response?.data) return error.response.data;

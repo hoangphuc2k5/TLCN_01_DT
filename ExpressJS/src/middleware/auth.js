@@ -14,6 +14,8 @@ const PUBLIC_PATHS = [
   '/v1/api/auth/config',
   '/v1/api/auth/mfa/verify',
   '/v1/api/health',
+  '/v1/api/online-payments/vnpay/ipn',
+  '/v1/api/online-payments/vnpay/return',
 ];
 
 const authenticate = async (req, res, next) => {

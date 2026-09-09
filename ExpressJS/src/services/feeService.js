@@ -95,21 +95,27 @@ const recordPayment = async (actor, data) => {
     throw new ApiError(403, 'Ngoài phạm vi');
   }
 
-  const payment = await paymentRepo.create({
-    schoolId: invoice.schoolId,
-    invoiceId,
-    studentId: invoice.studentId,
-    amount,
-    method,
-    recordedBy: actor._id,
-    note,
-  });
-
-  invoice.paidAmount += Number(amount);
-  refreshStatus(invoice);
-  await invoice.save();
-
-  return { payment, invoice };
+  if (!['CASH', 'TRANSFER'].includes(method)) throw new ApiError(400, 'Online payments must be confirmed by the gateway');
+  const mongoose = require('mongoose');
+  const FeeInvoice = require('../models/FeeInvoice');
+  const Payment = require('../models/Payment');
+  try {
+    return await mongoose.connection.transaction(async session => {
+      const current = await FeeInvoice.findById(invoice._id).session(session);
+      if (!current || Number(current.amount) - Number(current.paidAmount || 0) < amount) throw new ApiError(409, 'Payment exceeds outstanding amount');
+      current.paidAmount = Math.round((Number(current.paidAmount || 0) + amount) * 100) / 100;
+      refreshStatus(current);
+      await current.save({ session });
+      const [payment] = await Payment.create([{
+        schoolId: current.schoolId, invoiceId: current._id, studentId: current.studentId,
+        amount, method, recordedBy: actor._id, note,
+      }], { session });
+      return { payment, invoice: current };
+    });
+  } catch (error) {
+    if (error.code === 20) throw new ApiError(503, 'Payment recording requires a MongoDB replica set');
+    throw error;
+  }
 };
 
 const listPayments = async (actor, query = {}) => {

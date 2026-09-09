@@ -34,6 +34,7 @@ const FeesPage = () => {
   const [openFee, setOpenFee] = useState(false);
   const [openPay, setOpenPay] = useState(false);
   const [selected, setSelected] = useState(null);
+  const [payingId, setPayingId] = useState(null);
   const [checkout, setCheckout] = useState(null);
   const [feeForm] = Form.useForm();
   const [payForm] = Form.useForm();
@@ -124,17 +125,22 @@ const FeesPage = () => {
                     {canOnline && <Button
                       size="small"
                       type="primary"
+                      loading={payingId === r._id}
+                      disabled={!!payingId}
                       onClick={async () => {
-                        const res = await createOnlinePaymentApi({
-                          invoiceId: r._id,
-                          provider: 'MOCK',
-                          returnUrl: window.location.href,
-                        });
-                        if (res?.EC === 0) setCheckout(res.data);
-                        else message.error(res?.EM || 'Khong tao duoc giao dich');
+                        setPayingId(r._id);
+                        try {
+                          const res = await createOnlinePaymentApi({
+                            invoiceId: r._id,
+                            provider: 'VNPAY',
+                          });
+                          if (res?.EC === 0) setCheckout(res.data);
+                          else message.error(res?.EM || 'Không tạo được giao dịch');
+                        } catch { message.error('Không kết nối được cổng thanh toán'); }
+                        finally { setPayingId(null); }
                       }}
                     >
-                      Thanh toan online
+                      Thanh toán VNPay
                     </Button>}
                   </Space>
                 ) : null,
@@ -210,7 +216,6 @@ const FeesPage = () => {
               options={[
                 { value: 'CASH', label: 'Tiền mặt' },
                 { value: 'TRANSFER', label: 'Chuyển khoản' },
-                { value: 'ONLINE', label: 'Online' },
               ]}
             />
           </Form.Item>
@@ -220,17 +225,11 @@ const FeesPage = () => {
         </Form>
       </Modal>
 
-      <Modal
-        open={!!checkout}
-        title="Thanh toÃ¡n há»c phÃ­ online"
-        onCancel={() => setCheckout(null)}
-        footer={null}
-      >
-        <p>Giao dá»‹ch Ä‘Ã£ Ä‘Æ°á»£c táº¡o. Má»Ÿ trang cá»•ng thanh toÃ¡n Ä‘á»ƒ tiáº¿p tá»¥c:</p>
-        {checkout?.checkoutUrl && <a href={checkout.checkoutUrl} target="_blank" rel="noreferrer">
-          Má»Ÿ cá»•ng thanh toÃ¡n
-        </a>}
-        <p style={{ marginTop: 12 }}>MÃ£ giao dá»‹ch: {checkout?.providerOrderId}</p>
+      <Modal open={!!checkout} title="Thanh toán học phí qua VNPay" onCancel={() => setCheckout(null)} footer={null}>
+        <p>Số tiền: {Number(checkout?.amount || 0).toLocaleString('vi-VN')} VND</p>
+        <p>Mở VNPay để chọn ngân hàng và hoàn tất thanh toán.</p>
+        {checkout?.checkoutUrl && <a href={checkout.checkoutUrl}>Mở cổng thanh toán VNPay</a>}
+        <p style={{ marginTop: 12 }}>Mã giao dịch: {checkout?.providerOrderId}</p>
       </Modal>
     </div>
   );
