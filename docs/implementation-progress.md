@@ -338,3 +338,10 @@ Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend 
 - Bao cao su co tu dong chuyen thiet bi sang MAINTENANCE; khi xu ly phieu cuoi cung thi tra ve AVAILABLE; phan quyen manager/nguoi bao cao tach rieng.
 - API `/equipment`, `/equipment-maintenance`; React `/equipment-maintenance`.
 - Test backend rieng **1/1**; production build dat. Chi tiet: [phase2-equipment-maintenance.md](phase2-equipment-maintenance.md).
+
+## Phase 2.13 - SSO doanh nghiep, dang nhap so dien thoai va thong bao realtime (11.1-11.2)
+
+- Nhanh: `feat/phase2-sso-phone-realtime`.
+- Them signed enterprise SSO assertion, phone OTP 5 phut/5 lan va adapter SMS; them adapter SMS/Zalo/push co timeout, khong gui that khi chua cau hinh.
+- Them SSE `/notifications/stream` co auth, hook Notification -> eventBus va endpoint yeu cau delivery; frontend co API/thunk va form OTP.
+- Test backend rieng **2/2** (OTP, SSO, SSE, delivery); production build dat. Chi tiet: [phase2-sso-phone-realtime.md](phase2-sso-phone-realtime.md).

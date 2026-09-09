@@ -17,6 +17,7 @@ const jobs = require('../controllers/jobController');
 const studentDocuments = require('../controllers/studentDocumentController');
 const payroll = require('../controllers/payrollController');
 const equipment = require('../controllers/equipmentController');
+const notificationController = require('../controllers/notificationController');
 router.get('/jobs', authorizeRead('jobs'), jobs.list);
 router.post('/jobs/:id/retry', authorizePermissionAction('execute', PERMISSIONS.MANAGE_JOBS), audit('RETRY', 'Job'), jobs.retry);
 router.post('/jobs/:id/cancel', authorizePermissionAction('execute', PERMISSIONS.MANAGE_JOBS), audit('CANCEL', 'Job'), jobs.cancel);
@@ -35,9 +36,12 @@ router.get('/health', (req, res) => res.json({ EC: 0, EM: 'OK', data: { status: 
 // Auth
 const authSecurity = require('../controllers/authSecurityController');
 router.use('/auth', authSecurity.noStore);
-router.post(['/auth/login', '/auth/google', '/auth/mfa/verify', '/auth/mfa/setup', '/auth/mfa/confirm', '/auth/mfa/disable', '/auth/mfa/recovery', '/auth/password'], authSecurity.limit);
+router.post(['/auth/login', '/auth/google', '/auth/phone/request', '/auth/phone/verify', '/auth/sso', '/auth/mfa/verify', '/auth/mfa/setup', '/auth/mfa/confirm', '/auth/mfa/disable', '/auth/mfa/recovery', '/auth/password'], authSecurity.limit);
 router.post('/auth/login', authController.loginValidators, validate, authController.login);
 router.post('/auth/google', authController.loginGoogle);
+router.post('/auth/phone/request', authController.loginPhoneRequest);
+router.post('/auth/phone/verify', authController.loginPhoneVerify);
+router.post('/auth/sso', authController.loginSso);
 router.get('/auth/config', authController.authConfig);
 router.get('/auth/me', authController.me);
 router.put('/auth/profile', authController.updateProfile);
@@ -52,6 +56,8 @@ router.post('/auth/password', audit('CHANGE_PASSWORD', 'User'), authSecurity.pas
 // Dashboard & notifications
 router.get('/dashboard', c.getDashboard);
 router.get('/notifications', c.listNotifications);
+router.get('/notifications/stream', notificationController.stream);
+router.post('/notifications/:id/deliver', notificationController.deliver);
 router.patch('/notifications/read-all', c.markAllRead);
 router.patch('/notifications/:id/read', c.markRead);
 

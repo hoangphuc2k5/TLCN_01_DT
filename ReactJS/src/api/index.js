@@ -16,6 +16,14 @@ export const getNotificationsApi = () => axios.get('/v1/api/notifications');
 
 export const markNotificationReadApi = (id) =>
   axios.patch(`/v1/api/notifications/${id}/read`);
+export const deliverNotificationApi = (id, channels = ['SMS', 'ZALO', 'PUSH']) => axios.post(`/v1/api/notifications/${id}/deliver`, { channels });
+export const openNotificationStream = async onMessage => {
+  const response = await fetch(`${apiOrigin()}/v1/api/notifications/stream`, { headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}`, Accept: 'text/event-stream' } });
+  if (!response.ok || !response.body) throw new Error('Notification stream unavailable');
+  const reader = response.body.getReader(); const decoder = new TextDecoder(); let buffer = '';
+  while (true) { const { done, value } = await reader.read(); if (done) break; buffer += decoder.decode(value, { stream: true }); const events = buffer.split('\n\n'); buffer = events.pop() || ''; for (const event of events) { const line = event.split('\n').find(item => item.startsWith('data:')); if (line) { try { onMessage(JSON.parse(line.slice(5).trim())); } catch { /* ignore malformed event */ } } } }
+  return true;
+};
 
 export const getClustersApi = () => axios.get('/v1/api/clusters');
 export const createClusterApi = (data) => axios.post('/v1/api/clusters', data);
@@ -109,6 +117,9 @@ export const approveTimetableApi = (id) => axios.patch(`/v1/api/timetables/${id}
 export const getAuthConfigApi = () => axios.get('/v1/api/auth/config');
 export const loginGoogleApi = (credential) =>
   axios.post('/v1/api/auth/google', { credential });
+export const requestPhoneLoginApi = phone => axios.post('/v1/api/auth/phone/request', { phone });
+export const verifyPhoneLoginApi = (challengeId, code) => axios.post('/v1/api/auth/phone/verify', { challengeId, code });
+export const loginSsoApi = assertion => axios.post('/v1/api/auth/sso', { assertion });
 
 export const getMessagesApi = (params) => axios.get('/v1/api/messages', { params });
 export const sendMessageApi = (data) => axios.post('/v1/api/messages', data);

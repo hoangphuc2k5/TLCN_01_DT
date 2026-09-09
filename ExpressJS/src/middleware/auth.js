@@ -8,6 +8,9 @@ const roleCache = require('../services/rolePermissionCache');
 const PUBLIC_PATHS = [
   '/v1/api/auth/login',
   '/v1/api/auth/google',
+  '/v1/api/auth/phone/request',
+  '/v1/api/auth/phone/verify',
+  '/v1/api/auth/sso',
   '/v1/api/auth/config',
   '/v1/api/auth/mfa/verify',
   '/v1/api/health',

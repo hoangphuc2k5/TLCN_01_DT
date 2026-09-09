@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Card, Form, Input, Button, Typography, Alert, Divider } from 'antd';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { clearError, loginGoogleThunk, loginThunk, verifyMfaThunk, logout } from '../Redux/authSlice';
+import { clearError, loginGoogleThunk, loginThunk, requestPhoneLoginThunk, verifyPhoneLoginThunk, verifyMfaThunk, logout } from '../Redux/authSlice';
 import { getAuthConfigApi } from '../api';
 
 const waitForGoogle = (timeoutMs = 10000) =>
@@ -27,9 +27,11 @@ const LoginPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error, challenge } = useSelector((s) => s.auth);
+  const phoneChallenge = useSelector((s) => s.auth.phoneChallenge);
   const [localError, setLocalError] = useState('');
   const [googleReady, setGoogleReady] = useState(false);
   const [googleRenderError, setGoogleRenderError] = useState('');
+  const [phoneMode, setPhoneMode] = useState(false);
   const [config, setConfig] = useState({
     googleClientId: '',
     allowPasswordLogin: true,
@@ -155,7 +157,7 @@ const LoginPage = () => {
           <Button aria-label="Xác minh" type="primary" htmlType="submit" loading={loading} block>Xác minh</Button>
           <Button onClick={() => dispatch(logout())} block>Đăng nhập lại</Button>
         </Form>}
-        {allowPassword && !challenge && (
+        {allowPassword && !challenge && !phoneMode && (
           <Form layout="vertical" onFinish={onFinish}>
             <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}>
               <Input size="large" placeholder="superadmin@system.vn" />
@@ -168,6 +170,13 @@ const LoginPage = () => {
             </Button>
           </Form>
         )}
+        {!challenge && phoneMode && <Form layout="vertical" onFinish={async values => {
+          if (!phoneChallenge) { const result = await dispatch(requestPhoneLoginThunk(values.phone)); if (requestPhoneLoginThunk.fulfilled.match(result) && result.payload.devCode) setLocalError(`Development OTP: ${result.payload.devCode}`); }
+          else { const result = await dispatch(verifyPhoneLoginThunk({ challengeId: phoneChallenge.challengeId, code: values.code })); if (verifyPhoneLoginThunk.fulfilled.match(result) && !result.payload.mfaRequired) navigate(result.payload.mustChangePassword ? '/profile' : '/dashboard'); }
+        }}>
+          {!phoneChallenge ? <><Form.Item name="phone" label="So dien thoai" rules={[{ required: true }]}><Input size="large" placeholder="+84901234567" /></Form.Item><Button type="primary" htmlType="submit" loading={loading} block>Gui OTP</Button></> : <><Form.Item name="code" label="Ma OTP" rules={[{ required: true }]}><Input size="large" maxLength={6} autoComplete="one-time-code" /></Form.Item><Button type="primary" htmlType="submit" loading={loading} block>Xac minh</Button></>}
+        </Form>}
+        {!challenge && <Button type="link" onClick={() => setPhoneMode(value => !value)} block>{phoneMode ? 'Dang nhap bang email' : 'Dang nhap bang so dien thoai'}</Button>}
 
         <div style={{ display: challenge ? 'none' : undefined }}>
         <Divider plain>Hoặc (tùy chọn)</Divider>
