@@ -14,6 +14,7 @@ const Subject = require('../models/Subject');
 const AcademicYear = require('../models/AcademicYear');
 const TeacherAssignment = require('../models/TeacherAssignment');
 const Payment = require('../models/Payment');
+const OnlinePayment = require('../models/OnlinePayment');
 
 module.exports = {
   userRepo: new BaseRepository(User),
@@ -31,4 +32,5 @@ module.exports = {
   academicYearRepo: new BaseRepository(AcademicYear),
   assignmentRepo: new BaseRepository(TeacherAssignment),
   paymentRepo: new BaseRepository(Payment),
+  onlinePaymentRepo: new BaseRepository(OnlinePayment),
 };

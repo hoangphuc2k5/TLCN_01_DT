@@ -4,6 +4,7 @@ import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
 import {
   createFeeApi,
+  createOnlinePaymentApi,
   getAcademicYearsApi,
   getFeesApi,
   getUserDirectoryApi,
@@ -24,12 +25,14 @@ const statusColor = {
 const FeesPage = () => {
   const { user } = useSelector((s) => s.auth);
   const canManage = can(user, 'fees', 'create');
+  const canOnline = can(user, 'online_payments', 'create');
   const [rows, setRows] = useState([]);
   const [students, setStudents] = useState([]);
   const [years, setYears] = useState([]);
   const [openFee, setOpenFee] = useState(false);
   const [openPay, setOpenPay] = useState(false);
   const [selected, setSelected] = useState(null);
+  const [checkout, setCheckout] = useState(null);
   const [feeForm] = Form.useForm();
   const [payForm] = Form.useForm();
 
@@ -99,12 +102,12 @@ const FeesPage = () => {
             dataIndex: 'status',
             render: (v) => <Tag color={statusColor[v]}>{v}</Tag>,
           },
-          canManage
+          (canManage || canOnline)
             ? {
                 title: 'Thao tác',
-                render: (_, r) =>
-                  r.status !== 'PAID' ? (
-                    <Button
+                render: (_, r) => r.status !== 'PAID' ? (
+                  <Space size="small">
+                    {canManage && <Button
                       size="small"
                       onClick={() => {
                         setSelected(r);
@@ -112,9 +115,25 @@ const FeesPage = () => {
                         setOpenPay(true);
                       }}
                     >
-                      Thu tiền
-                    </Button>
-                  ) : null,
+                      Thu tien
+                    </Button>}
+                    {canOnline && <Button
+                      size="small"
+                      type="primary"
+                      onClick={async () => {
+                        const res = await createOnlinePaymentApi({
+                          invoiceId: r._id,
+                          provider: 'MOCK',
+                          returnUrl: window.location.href,
+                        });
+                        if (res?.EC === 0) setCheckout(res.data);
+                        else message.error(res?.EM || 'Khong tao duoc giao dich');
+                      }}
+                    >
+                      Thanh toan online
+                    </Button>}
+                  </Space>
+                ) : null,
               }
             : {},
         ].filter((c) => c.title)}
@@ -191,6 +210,19 @@ const FeesPage = () => {
             <Input />
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        open={!!checkout}
+        title="Thanh toÃ¡n há»c phÃ­ online"
+        onCancel={() => setCheckout(null)}
+        footer={null}
+      >
+        <p>Giao dá»‹ch Ä‘Ã£ Ä‘Æ°á»£c táº¡o. Má»Ÿ trang cá»•ng thanh toÃ¡n Ä‘á»ƒ tiáº¿p tá»¥c:</p>
+        {checkout?.checkoutUrl && <a href={checkout.checkoutUrl} target="_blank" rel="noreferrer">
+          Má»Ÿ cá»•ng thanh toÃ¡n
+        </a>}
+        <p style={{ marginTop: 12 }}>MÃ£ giao dá»‹ch: {checkout?.providerOrderId}</p>
       </Modal>
     </div>
   );

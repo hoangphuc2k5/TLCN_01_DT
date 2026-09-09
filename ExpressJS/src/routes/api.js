@@ -9,6 +9,7 @@ const c = require('../controllers/moduleController');
 const a = require('../controllers/advancedController');
 
 const router = express.Router();
+const onlinePayments = require('../controllers/onlinePaymentController');
 const jobs = require('../controllers/jobController');
 router.get('/jobs', authorizeRead('jobs'), jobs.list);
 router.post('/jobs/:id/retry', authorizePermissionAction('execute', PERMISSIONS.MANAGE_JOBS), audit('RETRY', 'Job'), jobs.retry);
@@ -110,6 +111,11 @@ router.get('/fees', c.listInvoices);
 router.post('/fees', authorizePermissionAction('create', PERMISSIONS.MANAGE_FEES), audit('CREATE', 'FeeInvoice'), c.createInvoice);
 router.get('/payments', authorizePermissionAction('view', PERMISSIONS.MANAGE_FEES), c.listPayments);
 router.post('/payments', authorizePermissionAction('create', PERMISSIONS.MANAGE_FEES), audit('CREATE', 'Payment'), c.recordPayment);
+// Gateway callbacks are authenticated by an HMAC signature in the provider adapter.
+router.post('/online-payments/webhook/:provider', onlinePayments.webhook);
+router.post('/online-payments', authorizePermissionAction('create', PERMISSIONS.PAY_ONLINE), onlinePayments.create);
+router.get('/online-payments', authorizePermissionAction('view', PERMISSIONS.PAY_ONLINE, PERMISSIONS.MANAGE_FEES), onlinePayments.list);
+router.get('/online-payments/:id', authorizePermissionAction('view', PERMISSIONS.PAY_ONLINE, PERMISSIONS.MANAGE_FEES), onlinePayments.get);
 
 // Announcements
 router.get('/announcements', c.listAnnouncements);

@@ -280,3 +280,13 @@ Cập nhật: 08/09/2026. Đã hoàn tất và kiểm thử nhánh tổng hợp 
 5. Giữ riêng các việc nghiệp vụ: thời lượng/tự nộp thi, giao dịch đồng thời học phí/tồn kho, di chuyển trường giữa cụm và migration dữ liệu liên quan, bộ duyệt custom role, Google/SMTP/SMS/Zalo/payment thật. Chưa có kết quả UAT cho các phần này.
 
 Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend và 4 ở frontend từ cây dependency; chưa chạy audit fix vì có thể thay major/ngoài scope. File .env và hai file untracked ban đầu không thuộc các commit bàn giao.
+
+
+## Phase 2.6 - Thanh toan hoc phi online (8.4)
+
+- Nhanh: `feat/phase2-online-payments`.
+- Them `OnlinePayment`, adapter gateway MOCK/VNPay/MoMo, request idempotency va webhook HMAC. Callback PAID dung transaction de cap nhat hoa don va tao duy nhat Payment ONLINE; callback lap khong tao thu trung.
+- Hoc sinh/phu huynh duoc cap `PAY_ONLINE` va chi thanh toan hoa don cua ban than/con; ke toan/quan tri van xem giao dich qua quyen hoc phi.
+- API: POST/GET `/online-payments`, GET `/online-payments/:id`, POST `/online-payments/webhook/:provider`. Fees page co nut tao checkout MOCK.
+- Test rieng: `node --test test/online-payment.test.js` - **2/2**; frontend `npm run build` - dat.
+- Cau hinh gateway qua `PAYMENT_MOCK_SECRET`, `VNPAY_*`, `MOMO_*`; khong commit secret. Chi tiet: [phase2-online-payments.md](phase2-online-payments.md).

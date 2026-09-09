@@ -65,6 +65,9 @@ export const upsertGradeApi = (data) => axios.post('/v1/api/grades', data);
 export const getFeesApi = (params) => axios.get('/v1/api/fees', { params });
 export const createFeeApi = (data) => axios.post('/v1/api/fees', data);
 export const recordPaymentApi = (data) => axios.post('/v1/api/payments', data);
+export const createOnlinePaymentApi = (data) => axios.post('/v1/api/online-payments', data);
+export const getOnlinePaymentsApi = (params) => axios.get('/v1/api/online-payments', { params });
+export const getOnlinePaymentApi = (id) => axios.get(`/v1/api/online-payments/${id}`);
 
 export const getAnnouncementsApi = () => axios.get('/v1/api/announcements');
 export const createAnnouncementApi = (data) => axios.post('/v1/api/announcements', data);

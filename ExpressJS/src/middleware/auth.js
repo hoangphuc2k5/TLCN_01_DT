@@ -16,7 +16,7 @@ const PUBLIC_PATHS = [
 const authenticate = async (req, res, next) => {
   try {
     const path = req.originalUrl.split('?')[0].replace(/\/$/, '').toLowerCase();
-    if (PUBLIC_PATHS.includes(path) || req.method === 'OPTIONS') {
+    if (PUBLIC_PATHS.includes(path) || path.startsWith('/v1/api/online-payments/webhook/') || req.method === 'OPTIONS') {
       return next();
     }
 
