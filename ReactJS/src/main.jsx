@@ -43,6 +43,7 @@ import ContactBookPage from './features/contactBook/ContactBookPage.jsx';
 import ClassLifePage from './features/classLife/ClassLifePage.jsx';
 import ActivitiesPage from './features/activities/ActivitiesPage.jsx';
 import StudentDocumentsPage from './features/studentDocuments/StudentDocumentsPage.jsx';
+import PayrollPage from './features/fees/PayrollPage.jsx';
 import { ROLES } from './constants/roles.js';
 import './styles/global.css';
 
@@ -78,6 +79,7 @@ const router = createBrowserRouter([
               { path: 'attendance', element: <AttendancePage /> },
               { path: 'grades', element: <GradesPage /> },
               { path: 'fees', element: <FeesPage /> },
+              { path: 'payroll', element: <PayrollPage /> },
               { path: 'appointments', element: <AppointmentsPage /> },
               { path: 'rewards', element: <RewardsPage /> },
               { path: 'admissions', element: <AdmissionsPage /> },

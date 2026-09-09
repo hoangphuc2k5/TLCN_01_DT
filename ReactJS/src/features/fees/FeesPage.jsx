@@ -9,6 +9,7 @@ import {
   getFeesApi,
   getUserDirectoryApi,
   recordPaymentApi,
+  runFeeRemindersApi,
   downloadExport,
 } from '../../api';
 import ImportExcelButton from '../../components/ImportExcelButton';
@@ -26,6 +27,7 @@ const FeesPage = () => {
   const { user } = useSelector((s) => s.auth);
   const canManage = can(user, 'fees', 'create');
   const canOnline = can(user, 'online_payments', 'create');
+  const canRemind = can(user, 'fees', 'execute');
   const [rows, setRows] = useState([]);
   const [students, setStudents] = useState([]);
   const [years, setYears] = useState([]);
@@ -74,6 +76,7 @@ const FeesPage = () => {
           >
             Xuất Excel
           </Button>}
+          {canRemind && <Button onClick={async () => { const res = await runFeeRemindersApi(); if (res?.EC === 0) message.success(`Đã gửi ${res.data.notifications} thông báo`); else message.error(res?.EM); }}>Nhắc nợ</Button>}
         </Space>
       )}
       <Table
@@ -82,6 +85,7 @@ const FeesPage = () => {
         columns={[
           { title: 'Học sinh', render: (_, r) => r.studentId?.name },
           { title: 'Nội dung', dataIndex: 'title' },
+          { title: 'Loại', dataIndex: 'category' },
           {
             title: 'Số tiền',
             dataIndex: 'amount',
@@ -162,6 +166,10 @@ const FeesPage = () => {
           <Form.Item name="title" label="Nội dung" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
+          <Form.Item name="category" label="Loại khoản thu" initialValue="TUITION">
+            <Select options={[{ value: 'TUITION', label: 'Học phí' }, { value: 'OTHER', label: 'Khoản thu khác' }, { value: 'BOARDING', label: 'Bán trú' }, { value: 'TRANSPORT', label: 'Xe đưa đón' }, { value: 'ACTIVITY', label: 'Hoạt động' }]} />
+          </Form.Item>
+          <Form.Item name="description" label="Chi tiết"><Input.TextArea maxLength={1000} /></Form.Item>
           <Form.Item name="amount" label="Số tiền" rules={[{ required: true }]}>
             <InputNumber style={{ width: '100%' }} min={0} />
           </Form.Item>

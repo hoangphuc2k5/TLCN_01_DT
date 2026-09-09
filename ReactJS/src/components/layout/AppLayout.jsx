@@ -184,7 +184,8 @@ const menuByRole = (role, user) => {
   }
 
   const studentDocumentsItem = { key: '/student-documents', icon: <FileTextOutlined />, label: <Link to="/student-documents">Hồ sơ học sinh</Link> };
-  const catalog = [...roleMenus, studentDocumentsItem, { key: '/jobs', icon: <CloudServerOutlined />, label: <Link to="/jobs">Tác vụ nền</Link> }, ...Object.values(maps).flat(), ...common];
+  const payrollItem = { key: '/payroll', icon: <DollarOutlined />, label: <Link to="/payroll">Bảng lương</Link> };
+  const catalog = [...roleMenus, studentDocumentsItem, payrollItem, { key: '/jobs', icon: <CloudServerOutlined />, label: <Link to="/jobs">Tác vụ nền</Link> }, ...Object.values(maps).flat(), ...common];
   const unique = new Map();
   for (const item of catalog) if (!unique.has(item.key)) unique.set(item.key, item);
   return [...unique.values()].filter(item => canVisit(user, item.key));

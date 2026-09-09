@@ -322,3 +322,11 @@ Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend 
 - Them xuat bang diem dien tu ket hop diem, hanh kiem va khen thuong/ky luat da duyet; PDF native nhe va Word-compatible RTF `.doc`.
 - API: `/student-documents/upload`, `/student-documents`, `/student-documents/:id/download`, `/students/:studentId/certificate/:format`; React `/student-documents`.
 - Test rieng backend **2/2**; production build dat. Chi tiet: [phase2-student-dossiers-certificates.md](phase2-student-dossiers-certificates.md).
+
+## Phase 2.11 - Khoan thu khac, nhac no va quan ly luong (9.2, 9.4, 9.6)
+
+- Nhanh: `feat/phase2-fees-payroll`.
+- Mo rong hoa don voi category/description; danh sach cong no va nhac no hang ngay idempotent qua Notification cho hoc sinh + phu huynh.
+- Them PayrollRecord theo thang, tinh net luong va quy trinh DRAFT -> APPROVED -> PAID.
+- API `/fees/debtors`, `/fees/reminders/run`, `/payroll`; React them truong khoan thu, nut nhac no va trang bang luong.
+- Test backend rieng **2/2**; production build dat. Chi tiet: [phase2-fees-payroll.md](phase2-fees-payroll.md).

@@ -20,6 +20,7 @@ const SatisfactionSurvey = require('../models/SatisfactionSurvey');
 const RewardDisciplineRecord = require('../models/RewardDisciplineRecord');
 const AdmissionApplication = require('../models/AdmissionApplication');
 const StudentDocument = require('../models/StudentDocument');
+const PayrollRecord = require('../models/PayrollRecord');
 
 module.exports = {
   userRepo: new BaseRepository(User),
@@ -43,4 +44,5 @@ module.exports = {
   rewardRepo: new BaseRepository(RewardDisciplineRecord),
   admissionRepo: new BaseRepository(AdmissionApplication),
   studentDocumentRepo: new BaseRepository(StudentDocument),
+  payrollRepo: new BaseRepository(PayrollRecord),
 };

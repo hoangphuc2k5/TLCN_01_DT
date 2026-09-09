@@ -33,6 +33,7 @@ const resources = {
   rewards: 'rewards',
   admissions: 'admissions',
   'student-documents': 'student_documents',
+  payroll: 'fees',
   'audit-logs': 'audit', support: 'support', conduct: 'conduct', templates: 'templates',
 };
 const common = new Set(['dashboard', 'profile', 'messages', 'calendar', 'announcements', 'leave', 'timetable', 'schools']);

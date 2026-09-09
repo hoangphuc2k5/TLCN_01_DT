@@ -7,6 +7,7 @@ const { targetSchool, reference } = require('./writeScope');
 const { schoolScope, objectId } = require('./dataScope');
 const User = require('../models/User');
 const AcademicYear = require('../models/AcademicYear');
+const Notification = require('../models/Notification');
 
 const refreshStatus = (invoice) => {
   if (invoice.paidAmount <= 0) {
@@ -41,13 +42,46 @@ const createInvoice = async (actor, data) => {
     studentId: data.studentId,
     academicYearId: data.academicYearId,
     title: data.title,
+    category: data.category || 'TUITION',
+    description: data.description || '',
     amount: data.amount,
     dueDate: data.dueDate,
     note: data.note || '',
+    reminderEnabled: data.reminderEnabled !== false,
     paidAmount: 0,
     status: FEE_STATUS.UNPAID,
   });
   return refreshStatus(invoice);
+};
+
+const listDebtors = async (actor, query = {}) => {
+  const { filter } = await buildExportScope(actor, 'fees', query);
+  filter.$and.push({ $expr: { $gt: [{ $subtract: ['$amount', '$paidAmount'] }, 0] } });
+  const rows = await feeRepo.find(filter, { populate: 'studentId academicYearId', limit: 300 });
+  return rows.filter(row => new Date(row.dueDate) < new Date() || row.status !== FEE_STATUS.PAID)
+    .map(row => ({ ...row.toObject(), outstanding: Math.max(0, Number(row.amount) - Number(row.paidAmount || 0)) }));
+};
+
+const runDebtReminders = async (actor, { asOf = new Date(), minDaysOverdue = 0 } = {}) => {
+  const now = new Date(asOf);
+  if (!Number.isFinite(now.getTime())) throw new ApiError(400, 'asOf khong hop le');
+  const days = Number(minDaysOverdue);
+  if (!Number.isInteger(days) || days < 0 || days > 3650) throw new ApiError(400, 'minDaysOverdue khong hop le');
+  const cutoff = new Date(now.getTime() - days * 86400000);
+  const scope = await schoolScope(actor);
+  const invoices = await require('../models/FeeInvoice').find({ ...scope, reminderEnabled: true, dueDate: { $lte: cutoff }, $expr: { $gt: [{ $subtract: ['$amount', '$paidAmount'] }, 0] } }).limit(500);
+  let sent = 0;
+  const dayStart = new Date(now); dayStart.setHours(0, 0, 0, 0);
+  for (const invoice of invoices) {
+    const claimed = await require('../models/FeeInvoice').updateOne({ _id: invoice._id, $or: [{ lastReminderAt: null }, { lastReminderAt: { $lt: dayStart } }] }, { $set: { lastReminderAt: now, status: FEE_STATUS.OVERDUE } });
+    if (claimed.modifiedCount !== 1) continue;
+    const recipients = await User.find({ schoolId: invoice.schoolId, $or: [{ _id: invoice.studentId }, { role: ROLES.PARENT, parentOf: invoice.studentId }] }).select('_id role');
+    if (!recipients.length) continue;
+    const outstanding = Math.max(0, Number(invoice.amount) - Number(invoice.paidAmount || 0));
+    await Notification.insertMany(recipients.map(recipient => ({ userId: recipient._id, schoolId: invoice.schoolId, title: 'Fee payment reminder', message: `Invoice ${invoice.title} has an outstanding balance of ${outstanding}. Due date: ${new Date(invoice.dueDate).toISOString().slice(0, 10)}.`, type: 'FEE_REMINDER', meta: { invoiceId: invoice._id, outstanding } })));
+    sent += recipients.length;
+  }
+  return { invoices: invoices.length, notifications: sent, asOf: now };
 };
 
 const recordPayment = async (actor, data) => {
@@ -84,4 +118,4 @@ const listPayments = async (actor, query = {}) => {
   return paymentRepo.find(filter, { populate: 'invoiceId studentId recordedBy', limit: 200 });
 };
 
-module.exports = { listInvoices, createInvoice, recordPayment, listPayments };
+module.exports = { listInvoices, listDebtors, runDebtReminders, createInvoice, recordPayment, listPayments };
