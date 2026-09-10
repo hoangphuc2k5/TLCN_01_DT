@@ -6,6 +6,7 @@
 - Thêm model/API/UI giáo án có cấu trúc, kiểm tra phân công và tenant; quy trình draft → gửi duyệt → duyệt/từ chối → sửa/gửi lại, lưu revision và lịch sử duyệt.
 - Chuyển trạng thái dùng cập nhật MongoDB có điều kiện để chống xử lý đồng thời; kết quả duyệt tạo notification cho giáo viên. Quyền `lesson_plans` tách khỏi bài tập.
 - Kiểm thử local: backend riêng **3/3**, backend toàn bộ **234/234**, frontend policy **11/11**, build đạt, E2E riêng **2/2**, E2E toàn bộ **41/41**.
+- Đã push nhánh chức năng tại `672e059`; merge không xung đột vào `integration/phase3` tại `dd54347` và push origin.
 - Chi tiết và giới hạn: [phase3-lesson-plan-approval.md](phase3-lesson-plan-approval.md). Kế hoạch còn lại: [feature-gap-implementation-plan.md](feature-gap-implementation-plan.md).
 
 ## Phase 2.2 - Online homework

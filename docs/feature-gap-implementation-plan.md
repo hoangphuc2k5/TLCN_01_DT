@@ -1,6 +1,6 @@
 # Kế hoạch đóng các khoảng trống chức năng
 
-Cập nhật: 10/09/2026. Nhánh nền hiện hành: `integration/phase2`; Phase 3 tiếp tục xử lý các giới hạn còn lại bằng MongoDB local tạm.
+Cập nhật: 10/09/2026. Nhánh tổng hợp hiện hành: `integration/phase3`; Phase 3 tiếp tục xử lý các giới hạn còn lại bằng MongoDB local tạm.
 
 ## Các mục trong danh sách ban đầu
 
@@ -27,6 +27,6 @@ Cập nhật: 10/09/2026. Nhánh nền hiện hành: `integration/phase2`; Phase
 - [ ] 3.2 File đính kèm bài nộp online qua `FileAsset`, kiểm tra quyền và vòng đời file.
 - [ ] 3.3 Tin nhắn realtime thay cho chỉ REST, có scope hội thoại và kết nối lại.
 - [ ] 3.4 Xuất học bạ Word dạng `.docx` thật và rà lại nội dung học bạ điện tử.
-- [ ] 3.5 Rà soát tổng hợp quyền/menu, regression backend/frontend/E2E và tạo nhánh `integration/phase3`.
+- [ ] 3.5 Rà soát tổng hợp quyền/menu và chạy regression cuối trên `integration/phase3`.
 
 Các kiểm chứng cần hệ thống bên ngoài không thể được kết luận bằng test DB local: Atlas Network Access/TLS, terminal VNPay được duyệt và callback HTTPS công khai, S3/IAM, Google SSO, SMTP, SMS/Zalo/push. Phần code dùng adapter và test giả; UAT thật được ghi riêng, không gọi là đạt khi chưa có credential hoặc nhà cung cấp chưa kích hoạt.
