@@ -1,6 +1,6 @@
 # Phase 3.3 — Tin nhắn realtime
 
-Cập nhật: 10/09/2026. Nhánh: `feat/phase3-realtime-messaging`, nền `integration/phase3` tại `6eca82a`.
+Cập nhật: 10/09/2026. Nhánh `feat/phase3-realtime-messaging`, commit `f6b7b4d`; đã merge vào `integration/phase3` tại `f100b92`.
 
 ## Phạm vi hoàn thành
 
