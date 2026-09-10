@@ -41,3 +41,38 @@ test('syncs full template content to every deployment and rejects subscription o
 
 
 
+const comparisonService = require('../src/services/schoolComparisonService');
+test('comparison and both exports reject school and cluster scope overrides', async () => {
+  const foreign = await School.create({ name: 'Foreign', code: 'FOREIGN', subdomain: 'foreign', clusterId: new mongoose.Types.ObjectId() });
+  for (const actor of [admin, clusterAdmin]) {
+    const schoolIds = [schoolA._id, foreign._id].join(',');
+    for (const suffix of ['', '/export.xlsx', '/export.pdf']) {
+      const result = await request('GET', '/reports/schools/compare' + suffix + '?schoolIds=' + schoolIds, actor);
+      assert.equal(result.status, 403);
+    }
+  }
+});
+test('comparison validates filters and uses per-school year references', async () => {
+  const schoolIds = [schoolA._id, schoolB._id].join(',');
+  for (const query of [{ semester: 3 }, { fromDate: '2026-02-30' }, { fromDate: '2026-02-02', toDate: '2026-01-01' }, { academicYear: 'missing' }]) {
+    await assert.rejects(comparisonService.compare(clusterAdmin, { schoolIds, ...query }), error => error.statusCode === 400);
+  }
+  const rows = await comparisonService.compare(clusterAdmin, { schoolIds, fromDate: '2000-01-01', toDate: '2000-01-02' });
+  assert.ok(rows.every(row => row.attendanceRecords === 0 && row.attendanceRate === null));
+  await AcademicYear.updateMany({ schoolId: { $in: [schoolA._id, schoolB._id] } }, { name: 'Common year' });
+  const selected = await comparisonService.compare(clusterAdmin, { schoolIds, academicYear: 'Common year', semester: 1 });
+  assert.ok(selected.every(row => row.classes === 1));
+  const years = await AcademicYear.find({ name: 'Common year' });
+  const Grade = require('../src/models/Grade');
+  await Grade.collection.insertMany(years.flatMap(year => [
+    { schoolId: year.schoolId, academicYearId: year._id, semester: 1, average: 0, studentId: new mongoose.Types.ObjectId(), subjectId: new mongoose.Types.ObjectId() },
+    { schoolId: year.schoolId, academicYearId: year._id, semester: 2, average: 10, studentId: new mongoose.Types.ObjectId(), subjectId: new mongoose.Types.ObjectId() },
+  ]));
+  const query = { schoolIds, academicYear: 'Common year', semester: 1 };
+  const zero = await comparisonService.compare(clusterAdmin, query);
+  assert.ok(zero.every(row => row.gradeAverage === 0 && row.gradeSheets === 1));
+  const workbook = XLSX.read(await comparisonService.exportExcel(clusterAdmin, query), { type: 'buffer' });
+  const exported = XLSX.utils.sheet_to_json(workbook.Sheets.DoiChieu);
+  assert.ok(exported.every(row => row['Điểm trung bình'] === 0 && row['Số bảng điểm'] === 1));
+  assert.equal(exported.length, 2);
+});

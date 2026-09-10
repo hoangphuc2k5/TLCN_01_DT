@@ -118,8 +118,8 @@ export const approveTimetableApi = (id) => axios.patch(`/v1/api/timetables/${id}
 
 export const getAuthConfigApi = () => axios.get('/v1/api/auth/config');
 export const getMonitoringApi = () => axios.get('/v1/api/monitoring');
-export const compareSchoolsApi = (schoolIds) => axios.get('/v1/api/reports/schools/compare', { params: { schoolIds: schoolIds.join(',') } });
-export const exportSchoolComparisonApi = (format, schoolIds) => axios.get(`/v1/api/reports/schools/compare/export.${format}`, { params: { schoolIds: schoolIds.join(',') }, responseType: 'blob' });
+export const compareSchoolsApi = (schoolIds, filters = {}) => axios.get('/v1/api/reports/schools/compare', { params: { schoolIds: schoolIds.join(','), ...filters } });
+export const exportSchoolComparisonApi = (format, schoolIds, filters = {}) => axios.get(`/v1/api/reports/schools/compare/export.${format}`, { params: { schoolIds: schoolIds.join(','), ...filters }, responseType: 'blob' });
 export const loginGoogleApi = (credential) =>
   axios.post('/v1/api/auth/google', { credential });
 export const requestPhoneLoginApi = phone => axios.post('/v1/api/auth/phone/request', { phone });

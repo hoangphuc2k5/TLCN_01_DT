@@ -1,5 +1,13 @@
 # Tiến trình triển khai
 
+## Hoàn thiện báo cáo liên trường — 10/09/2026
+
+- Nhánh `fix/school-comparison-complete`, nền `integration/phase3` tại `7faeb7a`.
+- Sửa truy cập chéo trường/cụm do ghi đè `_id`; thêm bộ lọc năm học chung, học kỳ điểm và khoảng ngày điểm danh/hạn hóa đơn. Giữ điểm 0, làm rõ cách tính tỷ lệ và số tiền.
+- PDFKit + Noto Sans OFL nhúng font tiếng Việt, đầy đủ chỉ số; Excel có cùng chỉ số và thông tin phạm vi. UI có loading, lỗi tải Blob, reset kết quả khi đổi lọc.
+- Backend regression **245/245** trên MongoDB local; test báo cáo **5/5** (bổ sung xác nhận học kỳ/điểm 0/Excel sau regression cũng đạt), frontend policy **11/11**, build đạt; Playwright riêng **1/1** (login local, mock phản hồi báo cáo để kiểm tra bộ lọc và lỗi tải). Không chạy lại toàn bộ Playwright trong đợt này.
+- PDF đã render và kiểm tra tiếng Việt; mẫu phân trang 20 trường đã tạo, kiểm tra không mất trường. Chi tiết cách dùng và phạm vi: [phase4-school-comparison-export.md](phase4-school-comparison-export.md).
+
 ## Phase 4.1 — Vòng đời thi online
 
 - Nhánh `feat/phase4-exam-lifecycle`, dựa trên `integration/phase3`.
