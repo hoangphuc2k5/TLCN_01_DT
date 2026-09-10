@@ -3,6 +3,7 @@ const { randomUUID, createHash } = require('node:crypto');
 const FileAsset = require('../models/FileAsset');
 const Material = require('../models/LearningMaterial');
 const StudentDocument = require('../models/StudentDocument');
+const HomeworkSubmission = require('../models/HomeworkSubmission');
 const User = require('../models/User');
 const School = require('../models/School');
 const Subscription = require('../models/Subscription');
@@ -46,6 +47,7 @@ const purgeAsset = async asset => {
       { $inc: { storageUsedBytes: -current.sizeBytes } }, { session });
     if (released.modifiedCount !== 1) throw new ApiError(409, 'Bộ đếm dung lượng cần được kiểm tra');
     await Material.deleteMany({ fileAssetId: current._id, schoolId: current.schoolId }).session(session);
+    await HomeworkSubmission.updateMany({ schoolId: current.schoolId, attachmentIds: current._id }, { $pull: { attachmentIds: current._id } }, { session });
     await FileAsset.deleteOne({ _id: current._id }).session(session);
   });
 };
@@ -144,4 +146,63 @@ const accessibleStudentDocument = async (actor, id) => {
   return row;
 };
 const downloadStudentDocument = async (actor, id) => { const row = await accessibleStudentDocument(actor, id); return { row, stream: await download(row.fileAssetId) }; };
-module.exports = { uploadMaterial, uploadStudentDocument, listStudentDocuments, accessibleStudentDocument, downloadStudentDocument, accessibleAsset, metadata, download, usage, deleteAsset, purgeAsset };
+
+const uploadHomeworkAttachment = async (actor, homeworkId, file) => {
+  if (actor.role !== 'STUDENT') throw new ApiError(403, 'Chỉ học sinh được tải file bài làm');
+  const homeworkService = require('./homeworkService');
+  const homework = await homeworkService.getHomework(actor, homeworkId);
+  homeworkService.assertSubmissionOpen(homework);
+  const info = validateFile(file); const settings = config();
+  if (file.buffer.length > settings.maxBytes) throw new ApiError(413, 'File vượt giới hạn tải lên');
+  const asset = new FileAsset({ ...info, purpose: 'HOMEWORK_SUBMISSION', schoolId: homework.schoolId, uploadedBy: actor._id,
+    sizeBytes: file.buffer.length, sha256: createHash('sha256').update(file.buffer).digest('hex'), driver: settings.driver,
+    bucket: settings.bucket, key: `${homework.schoolId}/${randomUUID()}` });
+  await transaction(async session => {
+    const submission = await HomeworkSubmission.findOne({ homeworkId: homework._id, studentId: actor._id }).session(session);
+    if (!submission) throw new ApiError(409, 'Cần nộp nội dung bài làm trước khi thêm file');
+    if (submission.status !== 'SUBMITTED') throw new ApiError(409, 'Bài đã được chấm, không thể đổi file');
+    if (submission.attachmentIds.length >= 5) throw new ApiError(409, 'Bài nộp có tối đa 5 file');
+    const quota = await quotaBytes(homework.schoolId, session);
+    const reserved = await School.updateOne({ _id: homework.schoolId, $expr: { $lte: [{ $add: [{ $ifNull: ['$storageUsedBytes', 0] }, asset.sizeBytes] }, quota] } },
+      { $inc: { storageUsedBytes: asset.sizeBytes } }, { session });
+    if (reserved.modifiedCount !== 1) throw new ApiError(409, 'Trường đã hết dung lượng lưu trữ');
+    await FileAsset.create([asset.toObject()], { session });
+    submission.attachmentIds.push(asset._id);
+    await submission.save({ session });
+  });
+  try {
+    await storage.adapter(asset.driver).put({ ...asset.toObject(), buffer: file.buffer });
+    const ready = await FileAsset.updateOne({ _id: asset._id, status: 'UPLOADING' }, { status: 'READY' });
+    if (ready.matchedCount !== 1) throw new Error('Upload state changed');
+  } catch {
+    try { await FileAsset.updateOne({ _id: asset._id }, { status: 'DELETING' }); await purgeAsset(asset); } catch { /* reservation stays for recovery */ }
+    throw new ApiError(503, 'Không lưu được file bài làm');
+  }
+  return metadata(await FileAsset.findById(asset._id));
+};
+
+const accessibleHomeworkAttachment = async (actor, id) => {
+  const asset = await FileAsset.findOne({ ...await schoolScope(actor), _id: objectId(id), purpose: 'HOMEWORK_SUBMISSION' });
+  if (!asset) throw new ApiError(404, 'Không tìm thấy file bài làm trong phạm vi');
+  const submission = await HomeworkSubmission.findOne({ schoolId: asset.schoolId, attachmentIds: asset._id });
+  if (!submission) throw new ApiError(404, 'Không tìm thấy file bài làm trong phạm vi');
+  const personal = await personalStudentIds(actor);
+  if (personal !== null && !personal.some(studentId => String(studentId) === String(submission.studentId))) throw new ApiError(404, 'Không tìm thấy file bài làm trong phạm vi');
+  await require('./homeworkService').getHomework(actor, submission.homeworkId);
+  if (asset.status !== 'READY') throw new ApiError(409, 'File chưa sẵn sàng để tải');
+  return asset;
+};
+
+const deleteHomeworkAttachment = async (actor, id) => {
+  if (actor.role !== 'STUDENT') throw new ApiError(403, 'Chỉ học sinh được xóa file bài làm');
+  const asset = await accessibleHomeworkAttachment(actor, id);
+  const submission = await HomeworkSubmission.findOne({ studentId: actor._id, attachmentIds: asset._id });
+  if (!submission || submission.status !== 'SUBMITTED') throw new ApiError(409, 'Bài đã được chấm, không thể đổi file');
+  const homework = await require('./homeworkService').getHomework(actor, submission.homeworkId);
+  require('./homeworkService').assertSubmissionOpen(homework);
+  await deleteAsset(asset._id);
+  return { id: asset._id };
+};
+
+module.exports = { uploadMaterial, uploadStudentDocument, listStudentDocuments, accessibleStudentDocument, downloadStudentDocument, accessibleAsset,
+  uploadHomeworkAttachment, accessibleHomeworkAttachment, deleteHomeworkAttachment, metadata, download, usage, deleteAsset, purgeAsset };

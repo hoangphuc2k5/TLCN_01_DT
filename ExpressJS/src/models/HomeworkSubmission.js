@@ -5,6 +5,11 @@ const submissionSchema = new mongoose.Schema({
   schoolId: { type: mongoose.Schema.Types.ObjectId, ref: 'School', required: true },
   studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   answerText: { type: String, required: true, trim: true, maxlength: 20000 },
+  attachmentIds: {
+    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'FileAsset' }],
+    default: [],
+    validate: { validator: value => value.length <= 5, message: 'Bài nộp có tối đa 5 file' },
+  },
   submittedAt: { type: Date, required: true, default: Date.now },
   late: { type: Boolean, default: false },
   status: { type: String, enum: ['SUBMITTED', 'GRADED'], default: 'SUBMITTED' },

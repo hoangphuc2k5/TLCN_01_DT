@@ -1,5 +1,79 @@
 # Tiến trình triển khai
 
+## Chuyển lớp và bảo toàn điểm — 10/09/2026
+
+- Nhánh `feat/student-class-transfers`, nền `integration/phase3` tại `e45e30a`.
+- Thêm lịch sử chuyển lớp có lý do/người thực hiện, bàn giao điểm học kỳ được chọn và giữ bản sao điểm trước chuyển. Học kỳ khác giữ lớp cũ để tiếp tục tra cứu/sửa theo phân công.
+- Ghi điểm và chuyển lớp dùng transaction với khóa theo học sinh, tránh mất điểm khi thực hiện đồng thời. Ghi điểm yêu cầu MongoDB replica set; standalone trả 503. Không sử dụng Atlas để kiểm thử.
+- UI quản lý người dùng có thao tác Chuyển lớp, chọn lớp đích/học kỳ/lý do và xem lịch sử. API học bạ trả thêm lịch sử lớp/điểm.
+- Backend toàn bộ **251/251**; bộ chuyển lớp riêng **6/6** (bao gồm quyền giáo viên cũ/mới, ghi điểm đồng thời chuyển lớp, thêm điểm đồng thời). Frontend **11/11**, build đạt; Playwright chuyển lớp **1/1** qua UI/API/DB local thật, kiểm tra lịch sử sau reload. Không chạy lại toàn bộ Playwright.
+- Sửa fixture chuyển lớp chờ tạo index trước teardown; chạy lại **6/6** sạch. Một số fixture cũ trong bộ toàn bộ còn log ECONNRESET lúc teardown nhưng không fail assertion.
+- Cần tiếp tục: bổ sung lịch sử vào bản in học bạ và sửa PDF tiếng Việt; các mục mô tả còn thiếu chưa được coi là hoàn tất. Chi tiết luồng hiện tại: [student-class-transfers.md](student-class-transfers.md).
+
+## Hoàn thiện báo cáo liên trường — 10/09/2026
+
+- Nhánh `fix/school-comparison-complete`, nền `integration/phase3` tại `7faeb7a`.
+- Sửa truy cập chéo trường/cụm do ghi đè `_id`; thêm bộ lọc năm học chung, học kỳ điểm và khoảng ngày điểm danh/hạn hóa đơn. Giữ điểm 0, làm rõ cách tính tỷ lệ và số tiền.
+- PDFKit + Noto Sans OFL nhúng font tiếng Việt, đầy đủ chỉ số; Excel có cùng chỉ số và thông tin phạm vi. UI có loading, lỗi tải Blob, reset kết quả khi đổi lọc.
+- Backend regression **245/245** trên MongoDB local; test báo cáo **5/5** (bổ sung xác nhận học kỳ/điểm 0/Excel sau regression cũng đạt), frontend policy **11/11**, build đạt; Playwright riêng **1/1** (login local, mock phản hồi báo cáo để kiểm tra bộ lọc và lỗi tải). Không chạy lại toàn bộ Playwright trong đợt này.
+- PDF đã render và kiểm tra tiếng Việt; mẫu phân trang 20 trường đã tạo, kiểm tra không mất trường. Chi tiết cách dùng và phạm vi: [phase4-school-comparison-export.md](phase4-school-comparison-export.md).
+
+## Phase 4.1 — Vòng đời thi online
+
+- Nhánh `feat/phase4-exam-lifecycle`, dựa trên `integration/phase3`.
+- Bổ sung hạn nộp được lưu theo lượt, tự chốt bài quá hạn ở server, trộn câu hỏi theo lượt, giới hạn cấu hình đề và đồng hồ đếm ngược/tự nộp trên React.
+- Kiểm thử local: backend riêng **87/87**, backend toàn bộ **242/242**, frontend policy **11/11**, Vite build đạt. Chi tiết: [phase4-exam-lifecycle.md](phase4-exam-lifecycle.md).
+
+## Phase 4.2 — Báo cáo đối chiếu liên trường
+
+- Nhánh `feat/phase4-school-comparison-export`, dựa trên `integration/phase3`.
+- Bổ sung thống kê điểm danh theo trường và xuất báo cáo đối chiếu dạng Excel/PDF với cùng tenant/cluster scope; cập nhật giao diện đối chiếu.
+- Kiểm thử local: backend riêng **3/3**, frontend policy **11/11**, Vite build đạt. Chi tiết: [phase4-school-comparison-export.md](phase4-school-comparison-export.md).
+
+## CI/CD — kiểm thử tự động
+
+- Nhánh `feat/ci-pipeline` bổ sung `.github/workflows/ci.yml`: backend **238/238**, frontend policy **11/11**, build và Playwright **43/43** chạy bằng fixture MongoDB local.
+- Workflow chạy trên push/PR của `main`, `integration/**` và `feat/**`; E2E upload report khi lỗi. CD production để riêng, chỉ bật sau khi có môi trường deploy và merge vào `main`.
+- Chi tiết vận hành: [ci-cd.md](ci-cd.md).
+
+## Phase 3.5 — Regression cuối và rà soát quyền/menu
+
+- Nhánh `feat/phase3-final-regression`, nền `integration/phase3` sau merge Phase 3.4 tại `165590d`.
+- Rà soát menu/direct URL và permission matrix qua test frontend; backend kiểm tra lại tenant scope, custom role, parent/student scope, payment, realtime, file, lịch dạy bù và học bạ.
+- Kiểm thử local: backend **238/238**, frontend policy **11/11**, production build đạt (giữ cảnh báo bundle lớn đã có), Playwright toàn bộ **43/43**.
+- Không kết nối Atlas hay dịch vụ thật trong regression. VNPay/S3/SMTP/SMS/Zalo/SSO vẫn cần credential, callback hoặc UAT nhà cung cấp theo ghi chú ở kế hoạch.
+
+## Phase 3.4 — Học bạ PDF phân trang và DOCX thật
+
+- Nhánh `feat/phase3-docx-transcripts`, nền `integration/phase3` tại `99d2c13`; đã merge vào `integration/phase3` tại `165590d`.
+- Chứng nhận `doc`/`docx` trả DOCX Open XML Unicode; PDF không còn cắt 42 dòng, có phân trang và bổ sung trường/lớp/năm học, điểm thành phần, hạnh kiểm, khen thưởng–kỷ luật đã duyệt.
+- Route xuất ghi audit `StudentTranscript` theo học sinh và định dạng; frontend đổi nút Word sang `.docx`.
+- Backend hồ sơ **2/2**, frontend **11/11**, build đạt và Playwright tải DOCX **1/1**; preview DOCX độc lập đã xem **1/1 trang**, toàn bộ dùng dữ liệu local.
+- Chi tiết: [phase3-docx-transcripts.md](phase3-docx-transcripts.md).
+
+## Phase 3.3 — Tin nhắn realtime
+
+- Nhánh `feat/phase3-realtime-messaging`, commit `f6b7b4d`; đã merge vào `integration/phase3` tại `f100b92`.
+- WebSocket dùng ticket ngắn hạn, heartbeat, participant scope và replay theo cursor; frontend tự kết nối lại qua Vite proxy và đồng bộ inbox/sent từ REST.
+- Backend realtime **3/3**, realtime + scope liên quan **86/86**, frontend **11/11**, build đạt và Playwright realtime **1/1**; toàn bộ chạy với MongoDB/server local tạm.
+- Chi tiết: [phase3-realtime-messaging.md](phase3-realtime-messaging.md).
+
+## Phase 3.2 — File đính kèm bài nộp online
+
+- Nhánh `feat/phase3-homework-file-submissions`, commit `8a09d63`; đã merge vào `integration/phase3` tại `1f36bec`.
+- Mở rộng `FileAsset`/`HomeworkSubmission`, quota và storage adapter cho tối đa 5 file mỗi bài; download theo quan hệ học sinh/phụ huynh/giáo viên, khóa đổi file sau chấm hoặc hết hạn.
+- UI hỗ trợ nộp lại, chọn file và tải file đã nộp. Backend bài tập **8/8**, bài tập + file storage **20/20**, frontend **11/11**, build đạt, E2E bài tập **2/2**; toàn bộ dùng DB/file local tạm.
+- Chi tiết: [phase3-homework-file-submissions.md](phase3-homework-file-submissions.md).
+
+## Phase 3.1 — Soạn và duyệt giáo án (6.1.4–6.1.6)
+
+- Nhánh `feat/phase3-lesson-plan-approval`, nền `integration/phase2`.
+- Thêm model/API/UI giáo án có cấu trúc, kiểm tra phân công và tenant; quy trình draft → gửi duyệt → duyệt/từ chối → sửa/gửi lại, lưu revision và lịch sử duyệt.
+- Chuyển trạng thái dùng cập nhật MongoDB có điều kiện để chống xử lý đồng thời; kết quả duyệt tạo notification cho giáo viên. Quyền `lesson_plans` tách khỏi bài tập.
+- Kiểm thử local: backend riêng **3/3**, backend toàn bộ **234/234**, frontend policy **11/11**, build đạt, E2E riêng **2/2**, E2E toàn bộ **41/41**.
+- Đã push nhánh chức năng tại `672e059`; merge không xung đột vào `integration/phase3` tại `dd54347` và push origin.
+- Chi tiết và giới hạn: [phase3-lesson-plan-approval.md](phase3-lesson-plan-approval.md). Kế hoạch còn lại: [feature-gap-implementation-plan.md](feature-gap-implementation-plan.md).
+
 ## Phase 2.2 - Online homework
 
 - Branch `feat/phase2-online-assignments`, based on `integration/phase1`.

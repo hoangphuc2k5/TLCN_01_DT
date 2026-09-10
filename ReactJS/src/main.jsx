@@ -40,6 +40,7 @@ import MessagesPage from './features/messages/MessagesPage.jsx';
 import CalendarPage from './features/calendar/CalendarPage.jsx';
 import JobsPage from './features/admin/JobsPage.jsx';
 import AssignmentsPage from './features/assignments/AssignmentsPage.jsx';
+import LessonPlansPage from './features/lessonPlans/LessonPlansPage.jsx';
 import ContactBookPage from './features/contactBook/ContactBookPage.jsx';
 import ClassLifePage from './features/classLife/ClassLifePage.jsx';
 import ActivitiesPage from './features/activities/ActivitiesPage.jsx';
@@ -107,6 +108,7 @@ const router = createBrowserRouter([
               { path: 'templates', element: <TemplatesPage /> },
               { path: 'jobs', element: <JobsPage /> },
   { path: 'assignments', element: <AssignmentsPage /> },
+  { path: 'lesson-plans', element: <LessonPlansPage /> },
   { path: 'contact-book', element: <ContactBookPage /> },
   { path: 'class-life', element: <ClassLifePage /> },
               { path: 'activities', element: <ActivitiesPage /> },

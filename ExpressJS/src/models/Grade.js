@@ -24,6 +24,13 @@ const gradeSchema = new mongoose.Schema(
     scores: [scoreItemSchema],
     average: { type: Number, default: null },
     classification: { type: String, default: null },
+    transferHistory: [{
+      classId: mongoose.Schema.Types.ObjectId,
+      className: String,
+      transferredAt: Date,
+      scores: [scoreItemSchema],
+      average: Number,
+    }],
   },
   { timestamps: true }
 );

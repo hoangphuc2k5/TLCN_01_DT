@@ -31,11 +31,13 @@ router.get('/files/:id/download', authorizeRead('materials', { personal: true })
 router.post('/student-documents/upload', authorizePermissionAction('create', PERMISSIONS.MANAGE_DOCUMENTS), require('../middleware/fileUpload').upload, audit('CREATE', 'StudentDocument'), studentDocuments.upload);
 router.get('/student-documents', authorizeRead('student_documents', { personal: true }), studentDocuments.list);
 router.get('/student-documents/:id/download', authorizeRead('student_documents', { personal: true }), studentDocuments.download);
-router.get('/students/:studentId/certificate/:format', authorizeRead('student_documents', { personal: true }), studentDocuments.certificate);
+router.get('/students/:studentId/certificate/:format', authorizeRead('student_documents', { personal: true }), audit('EXPORT', 'StudentTranscript'), studentDocuments.certificate);
 
 router.get('/health', (req, res) => res.json({ EC: 0, EM: 'OK', data: { status: 'up' } }));
 router.get('/monitoring', authorizePermissionAction('view', PERMISSIONS.VIEW_MONITORING), monitoringController.metrics);
 router.get('/reports/schools/compare', authorizePermissionAction('view', PERMISSIONS.VIEW_REPORTS), platformController.compareSchools);
+router.get('/reports/schools/compare/export.xlsx', authorizePermissionAction('view', PERMISSIONS.VIEW_REPORTS), platformController.exportSchoolsExcel);
+router.get('/reports/schools/compare/export.pdf', authorizePermissionAction('view', PERMISSIONS.VIEW_REPORTS), platformController.exportSchoolsPdf);
 
 // Auth
 const authSecurity = require('../controllers/authSecurityController');
@@ -215,7 +217,19 @@ router.put('/homeworks/:id', authorizePermissionAction('update', PERMISSIONS.MAN
 router.patch('/homeworks/:id/publish', authorizePermissionAction('execute', PERMISSIONS.MANAGE_ASSIGNMENTS), audit('PUBLISH', 'Homework'), homework.publish);
 router.patch('/homeworks/:id/close', authorizePermissionAction('execute', PERMISSIONS.MANAGE_ASSIGNMENTS), audit('CLOSE', 'Homework'), homework.close);
 router.post('/homeworks/:id/submissions', authorizePermissionAction('create', PERMISSIONS.SUBMIT_ASSIGNMENTS), audit('SUBMIT', 'HomeworkSubmission'), homework.submit);
+router.post('/homeworks/:id/submission-attachments', authorizePermissionAction('create', PERMISSIONS.SUBMIT_ASSIGNMENTS), require('../middleware/fileUpload').upload, audit('UPLOAD', 'HomeworkSubmission'), files.uploadHomeworkAttachment);
+router.get('/homework-submission-files/:id/download', authorizeRead('assignments', { personal: true }), files.downloadHomeworkAttachment);
+router.delete('/homework-submission-files/:id', authorizePermissionAction('create', PERMISSIONS.SUBMIT_ASSIGNMENTS), audit('DELETE', 'HomeworkSubmission'), files.deleteHomeworkAttachment);
 router.patch('/assignment-submissions/:submissionId/grade', authorizePermissionAction('update', PERMISSIONS.MANAGE_ASSIGNMENTS), audit('GRADE', 'HomeworkSubmission'), homework.grade);
+
+const lessonPlans = require('../controllers/lessonPlanController');
+router.get('/lesson-plans', authorizeRead('lesson_plans'), lessonPlans.list);
+router.get('/lesson-plans/:id', authorizeRead('lesson_plans'), lessonPlans.get);
+router.post('/lesson-plans', authorizePermissionAction('create', PERMISSIONS.AUTHOR_LESSON_PLANS), audit('CREATE', 'LessonPlan'), lessonPlans.create);
+router.put('/lesson-plans/:id', authorizePermissionAction('update', PERMISSIONS.AUTHOR_LESSON_PLANS), audit('UPDATE', 'LessonPlan'), lessonPlans.update);
+router.patch('/lesson-plans/:id/submit', authorizePermissionAction('update', PERMISSIONS.AUTHOR_LESSON_PLANS), audit('SUBMIT', 'LessonPlan'), lessonPlans.submit);
+router.patch('/lesson-plans/:id/review', authorizePermissionAction('execute', PERMISSIONS.MANAGE_LESSON_PLANS), audit('REVIEW', 'LessonPlan'), lessonPlans.review);
+router.delete('/lesson-plans/:id', authorizePermissionAction('delete', PERMISSIONS.AUTHOR_LESSON_PLANS), audit('DELETE', 'LessonPlan'), lessonPlans.remove);
 
 const contactBooks = require('../controllers/contactBookController');
 router.get('/contact-books', authorizeRead('contact_books', { personal: true }), contactBooks.list);
@@ -278,6 +292,7 @@ const x = require('../controllers/crossController');
 router.get('/messages', x.listMessages);
 router.post('/messages', audit('CREATE', 'Message'), x.sendMessage);
 router.patch('/messages/:id/read', x.markMessageRead);
+router.post('/messages/realtime-ticket', x.realtimeTicket);
 router.get('/calendar', x.listEvents);
 router.post('/calendar', authorizePermissionAction('create', PERMISSIONS.MANAGE_ANNOUNCEMENTS), audit('CREATE', 'CalendarEvent'), x.createEvent);
 router.delete('/calendar/:id', authorizePermissionAction('delete', PERMISSIONS.MANAGE_ANNOUNCEMENTS), x.deleteEvent);

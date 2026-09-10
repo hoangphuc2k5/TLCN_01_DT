@@ -7,6 +7,12 @@ const { scopedDocument, academicReferences, targetSchool, reference, pick } = re
 const User = require('../models/User');
 const Subject = require('../models/Subject');
 const cache = require('./rolePermissionCache');
+const { randomInt } = require('node:crypto');
+
+const MIN_DURATION_MINUTES = 1;
+const MAX_DURATION_MINUTES = 24 * 60;
+const MIN_ATTEMPTS = 1;
+const MAX_ATTEMPTS = 10;
 
 const personalActor = actor => [ROLES.STUDENT, ROLES.PARENT].includes(actor.role);
 const examScope = async (actor) => {
@@ -27,6 +33,53 @@ const validateExamRefs = async (actor, data, schoolId) => {
   if ([ROLES.SUBJECT_TEACHER, ROLES.HOMEROOM_TEACHER].includes(actor.role) && !data.classId) throw new ApiError(400, 'Giáo viên cần chọn lớp được phân công');
   if (data.classId) await academicReferences(actor, data, { expectedSchoolId: schoolId });
   if (data.subjectId) await reference(Subject, data.subjectId, schoolId);
+};
+
+const validateExamSettings = (data) => {
+  if (data.durationMinutes !== undefined && (!Number.isInteger(data.durationMinutes) || data.durationMinutes < MIN_DURATION_MINUTES || data.durationMinutes > MAX_DURATION_MINUTES)) {
+    throw new ApiError(400, `Thời lượng phải là số nguyên từ ${MIN_DURATION_MINUTES} đến ${MAX_DURATION_MINUTES} phút`);
+  }
+  if (data.maxAttempts !== undefined && (!Number.isInteger(data.maxAttempts) || data.maxAttempts < MIN_ATTEMPTS || data.maxAttempts > MAX_ATTEMPTS)) {
+    throw new ApiError(400, `Số lượt làm bài phải là số nguyên từ ${MIN_ATTEMPTS} đến ${MAX_ATTEMPTS}`);
+  }
+};
+
+const shuffle = (items) => {
+  const result = [...items];
+  for (let i = result.length - 1; i > 0; i -= 1) {
+    const j = randomInt(i + 1);
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+};
+
+const gradeAnswers = (exam, answers) => {
+  let score = 0;
+  const graded = answers.map((a) => {
+    const q = (exam.questions || []).find((x) => String(x._id) === String(a.questionId));
+    if (!q) return { ...a, isCorrect: null, pointsAwarded: 0 };
+    if (q.type === 'MCQ') {
+      const ok = Boolean(a.answerKey) && a.answerKey === q.correctKey;
+      const pointsAwarded = ok ? q.points || 1 : 0;
+      score += pointsAwarded;
+      return { ...a, isCorrect: ok, pointsAwarded };
+    }
+    return { ...a, isCorrect: null, pointsAwarded: 0 };
+  });
+  return { graded, score };
+};
+
+const attemptDeadline = (attempt, exam) => attempt.expiresAt || new Date(new Date(attempt.startedAt).getTime() + (exam.durationMinutes || 45) * 60 * 1000);
+
+const expireAttempt = async (attempt, exam, now = new Date()) => {
+  if (attempt.status !== 'IN_PROGRESS' || attemptDeadline(attempt, exam) > now) return attempt;
+  const answers = Array.isArray(attempt.answers) ? attempt.answers.map(a => ({ questionId: a.questionId, answerKey: a.answerKey || '', answerText: a.answerText || '' })) : [];
+  const { graded, score } = gradeAnswers(exam, answers);
+  return ExamAttempt.findOneAndUpdate(
+    { _id: attempt._id, status: 'IN_PROGRESS' },
+    { answers: graded, score, status: 'SUBMITTED', submittedAt: now, autoSubmitted: true, submissionReason: 'TIMEOUT' },
+    { new: true, runValidators: true }
+  );
 };
 const presentAttempt = (actor, attempt, showResults) => {
   const result = attempt.toObject ? attempt.toObject() : attempt;
@@ -66,6 +119,7 @@ const getExam = async (actor, id) => {
 
 const createExam = async (actor, data) => {
   if (!data.title) throw new ApiError(400, 'Thiếu tiêu đề');
+  validateExamSettings(data);
   const schoolId = await targetSchool(actor, data.schoolId);
   await validateExamRefs(actor, data, schoolId);
   return Exam.create({
@@ -76,8 +130,8 @@ const createExam = async (actor, data) => {
     createdBy: actor._id,
     startAt: data.startAt || null,
     endAt: data.endAt || null,
-    durationMinutes: data.durationMinutes || 45,
-    maxAttempts: data.maxAttempts || 1,
+    durationMinutes: data.durationMinutes === undefined ? 45 : data.durationMinutes,
+    maxAttempts: data.maxAttempts === undefined ? 1 : data.maxAttempts,
     shuffleQuestions: !!data.shuffleQuestions,
     showResults: data.showResults !== false,
     questions: data.questions || [],
@@ -104,6 +158,7 @@ const updateExam = async (actor, id, data) => {
     'questions',
     'status',
   ];
+  validateExamSettings(data);
   await validateExamRefs(actor, { ...exam.toObject(), ...pick(data, allowed) }, exam.schoolId);
   if (data.questions !== undefined && await ExamAttempt.exists({ examId: exam._id })) throw new ApiError(409, 'Không sửa câu hỏi khi đã có bài làm');
   for (const key of allowed) {
@@ -122,6 +177,10 @@ const startAttempt = async (actor, examId) => {
   const count = await ExamAttempt.countDocuments({ examId, studentId: actor._id });
   if (count >= exam.maxAttempts) throw new ApiError(400, 'Đã hết lượt làm bài');
 
+  const durationDeadline = new Date(now.getTime() + (exam.durationMinutes || 45) * 60 * 1000);
+  const expiresAt = exam.endAt && exam.endAt < durationDeadline ? exam.endAt : durationDeadline;
+  const questionIds = (exam.questions || []).map(q => q._id);
+  const questionOrder = exam.shuffleQuestions ? shuffle(questionIds) : questionIds;
   try { return await ExamAttempt.create({
     schoolId: exam.schoolId,
     examId,
@@ -129,6 +188,8 @@ const startAttempt = async (actor, examId) => {
     attemptNumber: count + 1,
     maxScore: (exam.questions || []).reduce((s, q) => s + (q.points || 1), 0),
     status: 'IN_PROGRESS',
+    expiresAt,
+    questionOrder,
   }); } catch (error) {
     if (error.code === 11000) throw new ApiError(409, 'Lượt làm bài đã được tạo');
     throw error;
@@ -150,24 +211,15 @@ const submitAttempt = async (actor, attemptId, answers = []) => {
     if (questionIds.has(String(a.questionId)) || !exam.questions.some(q => String(q._id) === String(a.questionId))) throw new ApiError(400, 'Câu trả lời bị trùng hoặc không thuộc đề');
     questionIds.add(String(a.questionId));
   }
-  let score = 0;
-  const graded = (answers || []).map((a) => {
-    const q = (exam.questions || []).find((x) => String(x._id) === String(a.questionId));
-    if (!q) return { ...a, isCorrect: null, pointsAwarded: 0 };
-    if (q.type === 'MCQ') {
-      const ok = a.answerKey && a.answerKey === q.correctKey;
-      const pts = ok ? q.points || 1 : 0;
-      score += pts;
-      return { ...a, isCorrect: ok, pointsAwarded: pts };
-    }
-    return { ...a, isCorrect: null, pointsAwarded: 0 };
-  });
+  const { graded, score } = gradeAnswers(exam, answers || []);
+  const now = new Date();
+  const timedOut = attemptDeadline(attempt, exam) <= now;
 
-  attempt.answers = graded;
-  attempt.score = score;
-  attempt.status = 'SUBMITTED';
-  attempt.submittedAt = new Date();
-  const saved = await ExamAttempt.findOneAndUpdate({ _id: attempt._id, status: 'IN_PROGRESS', studentId: actor._id }, { answers: graded, score, status: 'SUBMITTED', submittedAt: attempt.submittedAt }, { new: true, runValidators: true });
+  const saved = await ExamAttempt.findOneAndUpdate(
+    { _id: attempt._id, status: 'IN_PROGRESS', studentId: actor._id },
+    { answers: graded, score, status: 'SUBMITTED', submittedAt: now, autoSubmitted: timedOut, submissionReason: timedOut ? 'TIMEOUT' : 'MANUAL' },
+    { new: true, runValidators: true }
+  );
   if (!saved) throw new ApiError(409, 'Bài đã được nộp');
   return presentAttempt(actor, saved, exam.showResults);
 };
@@ -214,7 +266,17 @@ const listAttempts = async (actor, query = {}) => {
     .populate('examId', 'title showResults')
     .sort({ createdAt: -1 })
     .limit(100);
-  return attempts.map(a => presentAttempt(actor, a, a.examId?.showResults));
+  const now = new Date();
+  const refreshed = [];
+  for (const attempt of attempts) {
+    if (attempt.status === 'IN_PROGRESS' && attempt.examId) {
+      const exam = await Exam.findById(attempt.examId._id || attempt.examId).select('durationMinutes questions showResults');
+      const expired = exam && await expireAttempt(attempt, exam, now);
+      if (expired) await expired.populate([{ path: 'studentId', select: 'name code' }, { path: 'examId', select: 'title showResults' }]);
+      refreshed.push(expired || attempt);
+    } else refreshed.push(attempt);
+  }
+  return refreshed.map(a => presentAttempt(actor, a, a.examId?.showResults));
 };
 
 module.exports = {

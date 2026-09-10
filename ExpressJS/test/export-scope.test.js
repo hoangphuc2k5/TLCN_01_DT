@@ -177,9 +177,11 @@ test('cross-school message and unrelated reply are rejected without creating mes
   assert.equal(await Message.countDocuments(), initial);
 });
 
-test('grade write accepts assigned teacher and rejects another class or student', async () => {
+test('grade write fails closed on standalone and rejects another class or student', async () => {
   const payload = { academicYearId: year._id, classId: classes[0]._id, subjectId: subjects[0]._id, studentId: students[0]._id, scores: [{ type: 'ORAL', score: 7 }] };
-  assert.equal((await write('/grades', actors.teacher, payload, 'POST')).status, 200);
+  const response = await write('/grades', actors.teacher, payload, 'POST');
+  assert.equal(response.status, 503);
+  assert.match((await response.json()).EM, /replica set/);
   assert.equal((await write('/grades', actors.teacher, { ...payload, classId: classes[1]._id, studentId: students[2]._id }, 'POST')).status, 403);
   assert.equal((await write('/grades', actors.school, { ...payload, studentId: students[3]._id }, 'POST')).status, 403);
 });
@@ -540,6 +542,47 @@ test('submission rejects wrong owner, duplicate questions and hides disabled res
   assert.equal(data.score, null);
   assert.ok(data.answers.every(a => a.pointsAwarded === undefined && a.isCorrect === undefined));
   assert.equal((await Attempt.findById(attempt._id)).score, 1);
+});
+test('exam lifecycle stores deadline and per-attempt question order', async () => {
+  const exam = await makeExam({ durationMinutes: 1, shuffleQuestions: true, maxAttempts: 1 });
+  const response = await write(`/exams/${exam._id}/attempts`, students[1], {}, 'POST');
+  assert.equal(response.status, 201);
+  const data = (await response.json()).data;
+  assert.ok(data.expiresAt);
+  assert.deepEqual(new Set(data.questionOrder.map(String)), new Set(exam.questions.map(q => String(q._id))));
+  assert.ok(new Date(data.expiresAt).getTime() > Date.now());
+});
+test('expired submission is finalized as an automatic timeout and cannot be submitted twice', async () => {
+  const exam = await makeExam({ durationMinutes: 1, maxAttempts: 1 });
+  const started = await write(`/exams/${exam._id}/attempts`, students[0], {}, 'POST');
+  assert.equal(started.status, 201);
+  const attempt = (await started.json()).data;
+  await Attempt.updateOne({ _id: attempt._id }, { expiresAt: new Date(Date.now() - 1000) });
+  const answer = { questionId: exam.questions[0]._id, answerKey: 'A' };
+  const submitted = await write(`/exam-attempts/${attempt._id}/submit`, students[0], { answers: [answer] }, 'POST');
+  assert.equal(submitted.status, 200);
+  const saved = await Attempt.findById(attempt._id);
+  assert.equal(saved.status, 'SUBMITTED');
+  assert.equal(saved.autoSubmitted, true);
+  assert.equal(saved.submissionReason, 'TIMEOUT');
+  assert.equal((await write(`/exam-attempts/${attempt._id}/submit`, students[0], { answers: [answer] }, 'POST')).status, 400);
+});
+test('listing attempts also closes an abandoned expired attempt', async () => {
+  const exam = await makeExam({ durationMinutes: 1, maxAttempts: 1 });
+  const started = await write(`/exams/${exam._id}/attempts`, students[1], {}, 'POST');
+  assert.equal(started.status, 201);
+  const attempt = (await started.json()).data;
+  await Attempt.updateOne({ _id: attempt._id }, { expiresAt: new Date(Date.now() - 1000) });
+  const response = await read(`/exam-attempts?examId=${exam._id}`, students[1]);
+  assert.equal(response.status, 200);
+  const listed = (await response.json()).data.find(row => String(row._id) === String(attempt._id));
+  assert.equal(listed.status, 'SUBMITTED');
+  assert.equal(listed.submissionReason, 'TIMEOUT');
+});
+test('invalid exam duration and attempt limits are rejected before persistence', async () => {
+  const response = await write('/exams', actors.school, { title: 'Invalid timing', durationMinutes: 0, maxAttempts: 11 }, 'POST');
+  assert.equal(response.status, 400);
+  assert.equal(await Exam.countDocuments({ title: 'Invalid timing' }), 0);
 });
 test('essay regrade recalculates total without accumulating old awarded points', async () => {
   const exam = await makeExam();

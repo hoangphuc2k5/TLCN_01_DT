@@ -118,7 +118,8 @@ export const approveTimetableApi = (id) => axios.patch(`/v1/api/timetables/${id}
 
 export const getAuthConfigApi = () => axios.get('/v1/api/auth/config');
 export const getMonitoringApi = () => axios.get('/v1/api/monitoring');
-export const compareSchoolsApi = (schoolIds) => axios.get('/v1/api/reports/schools/compare', { params: { schoolIds: schoolIds.join(',') } });
+export const compareSchoolsApi = (schoolIds, filters = {}) => axios.get('/v1/api/reports/schools/compare', { params: { schoolIds: schoolIds.join(','), ...filters } });
+export const exportSchoolComparisonApi = (format, schoolIds, filters = {}) => axios.get(`/v1/api/reports/schools/compare/export.${format}`, { params: { schoolIds: schoolIds.join(','), ...filters }, responseType: 'blob' });
 export const loginGoogleApi = (credential) =>
   axios.post('/v1/api/auth/google', { credential });
 export const requestPhoneLoginApi = phone => axios.post('/v1/api/auth/phone/request', { phone });
@@ -128,6 +129,40 @@ export const loginSsoApi = assertion => axios.post('/v1/api/auth/sso', { asserti
 export const getMessagesApi = (params) => axios.get('/v1/api/messages', { params });
 export const sendMessageApi = (data) => axios.post('/v1/api/messages', data);
 export const markMessageReadApi = (id) => axios.patch(`/v1/api/messages/${id}/read`);
+export const getMessageRealtimeTicketApi = () => axios.post('/v1/api/messages/realtime-ticket');
+export const openMessageRealtime = ({ getCursor, onEvent, onStatus }) => {
+  let socket; let retryTimer; let stopped = false; let retryMs = 1000;
+  const connect = async () => {
+    if (stopped) return;
+    onStatus?.('CONNECTING');
+    try {
+      const response = await getMessageRealtimeTicketApi();
+      if (response?.EC !== 0 || !response.data?.ticket) throw new Error(response?.EM || 'Không lấy được ticket realtime');
+      const base = apiOrigin() || window.location.origin;
+      const url = new URL(response.data.path, base);
+      url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+      url.searchParams.set('ticket', response.data.ticket);
+      const cursor = getCursor?.(); if (cursor) url.searchParams.set('cursor', cursor);
+      socket = new WebSocket(url);
+      socket.onopen = () => { retryMs = 1000; onStatus?.('CONNECTED'); };
+      socket.onmessage = event => { try { onEvent?.(JSON.parse(event.data)); } catch { /* ignore malformed events */ } };
+      socket.onerror = () => socket?.close();
+      socket.onclose = () => {
+        if (stopped) return;
+        onStatus?.('RECONNECTING');
+        retryTimer = window.setTimeout(connect, retryMs);
+        retryMs = Math.min(retryMs * 2, 15000);
+      };
+    } catch {
+      if (stopped) return;
+      onStatus?.('RECONNECTING');
+      retryTimer = window.setTimeout(connect, retryMs);
+      retryMs = Math.min(retryMs * 2, 15000);
+    }
+  };
+  connect();
+  return () => { stopped = true; window.clearTimeout(retryTimer); socket?.close(); onStatus?.('DISCONNECTED'); };
+};
 
 export const getCalendarApi = (params) => axios.get('/v1/api/calendar', { params });
 export const createCalendarApi = (data) => axios.post('/v1/api/calendar', data);
@@ -205,7 +240,16 @@ export const publishHomeworkApi = (id) => axios.patch(`/v1/api/homeworks/${id}/p
 export const closeHomeworkApi = (id) => axios.patch(`/v1/api/homeworks/${id}/close`);
 export const getHomeworkSubmissionsApi = (id) => axios.get(`/v1/api/homeworks/${id}/submissions`);
 export const submitHomeworkApi = (id, data) => axios.post(`/v1/api/homeworks/${id}/submissions`, data);
+export const uploadHomeworkAttachmentApi = (id, file) => { const form = new FormData(); form.append('file', file); return axios.post(`/v1/api/homeworks/${id}/submission-attachments`, form); };
+export const deleteHomeworkAttachmentApi = id => axios.delete(`/v1/api/homework-submission-files/${id}`);
+export const downloadHomeworkAttachmentApi = (id, name) => downloadPrivateFile(`/homework-submission-files/${id}/download`, name || 'homework-file');
 export const gradeHomeworkApi = (id, data) => axios.patch(`/v1/api/assignment-submissions/${id}/grade`, data);
+export const getLessonPlansApi = (params) => axios.get('/v1/api/lesson-plans', { params });
+export const createLessonPlanApi = data => axios.post('/v1/api/lesson-plans', data);
+export const updateLessonPlanApi = (id, data) => axios.put(`/v1/api/lesson-plans/${id}`, data);
+export const submitLessonPlanApi = id => axios.patch(`/v1/api/lesson-plans/${id}/submit`);
+export const reviewLessonPlanApi = (id, data) => axios.patch(`/v1/api/lesson-plans/${id}/review`, data);
+export const deleteLessonPlanApi = id => axios.delete(`/v1/api/lesson-plans/${id}`);
 export const getContactBooksApi = (params) => axios.get('/v1/api/contact-books', { params });
 export const createContactBookApi = (data) => axios.post('/v1/api/contact-books', data);
 export const updateContactBookApi = (id, data) => axios.put(`/v1/api/contact-books/${id}`, data);
@@ -257,7 +301,7 @@ const downloadPrivateFile = async (path, fallbackName) => {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
 export const downloadStudentDocumentApi = (id, name = 'student-document') => downloadPrivateFile(`/student-documents/${id}/download`, name);
-export const downloadCertificateApi = (studentId, format) => downloadPrivateFile(`/students/${studentId}/certificate/${format}`, `student-transcript.${format === 'pdf' ? 'pdf' : 'doc'}`);
+export const downloadCertificateApi = (studentId, format) => downloadPrivateFile(`/students/${studentId}/certificate/${format}`, `student-transcript.${format === 'pdf' ? 'pdf' : 'docx'}`);
 export const downloadFileAssetApi = async id => {
   const meta = await axios.get(`/v1/api/files/${id}`);
   if (meta?.EC !== 0) throw new Error(meta?.EM || 'Không tải được thông tin file');

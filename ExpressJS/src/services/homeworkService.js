@@ -54,12 +54,20 @@ const assertOwner = (actor, homework) => {
   if (teachers.includes(actor.role) && String(ownerId) === String(actor._id)) return;
   throw new ApiError(403, 'Không có quyền thao tác bài tập này');
 };
+const assertSubmissionOpen = (row, now = new Date()) => {
+  if (row.status !== 'PUBLISHED') throw new ApiError(400, row.status === 'CLOSED' ? 'Bài tập đã đóng, không nhận bài mới' : 'Bài tập chưa được mở');
+  if (now < row.availableFrom) throw new ApiError(400, 'Bài tập chưa đến thời gian mở');
+  const deadline = row.allowLate && row.lateUntil ? row.lateUntil : row.dueAt;
+  if (now > deadline) throw new ApiError(400, 'Đã quá hạn nộp bài');
+};
 
 const listHomeworks = async (actor, query = {}) => {
   const rows = await Homework.find(await assignmentScope(actor, query)).populate(populate).sort({ dueAt: 1, createdAt: -1 }).limit(200);
   if (![ROLES.STUDENT, ROLES.PARENT].includes(actor.role)) return rows;
   const ids = await personalStudentIds(actor);
-  const submissions = await HomeworkSubmission.find({ homeworkId: { $in: rows.map(r => r._id) }, studentId: { $in: ids } }).select('homeworkId studentId status score feedback submittedAt late').lean();
+  const submissions = await HomeworkSubmission.find({ homeworkId: { $in: rows.map(r => r._id) }, studentId: { $in: ids } })
+    .select('homeworkId studentId status score feedback submittedAt late attachmentIds')
+    .populate('attachmentIds', 'originalName mimeType sizeBytes status').lean();
   const byHomework = new Map(submissions.map(s => [String(s.homeworkId), s]));
   return rows.map(row => ({ ...row.toObject(), submission: byHomework.get(String(row._id)) || null }));
 };
@@ -113,11 +121,8 @@ const closeHomework = async (actor, id) => {
 const submitHomework = async (actor, id, data) => {
   if (actor.role !== ROLES.STUDENT) throw new ApiError(403, 'Chỉ học sinh được nộp bài');
   const row = await getHomework(actor, id);
-  if (row.status !== 'PUBLISHED') throw new ApiError(400, row.status === 'CLOSED' ? 'Bài tập đã đóng, không nhận bài mới' : 'Bài tập chưa được mở');
   const now = new Date();
-  if (now < row.availableFrom) throw new ApiError(400, 'Bài tập chưa đến thời gian mở');
-  const deadline = row.allowLate && row.lateUntil ? row.lateUntil : row.dueAt;
-  if (now > deadline) throw new ApiError(400, 'Đã quá hạn nộp bài');
+  assertSubmissionOpen(row, now);
   if (typeof data.answerText !== 'string' || !data.answerText.trim()) throw new ApiError(400, 'Cần nội dung bài làm');
   const previous = await HomeworkSubmission.findOne({ homeworkId: row._id, studentId: actor._id });
   if (previous?.status === 'GRADED') throw new ApiError(409, 'Bài đã được chấm, không thể nộp lại');
@@ -127,13 +132,13 @@ const submitHomework = async (actor, id, data) => {
 };
 const listSubmissions = async (actor, id) => {
   const row = await getHomework(actor, id);
-  if (actor.role === ROLES.STUDENT) return HomeworkSubmission.find({ homeworkId: row._id, studentId: actor._id }).populate('studentId', 'name code').sort({ submittedAt: -1 });
+  if (actor.role === ROLES.STUDENT) return HomeworkSubmission.find({ homeworkId: row._id, studentId: actor._id }).populate('studentId', 'name code').populate('attachmentIds', 'originalName mimeType sizeBytes status').sort({ submittedAt: -1 });
   if (actor.role === ROLES.PARENT) {
     const ids = await personalStudentIds(actor);
-    return HomeworkSubmission.find({ homeworkId: row._id, studentId: { $in: ids } }).populate('studentId', 'name code').sort({ submittedAt: -1 });
+    return HomeworkSubmission.find({ homeworkId: row._id, studentId: { $in: ids } }).populate('studentId', 'name code').populate('attachmentIds', 'originalName mimeType sizeBytes status').sort({ submittedAt: -1 });
   }
   assertOwner(actor, row);
-  return HomeworkSubmission.find({ homeworkId: row._id }).populate('studentId', 'name code').populate('gradedBy', 'name').sort({ submittedAt: 1 }).limit(500);
+  return HomeworkSubmission.find({ homeworkId: row._id }).populate('studentId', 'name code').populate('gradedBy', 'name').populate('attachmentIds', 'originalName mimeType sizeBytes status').sort({ submittedAt: 1 }).limit(500);
 };
 const gradeSubmission = async (actor, id, data) => {
   const submission = await HomeworkSubmission.findById(objectId(id));
@@ -147,4 +152,4 @@ const gradeSubmission = async (actor, id, data) => {
   if (!updated) throw new ApiError(409, 'Bài nộp đã được chấm');
   return updated;
 };
-module.exports = { listHomeworks, getHomework, createHomework, updateHomework, publishHomework, closeHomework, submitHomework, listSubmissions, gradeSubmission };
+module.exports = { listHomeworks, getHomework, createHomework, updateHomework, publishHomework, closeHomework, submitHomework, listSubmissions, gradeSubmission, assertSubmissionOpen };
