@@ -1,5 +1,7 @@
 require('dotenv').config();
 const app = require('./app');
+const http = require('node:http');
+const { attachMessageGateway } = require('./realtime/messageGateway');
 const connection = require('./config/database');
 const registerEventListeners = require('./patterns/registerListeners');
 const { getAppName } = require('./utils/appName');
@@ -21,7 +23,9 @@ const appName = getAppName();
       console.warn('seedSystemRoles warning:', e.message);
       await roleCache.reload();
     }
-    app.listen(port, () => {
+    const server = http.createServer(app);
+    attachMessageGateway(server);
+    server.listen(port, () => {
       console.log(`${appName} API listening on port ${port}`);
     });
   } catch (error) {

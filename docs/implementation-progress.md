@@ -1,5 +1,12 @@
 # Tiến trình triển khai
 
+## Phase 3.3 — Tin nhắn realtime
+
+- Nhánh `feat/phase3-realtime-messaging`, nền `integration/phase3` tại `6eca82a`.
+- WebSocket dùng ticket ngắn hạn, heartbeat, participant scope và replay theo cursor; frontend tự kết nối lại qua Vite proxy và đồng bộ inbox/sent từ REST.
+- Backend realtime **3/3**, realtime + scope liên quan **86/86**, frontend **11/11**, build đạt và Playwright realtime **1/1**; toàn bộ chạy với MongoDB/server local tạm.
+- Chi tiết: [phase3-realtime-messaging.md](phase3-realtime-messaging.md).
+
 ## Phase 3.2 — File đính kèm bài nộp online
 
 - Nhánh `feat/phase3-homework-file-submissions`, commit `8a09d63`; đã merge vào `integration/phase3` tại `1f36bec`.

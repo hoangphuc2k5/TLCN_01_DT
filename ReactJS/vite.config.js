@@ -12,6 +12,7 @@ export default defineConfig({
       '/v1': {
         target: process.env.API_PROXY_TARGET || 'http://localhost:8080',
         changeOrigin: true,
+        ws: true,
       },
     },
   },
@@ -22,6 +23,7 @@ export default defineConfig({
       '/v1': {
         target: process.env.API_PROXY_TARGET || 'http://localhost:8080',
         changeOrigin: true,
+        ws: true,
       },
     },
   },

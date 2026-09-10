@@ -290,6 +290,7 @@ const x = require('../controllers/crossController');
 router.get('/messages', x.listMessages);
 router.post('/messages', audit('CREATE', 'Message'), x.sendMessage);
 router.patch('/messages/:id/read', x.markMessageRead);
+router.post('/messages/realtime-ticket', x.realtimeTicket);
 router.get('/calendar', x.listEvents);
 router.post('/calendar', authorizePermissionAction('create', PERMISSIONS.MANAGE_ANNOUNCEMENTS), audit('CREATE', 'CalendarEvent'), x.createEvent);
 router.delete('/calendar/:id', authorizePermissionAction('delete', PERMISSIONS.MANAGE_ANNOUNCEMENTS), x.deleteEvent);
