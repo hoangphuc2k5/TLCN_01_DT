@@ -11,6 +11,10 @@ const sendMessage = asyncHandler(async (req, res) => {
 const markMessageRead = asyncHandler(async (req, res) => {
   return success(res, await crossService.markMessageRead(req.user, req.params.id));
 });
+const realtimeTicket = asyncHandler(async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  return success(res, await require('../services/messageRealtimeService').issueTicket(req.user));
+});
 
 const listEvents = asyncHandler(async (req, res) => {
   return success(res, await crossService.listEvents(req.user, req.query));
@@ -52,6 +56,7 @@ module.exports = {
   listMessages,
   sendMessage,
   markMessageRead,
+  realtimeTicket,
   listEvents,
   createEvent,
   deleteEvent,

@@ -15,6 +15,8 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const os = require('node:os');
 const app = require('../src/app');
+const http = require('node:http');
+const { attachMessageGateway } = require('../src/realtime/messageGateway');
 const Role = require('../src/models/Role');
 const Cluster = require('../src/models/Cluster');
 const School = require('../src/models/School');
@@ -27,7 +29,7 @@ const { ROLE_PERMISSIONS } = require('../src/constants/permissions');
 const { legacyPermissionsToEntries, DEFAULT_ROLE_LEVELS } = require('../src/constants/permissionCatalog');
 const cache = require('../src/services/rolePermissionCache');
 
-let mongo, server, storageRoot;
+let mongo, server, messageGateway, storageRoot;
 async function start() {
   console.log('Preparing isolated MongoDB fixture');
   storageRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'phase1-e2e-'));
@@ -87,11 +89,12 @@ async function start() {
   await require('../src/models/FileAsset').init();
   await require('../src/models/Subscription').init();
   await require('../src/models/Job').init();
-  server = app.listen(8091, '127.0.0.1');
+  server = http.createServer(app); messageGateway = attachMessageGateway(server); server.listen(8091, '127.0.0.1');
   server.on('error', async error => { console.error(error.message); await stop(); process.exitCode = 1; });
   server.on('listening', () => console.log('Isolated phase0 fixture ready on http://127.0.0.1:8091'));
 }
 async function stop() {
+  messageGateway?.close();
   if (server?.listening) await new Promise(resolve => server.close(resolve));
   await mongoose.disconnect();
   if (mongo) await mongo.stop();
