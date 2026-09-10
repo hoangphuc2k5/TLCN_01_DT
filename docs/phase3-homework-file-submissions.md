@@ -1,6 +1,6 @@
 # Phase 3.2 — File đính kèm bài nộp online
 
-Cập nhật: 10/09/2026. Nhánh: `feat/phase3-homework-file-submissions`, nền `integration/phase3` tại `26096c5`.
+Cập nhật: 10/09/2026. Nhánh `feat/phase3-homework-file-submissions`, commit `8a09d63`; đã merge vào `integration/phase3` tại `1f36bec`.
 
 ## Phạm vi hoàn thành
 
