@@ -238,8 +238,16 @@ const updateUser = async (actor, id, data) => {
 
   const target = { ...existing.toObject(), ...update };
   await validateUserReferences(actor, target);
+  if (existing.role === ROLES.STUDENT && String(target.schoolId) !== String(existing.schoolId)) {
+    throw new ApiError(400, 'Chuyển trường cần quy trình bảo toàn hồ sơ riêng');
+  }
   update.schoolId = target.schoolId;
   update.clusterId = target.clusterId;
+  if (existing.role === ROLES.STUDENT && String(existing.classId || '') !== String(target.classId || '')) {
+    if (target.role !== ROLES.STUDENT) throw new ApiError(400, 'Không đổi vai trò đồng thời với chuyển lớp');
+    const transferred = await require('./studentTransferService').transfer(actor, existing, update, data);
+    return transferred.toSafeObject();
+  }
   const user = await userRepo.updateById(id, update);
   return user.toSafeObject();
 };

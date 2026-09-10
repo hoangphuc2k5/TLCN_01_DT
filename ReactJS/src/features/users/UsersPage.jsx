@@ -21,6 +21,7 @@ import {
   getUsersApi,
   resetUserPasswordApi,
   updateUserApi,
+  getClassesApi,
 } from '../../api';
 import ImportExcelButton from '../../components/ImportExcelButton';
 import { ROLE_LABELS, canManageLevel } from '../../constants/roles';
@@ -42,6 +43,10 @@ const UsersPage = () => {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form] = Form.useForm();
+  const [transferStudent, setTransferStudent] = useState(null);
+  const [transferClasses, setTransferClasses] = useState([]);
+  const [transferring, setTransferring] = useState(false);
+  const [transferForm] = Form.useForm();
 
   const load = async () => {
     const [usersRes, rolesRes] = await Promise.all([getUsersApi(), getAssignableRolesApi()]);
@@ -142,6 +147,14 @@ const UsersPage = () => {
             render: (_, r) =>
               canManageRow(r) ? (
                 <Space size={8} style={{ whiteSpace: 'nowrap' }}>
+                  {r.role === 'STUDENT' && can(me, 'users', 'update') && <Button size="small" onClick={async () => {
+                    try {
+                      const result = await getClassesApi();
+                      if (result?.EC !== 0) return message.error(result?.EM);
+                      setTransferClasses((result.data || []).filter(cls => String(cls.schoolId?._id || cls.schoolId) === String(r.schoolId?._id || r.schoolId) && String(cls._id) !== String(r.classId?._id || r.classId)));
+                      transferForm.resetFields(); setTransferStudent(r);
+                    } catch (error) { message.error(error.message); }
+                  }}>Chuyển lớp</Button>}
                   <Button
                     size="small"
                     disabled={!can(me, 'users', 'update')}
@@ -266,6 +279,22 @@ const UsersPage = () => {
             </Form.Item>
           )}
         </Form>
+      </Modal>
+      <Modal open={!!transferStudent} title={`Chuyển lớp — ${transferStudent?.name || ''}`} okText="Xác nhận chuyển lớp" cancelText="Hủy" confirmLoading={transferring} onCancel={() => !transferring && setTransferStudent(null)} onOk={() => transferForm.submit()}>
+        <p>Chuyển có hiệu lực ngay. Điểm của học kỳ được chọn trong năm học lớp đích được bàn giao và giữ bản sao trước chuyển; học kỳ khác giữ nguyên.</p>
+        <Form form={transferForm} layout="vertical" onFinish={async values => {
+          setTransferring(true);
+          try {
+            const result = await updateUserApi(transferStudent._id, values);
+            if (result?.EC !== 0) return message.error(result?.EM);
+            message.success('Đã chuyển lớp và lưu lịch sử'); setTransferStudent(null); load();
+          } catch (error) { message.error(error.message); } finally { setTransferring(false); }
+        }}>
+          <Form.Item name="classId" label="Lớp đích" rules={[{ required: true }]}><Select showSearch optionFilterProp="label" options={transferClasses.map(cls => ({ value: cls._id, label: `${cls.name} — ${cls.academicYearId?.name || ''}` }))} /></Form.Item>
+          <Form.Item name="transferSemester" label="Học kỳ bàn giao điểm" rules={[{ required: true }]}><Select options={[{ value: 1, label: 'Học kỳ 1' }, { value: 2, label: 'Học kỳ 2' }]} /></Form.Item>
+          <Form.Item name="transferReason" label="Lý do" rules={[{ required: true, whitespace: true, max: 1000 }]}><Input.TextArea maxLength={1000} /></Form.Item>
+        </Form>
+        {(transferStudent?.classHistory || []).map(item => <p key={item._id}>{item.fromClassName || 'Chưa có lớp'} → {item.toClassName} ({item.academicYearName}, HK{item.semester}) — {item.reason}</p>)}
       </Modal>
     </div>
   );

@@ -24,7 +24,7 @@ const assertStudentAccess = async (actor, studentId) => {
   const personal = await personalStudentIds(actor);
   if (personal !== null && !personal.some(item => String(item) === String(id))) throw new ApiError(404, 'Không tìm thấy học sinh trong phạm vi');
   const student = await User.findOne({ ...scope, _id: id, role: 'STUDENT' })
-    .select('name code schoolId classId dateOfBirth gender')
+    .select('name code schoolId classId classHistory dateOfBirth gender')
     .populate({ path: 'classId', select: 'name gradeLevel room academicYearId', populate: { path: 'academicYearId', select: 'name' } })
     .lean();
   if (!student) throw new ApiError(404, 'Không tìm thấy học sinh trong phạm vi');
@@ -44,12 +44,13 @@ const getTranscript = async (actor, studentId) => {
       .populate('academicYearId', 'name').populate('classId', 'name gradeLevel').sort({ awardedAt: 1 }).lean(),
   ]);
   return {
-    school: school || {}, student,
+    school: school || {}, student, classHistory: student.classHistory || [],
     grades: grades.map(item => ({
       subject: item.subjectId?.name || item.subjectId?.code || 'Chưa xác định', subjectCode: item.subjectId?.code || '',
       year: item.academicYearId?.name || '', className: item.classId?.name || '', semester: item.semester,
       scores: (item.scores || []).map(score => ({ type: score.type, score: score.score, weight: score.weight, note: score.note || '' })),
       average: item.average, classification: item.classification || '',
+      transferHistory: item.transferHistory || [],
     })),
     conduct: conduct.map(item => ({
       year: item.academicYearId?.name || '', className: item.classId?.name || '', semester: item.semester,

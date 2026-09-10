@@ -38,6 +38,19 @@ const userSchema = new mongoose.Schema(
     parentOf: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     code: { type: String, default: '' },
     classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', default: null },
+    academicRevision: { type: Number, default: 0, select: false },
+    classHistory: [{
+      fromClassId: mongoose.Schema.Types.ObjectId,
+      toClassId: mongoose.Schema.Types.ObjectId,
+      fromClassName: String,
+      toClassName: String,
+      academicYearId: mongoose.Schema.Types.ObjectId,
+      academicYearName: String,
+      semester: Number,
+      reason: String,
+      effectiveAt: Date,
+      changedBy: mongoose.Schema.Types.ObjectId,
+    }],
   },
   { timestamps: true }
 );
