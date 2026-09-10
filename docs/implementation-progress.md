@@ -1,5 +1,11 @@
 # Tiến trình triển khai
 
+## Phase 4.1 — Vòng đời thi online
+
+- Nhánh `feat/phase4-exam-lifecycle`, dựa trên `integration/phase3`.
+- Bổ sung hạn nộp được lưu theo lượt, tự chốt bài quá hạn ở server, trộn câu hỏi theo lượt, giới hạn cấu hình đề và đồng hồ đếm ngược/tự nộp trên React.
+- Kiểm thử local: backend riêng **87/87**, backend toàn bộ **242/242**, frontend policy **11/11**, Vite build đạt. Chi tiết: [phase4-exam-lifecycle.md](phase4-exam-lifecycle.md).
+
 ## CI/CD — kiểm thử tự động
 
 - Nhánh `feat/ci-pipeline` bổ sung `.github/workflows/ci.yml`: backend **238/238**, frontend policy **11/11**, build và Playwright **43/43** chạy bằng fixture MongoDB local.
