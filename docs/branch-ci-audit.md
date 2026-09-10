@@ -4,10 +4,10 @@
 
 - Đã fetch/prune và đối chiếu 36 nhánh remote. Cả 30 nhánh `feat/*`/`fix/*` trên remote và nhánh phụ chỉ có local đều đã được gộp vào nhánh tích hợp tương ứng, cuối cùng nằm trong `integration/phase3`.
 - Chuỗi `integration/phase0` → `phase1` → `phase2` → `phase3` đầy đủ. Chưa gộp vào `main`/`Develop`; hai nhánh này cùng commit `306c72c`.
-- GitHub hiện trả 9 lượt chạy CI: tất cả backend và frontend/build thành công, tất cả E2E thất bại. Không coi nhánh chưa có lượt chạy là CI đạt.
+- GitHub đã chạy lại các nhánh tích hợp lớn trên HEAD mới: `integration/phase0` (`8eb7741`), `integration/phase1` (`c1811a9`), `integration/phase2` (`6062a00`) và `integration/phase3` (`31a37c9`). Mỗi lượt đều có backend, frontend/build và Playwright E2E **success**.
 - Đã đọc log lượt mới nhất `34475264213`: `Cannot find module 'mongoose'` tại `ExpressJS/scripts/phase0-fixture.js`. Job E2E chưa cài dependencies ExpressJS nên server fixture không khởi động; chưa chạy tới các ca kiểm thử.
-- Đã sửa `.github/workflows/ci.yml`: job E2E cài `ExpressJS` bằng `npm ci` trước khi khởi động fixture, đồng thời thêm `fix/**` vào push trigger. Bản sửa nằm trên `integration/phase3`; các nhánh phase 0–2 chưa chứa workflow CI trong snapshot hiện tại.
-- Chưa xóa nhánh phụ hoặc merge vào main trong snapshot này; các thao tác đó được thực hiện sau khi workflow sửa được đẩy và kiểm tra.
+- Đã sửa `.github/workflows/ci.yml`: job E2E cài `ExpressJS` bằng `npm ci` trước khi khởi động fixture, đồng thời thêm `fix/**` vào push trigger. Workflow đã được đưa vào phase 0–3.
+- Sau khi kiểm tra ancestry, đã xóa 29 nhánh `feat/*`/`fix/*` đã gộp khỏi local và remote. Chỉ còn các nhánh tích hợp, `main` và `Develop`.
 
 Snapshot after git fetch origin --prune. Exact commit ancestry; CI matched to branch AND HEAD SHA.
 
