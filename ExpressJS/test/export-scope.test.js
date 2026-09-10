@@ -177,9 +177,11 @@ test('cross-school message and unrelated reply are rejected without creating mes
   assert.equal(await Message.countDocuments(), initial);
 });
 
-test('grade write accepts assigned teacher and rejects another class or student', async () => {
+test('grade write fails closed on standalone and rejects another class or student', async () => {
   const payload = { academicYearId: year._id, classId: classes[0]._id, subjectId: subjects[0]._id, studentId: students[0]._id, scores: [{ type: 'ORAL', score: 7 }] };
-  assert.equal((await write('/grades', actors.teacher, payload, 'POST')).status, 200);
+  const response = await write('/grades', actors.teacher, payload, 'POST');
+  assert.equal(response.status, 503);
+  assert.match((await response.json()).EM, /replica set/);
   assert.equal((await write('/grades', actors.teacher, { ...payload, classId: classes[1]._id, studentId: students[2]._id }, 'POST')).status, 403);
   assert.equal((await write('/grades', actors.school, { ...payload, studentId: students[3]._id }, 'POST')).status, 403);
 });

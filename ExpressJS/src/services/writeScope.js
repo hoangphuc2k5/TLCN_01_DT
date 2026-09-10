@@ -34,13 +34,16 @@ const teaching = async (actor, cls, subjectId, homeroomAllowed = false) => {
     teacherId: actor._id, ...(subjectId ? { subjectId } : {}),
   }))) throw new ApiError(403, 'Không được phân công lớp/môn này');
 };
-const academicReferences = async (actor, data, { homeroomAllowed = false, expectedSchoolId } = {}) => {
+const academicReferences = async (actor, data, { homeroomAllowed = false, expectedSchoolId, historicalStudent = false } = {}) => {
   const cls = await scopedDocument(Class, actor, data.classId);
   if (expectedSchoolId && String(cls.schoolId) !== String(expectedSchoolId)) throw new ApiError(403, 'Lớp không thuộc trường được chọn');
   if (data.academicYearId && String(cls.academicYearId) !== String(objectId(data.academicYearId))) throw new ApiError(403, 'Lớp không thuộc năm học');
   await reference(AcademicYear, cls.academicYearId, cls.schoolId);
   if (data.subjectId) await reference(Subject, data.subjectId, cls.schoolId);
-  if (data.studentId) await reference(User, data.studentId, cls.schoolId, { classId: cls._id, role: ROLES.STUDENT });
+  if (data.studentId) await reference(User, data.studentId, cls.schoolId, {
+    role: ROLES.STUDENT,
+    ...(historicalStudent ? { $or: [{ classId: cls._id }, { 'classHistory.fromClassId': cls._id }, { 'classHistory.toClassId': cls._id }] } : { classId: cls._id }),
+  });
   await teaching(actor, cls, data.subjectId, homeroomAllowed);
   return cls;
 };

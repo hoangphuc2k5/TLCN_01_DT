@@ -1,5 +1,15 @@
 # Tiến trình triển khai
 
+## Chuyển lớp và bảo toàn điểm — 10/09/2026
+
+- Nhánh `feat/student-class-transfers`, nền `integration/phase3` tại `e45e30a`.
+- Thêm lịch sử chuyển lớp có lý do/người thực hiện, bàn giao điểm học kỳ được chọn và giữ bản sao điểm trước chuyển. Học kỳ khác giữ lớp cũ để tiếp tục tra cứu/sửa theo phân công.
+- Ghi điểm và chuyển lớp dùng transaction với khóa theo học sinh, tránh mất điểm khi thực hiện đồng thời. Ghi điểm yêu cầu MongoDB replica set; standalone trả 503. Không sử dụng Atlas để kiểm thử.
+- UI quản lý người dùng có thao tác Chuyển lớp, chọn lớp đích/học kỳ/lý do và xem lịch sử. API học bạ trả thêm lịch sử lớp/điểm.
+- Backend toàn bộ **251/251**; bộ chuyển lớp riêng **6/6** (bao gồm quyền giáo viên cũ/mới, ghi điểm đồng thời chuyển lớp, thêm điểm đồng thời). Frontend **11/11**, build đạt; Playwright chuyển lớp **1/1** qua UI/API/DB local thật, kiểm tra lịch sử sau reload. Không chạy lại toàn bộ Playwright.
+- Sửa fixture chuyển lớp chờ tạo index trước teardown; chạy lại **6/6** sạch. Một số fixture cũ trong bộ toàn bộ còn log ECONNRESET lúc teardown nhưng không fail assertion.
+- Cần tiếp tục: bổ sung lịch sử vào bản in học bạ và sửa PDF tiếng Việt; các mục mô tả còn thiếu chưa được coi là hoàn tất. Chi tiết luồng hiện tại: [student-class-transfers.md](student-class-transfers.md).
+
 ## Hoàn thiện báo cáo liên trường — 10/09/2026
 
 - Nhánh `fix/school-comparison-complete`, nền `integration/phase3` tại `7faeb7a`.
