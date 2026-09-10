@@ -36,6 +36,8 @@ router.get('/students/:studentId/certificate/:format', authorizeRead('student_do
 router.get('/health', (req, res) => res.json({ EC: 0, EM: 'OK', data: { status: 'up' } }));
 router.get('/monitoring', authorizePermissionAction('view', PERMISSIONS.VIEW_MONITORING), monitoringController.metrics);
 router.get('/reports/schools/compare', authorizePermissionAction('view', PERMISSIONS.VIEW_REPORTS), platformController.compareSchools);
+router.get('/reports/schools/compare/export.xlsx', authorizePermissionAction('view', PERMISSIONS.VIEW_REPORTS), platformController.exportSchoolsExcel);
+router.get('/reports/schools/compare/export.pdf', authorizePermissionAction('view', PERMISSIONS.VIEW_REPORTS), platformController.exportSchoolsPdf);
 
 // Auth
 const authSecurity = require('../controllers/authSecurityController');
