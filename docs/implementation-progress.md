@@ -1,5 +1,11 @@
 # Tiến trình triển khai
 
+## CI/CD — kiểm thử tự động
+
+- Nhánh `feat/ci-pipeline` bổ sung `.github/workflows/ci.yml`: backend **238/238**, frontend policy **11/11**, build và Playwright **43/43** chạy bằng fixture MongoDB local.
+- Workflow chạy trên push/PR của `main`, `integration/**` và `feat/**`; E2E upload report khi lỗi. CD production để riêng, chỉ bật sau khi có môi trường deploy và merge vào `main`.
+- Chi tiết vận hành: [ci-cd.md](ci-cd.md).
+
 ## Phase 3.5 — Regression cuối và rà soát quyền/menu
 
 - Nhánh `feat/phase3-final-regression`, nền `integration/phase3` sau merge Phase 3.4 tại `165590d`.
