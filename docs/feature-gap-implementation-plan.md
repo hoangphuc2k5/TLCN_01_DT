@@ -24,7 +24,7 @@ Cập nhật: 10/09/2026. Nhánh tổng hợp hiện hành: `integration/phase3`
 ## Phase 3 — phần code còn lại
 
 - [x] 3.1 Soạn giáo án và quy trình gửi/duyệt có revision, lịch sử và notification.
-- [ ] 3.2 File đính kèm bài nộp online qua `FileAsset`, kiểm tra quyền và vòng đời file.
+- [x] 3.2 File đính kèm bài nộp online qua `FileAsset`, kiểm tra quyền và vòng đời file.
 - [ ] 3.3 Tin nhắn realtime thay cho chỉ REST, có scope hội thoại và kết nối lại.
 - [ ] 3.4 Xuất học bạ Word dạng `.docx` thật và rà lại nội dung học bạ điện tử.
 - [ ] 3.5 Rà soát tổng hợp quyền/menu và chạy regression cuối trên `integration/phase3`.

@@ -1,5 +1,12 @@
 # Tiến trình triển khai
 
+## Phase 3.2 — File đính kèm bài nộp online
+
+- Nhánh `feat/phase3-homework-file-submissions`, nền `integration/phase3` tại `26096c5`.
+- Mở rộng `FileAsset`/`HomeworkSubmission`, quota và storage adapter cho tối đa 5 file mỗi bài; download theo quan hệ học sinh/phụ huynh/giáo viên, khóa đổi file sau chấm hoặc hết hạn.
+- UI hỗ trợ nộp lại, chọn file và tải file đã nộp. Backend bài tập **8/8**, bài tập + file storage **20/20**, frontend **11/11**, build đạt, E2E bài tập **2/2**; toàn bộ dùng DB/file local tạm.
+- Chi tiết: [phase3-homework-file-submissions.md](phase3-homework-file-submissions.md).
+
 ## Phase 3.1 — Soạn và duyệt giáo án (6.1.4–6.1.6)
 
 - Nhánh `feat/phase3-lesson-plan-approval`, nền `integration/phase2`.

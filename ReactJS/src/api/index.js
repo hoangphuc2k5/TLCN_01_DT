@@ -205,6 +205,9 @@ export const publishHomeworkApi = (id) => axios.patch(`/v1/api/homeworks/${id}/p
 export const closeHomeworkApi = (id) => axios.patch(`/v1/api/homeworks/${id}/close`);
 export const getHomeworkSubmissionsApi = (id) => axios.get(`/v1/api/homeworks/${id}/submissions`);
 export const submitHomeworkApi = (id, data) => axios.post(`/v1/api/homeworks/${id}/submissions`, data);
+export const uploadHomeworkAttachmentApi = (id, file) => { const form = new FormData(); form.append('file', file); return axios.post(`/v1/api/homeworks/${id}/submission-attachments`, form); };
+export const deleteHomeworkAttachmentApi = id => axios.delete(`/v1/api/homework-submission-files/${id}`);
+export const downloadHomeworkAttachmentApi = (id, name) => downloadPrivateFile(`/homework-submission-files/${id}/download`, name || 'homework-file');
 export const gradeHomeworkApi = (id, data) => axios.patch(`/v1/api/assignment-submissions/${id}/grade`, data);
 export const getLessonPlansApi = (params) => axios.get('/v1/api/lesson-plans', { params });
 export const createLessonPlanApi = data => axios.post('/v1/api/lesson-plans', data);

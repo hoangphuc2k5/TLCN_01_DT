@@ -1,10 +1,12 @@
 ﻿const { test, before, beforeEach, after } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs/promises');
+const path = require('node:path');
+const os = require('node:os');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const { MongoMemoryReplSet } = require('mongodb-memory-server');
-process.env.NODE_ENV = 'test';
-process.env.JWT_SECRET = 'homework-test-secret';
+Object.assign(process.env, { NODE_ENV: 'test', JWT_SECRET: 'homework-test-secret', FILE_STORAGE_DRIVER: 'local', FILE_DEFAULT_QUOTA_BYTES: '1000000', FILE_MAX_BYTES: '100000' });
 const app = require('../src/app');
 const cache = require('../src/services/rolePermissionCache');
 const { ROLE_PERMISSIONS } = require('../src/constants/permissions');
@@ -18,8 +20,9 @@ const Subject = require('../src/models/Subject');
 const TeacherAssignment = require('../src/models/TeacherAssignment');
 const Homework = require('../src/models/Homework');
 const Submission = require('../src/models/HomeworkSubmission');
+const FileAsset = require('../src/models/FileAsset');
 
-let mongo, server, origin, school, foreignSchool, year, foreignYear, cls, foreignClass, subject, actors;
+let mongo, server, origin, school, foreignSchool, year, foreignYear, cls, foreignClass, subject, actors, storageRoot;
 const id = () => new mongoose.Types.ObjectId();
 const request = async (method, path, actor, body) => {
   const response = await fetch(`${origin}/v1/api${path}`, {
@@ -32,8 +35,17 @@ const request = async (method, path, actor, body) => {
 const createPayload = (extra = {}) => ({ title: 'Algebra practice', instructions: 'Solve all questions and explain your method.', classId: cls._id, subjectId: subject._id, academicYearId: year._id, dueAt: '2030-09-10T17:00:00.000Z', availableFrom: '2020-09-01T00:00:00.000Z', maxScore: 10, ...extra });
 const create = (actor = actors.teacher, extra = {}) => request('POST', '/homeworks', actor, createPayload(extra));
 const publish = id => request('PATCH', `/homeworks/${id}/publish`, actors.teacher);
+const uploadAttachment = (homeworkId, actor, bytes) => {
+  const body = new FormData();
+  body.set('file', new Blob([bytes], { type: 'application/pdf' }), 'bai-lam.pdf');
+  return fetch(`${origin}/v1/api/homeworks/${homeworkId}/submission-attachments`, {
+    method: 'POST', headers: { Authorization: `Bearer ${jwt.sign({ _id: actor._id }, process.env.JWT_SECRET)}` }, body,
+  });
+};
 
 before(async () => {
+  storageRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'homework-files-'));
+  process.env.FILE_LOCAL_ROOT = storageRoot;
   mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   await mongoose.connect(mongo.getUri());
   await Role.create(Object.entries(ROLE_PERMISSIONS).map(([code, keys]) => ({ code, name: code, level: DEFAULT_ROLE_LEVELS[code], permissions: legacyPermissionsToEntries(keys) })));
@@ -56,8 +68,8 @@ before(async () => {
   await Promise.all([Homework.init(), Submission.init()]);
   server = app.listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve)); origin = `http://127.0.0.1:${server.address().port}`;
 });
-beforeEach(async () => { await Homework.deleteMany({}); await Submission.deleteMany({}); });
-after(async () => { if (server) await new Promise(resolve => server.close(resolve)); await mongoose.disconnect(); if (mongo) await mongo.stop(); });
+beforeEach(async () => { await Homework.deleteMany({}); await Submission.deleteMany({}); await FileAsset.deleteMany({}); await School.updateMany({}, { storageUsedBytes: 0 }); });
+after(async () => { if (server) await new Promise(resolve => server.close(resolve)); await mongoose.disconnect(); if (mongo) await mongo.stop(); if (storageRoot) await fs.rm(storageRoot, { recursive: true, force: true }); });
 
 test('teacher creates draft, updates it, publishes it and students see only published assignments', async () => {
   const draft = await create(); assert.equal(draft.status, 201, draft.EM);
@@ -112,4 +124,27 @@ test('closing prevents new submissions while preserving existing work', async ()
   assert.equal((await request('PATCH', `/homeworks/${assignment.data._id}/close`, actors.teacher)).status, 200);
   assert.equal((await request('POST', `/homeworks/${assignment.data._id}/submissions`, actors.peer, { answerText: 'Peer answer' })).status, 400);
   assert.equal((await request('GET', `/homeworks/${assignment.data._id}/submissions`, actors.teacher)).data.length, 1);
+});
+
+test('student uploads a private attachment and teacher/parent can download it before grading', async () => {
+  const assignment = await create(); await publish(assignment.data._id);
+  const bytes = Buffer.from('%PDF-1.4\nHomework attachment\n%%EOF');
+  assert.equal((await uploadAttachment(assignment.data._id, actors.student, bytes)).status, 409);
+  assert.equal(await FileAsset.countDocuments(), 0);
+  assert.equal((await School.findById(school._id).select('+storageUsedBytes')).storageUsedBytes, 0);
+  await request('POST', `/homeworks/${assignment.data._id}/submissions`, actors.student, { answerText: 'Bài làm có file.' });
+  const uploadedResponse = await uploadAttachment(assignment.data._id, actors.student, bytes);
+  assert.equal(uploadedResponse.status, 201, await uploadedResponse.clone().text());
+  const asset = (await uploadedResponse.json()).data;
+  assert.equal((await School.findById(school._id).select('+storageUsedBytes')).storageUsedBytes, bytes.length);
+  for (const actor of [actors.student, actors.parent, actors.teacher]) {
+    const response = await fetch(`${origin}/v1/api/homework-submission-files/${asset._id}/download`, { headers: { Authorization: `Bearer ${jwt.sign({ _id: actor._id }, process.env.JWT_SECRET)}` } });
+    assert.equal(response.status, 200);
+    assert.deepEqual(Buffer.from(await response.arrayBuffer()), bytes);
+  }
+  assert.equal((await fetch(`${origin}/v1/api/homework-submission-files/${asset._id}/download`, { headers: { Authorization: `Bearer ${jwt.sign({ _id: actors.foreignStudent._id }, process.env.JWT_SECRET)}` } })).status, 404);
+  const submissions = await request('GET', `/homeworks/${assignment.data._id}/submissions`, actors.teacher);
+  assert.equal(submissions.data[0].attachmentIds[0].originalName, 'bai-lam.pdf');
+  await request('PATCH', `/assignment-submissions/${submissions.data[0]._id}/grade`, actors.teacher, { score: 8 });
+  assert.equal((await request('DELETE', `/homework-submission-files/${asset._id}`, actors.student)).status, 409);
 });

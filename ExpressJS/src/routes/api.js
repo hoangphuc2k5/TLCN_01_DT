@@ -215,6 +215,9 @@ router.put('/homeworks/:id', authorizePermissionAction('update', PERMISSIONS.MAN
 router.patch('/homeworks/:id/publish', authorizePermissionAction('execute', PERMISSIONS.MANAGE_ASSIGNMENTS), audit('PUBLISH', 'Homework'), homework.publish);
 router.patch('/homeworks/:id/close', authorizePermissionAction('execute', PERMISSIONS.MANAGE_ASSIGNMENTS), audit('CLOSE', 'Homework'), homework.close);
 router.post('/homeworks/:id/submissions', authorizePermissionAction('create', PERMISSIONS.SUBMIT_ASSIGNMENTS), audit('SUBMIT', 'HomeworkSubmission'), homework.submit);
+router.post('/homeworks/:id/submission-attachments', authorizePermissionAction('create', PERMISSIONS.SUBMIT_ASSIGNMENTS), require('../middleware/fileUpload').upload, audit('UPLOAD', 'HomeworkSubmission'), files.uploadHomeworkAttachment);
+router.get('/homework-submission-files/:id/download', authorizeRead('assignments', { personal: true }), files.downloadHomeworkAttachment);
+router.delete('/homework-submission-files/:id', authorizePermissionAction('create', PERMISSIONS.SUBMIT_ASSIGNMENTS), audit('DELETE', 'HomeworkSubmission'), files.deleteHomeworkAttachment);
 router.patch('/assignment-submissions/:submissionId/grade', authorizePermissionAction('update', PERMISSIONS.MANAGE_ASSIGNMENTS), audit('GRADE', 'HomeworkSubmission'), homework.grade);
 
 const lessonPlans = require('../controllers/lessonPlanController');
