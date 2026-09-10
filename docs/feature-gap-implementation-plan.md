@@ -29,6 +29,12 @@ Cập nhật: 10/09/2026. Nhánh tổng hợp hiện hành: `integration/phase3`
 - [x] 3.4 Xuất học bạ Word dạng `.docx` thật và rà lại nội dung học bạ điện tử.
 - [x] 3.5 Rà soát tổng hợp quyền/menu và chạy regression cuối trên `integration/phase3`.
 
+## Phase 4 — hoàn thiện chi tiết đặc tả DOCX
+
+- [x] 4.1 Vòng đời thi online: giới hạn thời lượng server, tự chốt lượt quá hạn, thứ tự câu hỏi theo lượt và đồng hồ đếm ngược.
+
+Kiểm thử Phase 4.1 đã chạy bằng MongoDB local: backend **241/241**, frontend policy **11/11**, build đạt. Các mục chi tiết khác trong DOCX vẫn được theo dõi ở phần audit và sẽ triển khai theo từng nhánh có kiểm thử riêng.
+
 Regression cuối đã chạy trên nhánh `feat/phase3-final-regression` bằng MongoDB Memory ReplSet và fixture local; kết quả backend **238/238**, frontend policy **11/11**, build đạt và Playwright **43/43**. Các lỗi được kiểm chứng trong suite là các nhánh từ chối quyền/dữ liệu không hợp lệ, không phải test thất bại.
 
 Các kiểm chứng cần hệ thống bên ngoài không thể được kết luận bằng test DB local: Atlas Network Access/TLS, terminal VNPay được duyệt và callback HTTPS công khai, S3/IAM, Google SSO, SMTP, SMS/Zalo/push. Phần code dùng adapter và test giả; UAT thật được ghi riêng, không gọi là đạt khi chưa có credential hoặc nhà cung cấp chưa kích hoạt.

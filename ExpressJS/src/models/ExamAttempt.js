@@ -22,7 +22,11 @@ const examAttemptSchema = new mongoose.Schema(
     maxScore: { type: Number, default: 0 },
     status: { type: String, enum: ['IN_PROGRESS', 'SUBMITTED', 'GRADED'], default: 'IN_PROGRESS' },
     startedAt: { type: Date, default: Date.now },
+    expiresAt: { type: Date, default: null },
     submittedAt: { type: Date, default: null },
+    autoSubmitted: { type: Boolean, default: false },
+    submissionReason: { type: String, enum: ['MANUAL', 'TIMEOUT'], default: 'MANUAL' },
+    questionOrder: [{ type: mongoose.Schema.Types.ObjectId }],
   },
   { timestamps: true }
 );
