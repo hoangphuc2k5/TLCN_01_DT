@@ -90,7 +90,7 @@ const UsersPage = () => {
   const onResetPassword = async (userId) => {
     const res = await resetUserPasswordApi(userId);
     if (res?.EC === 0) {
-      message.success(res.EM || 'Đã reset mật khẩu mặc định');
+      Modal.success({ title: 'Mật khẩu tạm mới', content: <div><p>Gửi riêng cho người dùng. Người dùng phải đổi mật khẩu sau khi đăng nhập; các phiên cũ đã bị thu hồi.</p><Input readOnly value={res.data.defaultPassword} onFocus={event => event.target.select()} /></div> });
     } else message.error(res?.EM);
   };
 
@@ -165,8 +165,8 @@ const UsersPage = () => {
                     Sửa
                   </Button>
                   <Popconfirm
-                    title="Reset mật khẩu về mặc định?"
-                    description="Mật khẩu sẽ về giá trị DEFAULT_PASSWORD trong .env (thường là Password@123)."
+                    title="Tạo mật khẩu tạm mới?"
+                    description="Thu hồi phiên cũ và buộc đổi mật khẩu khi đăng nhập. 2FA được giữ nguyên."
                     onConfirm={() => onResetPassword(r._id)}
                   >
                     <Button size="small" disabled={!can(me, 'users', 'update')}>Reset MK</Button>
@@ -212,18 +212,18 @@ const UsersPage = () => {
               name="password"
               label="Mật khẩu"
               rules={[{ required: true, min: 6 }]}
-              extra="Chỉ nhập khi tạo mới. Khi sửa chỉ được Reset mật khẩu mặc định."
+              extra="Mật khẩu mới cần ít nhất 15 ký tự, tối đa 72 byte UTF-8. Khi sửa có thể tạo mật khẩu tạm riêng."
             >
               <Input.Password />
             </Form.Item>
           )}
           {editing && (
             <Popconfirm
-              title="Reset mật khẩu về mặc định?"
-              description="Mật khẩu sẽ về DEFAULT_PASSWORD (thường Password@123)."
+              title="Tạo mật khẩu tạm mới?"
+              description="Thu hồi phiên cũ và buộc đổi mật khẩu khi đăng nhập. 2FA được giữ nguyên."
               onConfirm={() => onResetPassword(editing._id)}
             >
-              <Button style={{ marginBottom: 16 }}>Reset mật khẩu mặc định</Button>
+              <Button style={{ marginBottom: 16 }}>Tạo mật khẩu tạm</Button>
             </Popconfirm>
           )}
           <Form.Item name="role" label="Vai trò" rules={[{ required: true }]}>

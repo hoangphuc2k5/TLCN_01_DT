@@ -9,6 +9,9 @@ const appName = getAppName();
 (async () => {
   try {
     await connection();
+    await require('./models/FileAsset').init();
+    await require('./models/Job').init();
+    await require('./models/AuthAttempt').init();
     registerEventListeners();
     const roleCache = require('./services/rolePermissionCache');
     const { seedSystemRoles } = require('./services/roleService');

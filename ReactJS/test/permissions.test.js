@@ -3,6 +3,14 @@ import assert from 'node:assert/strict';
 import { can, canVisit, canExport } from '../src/util/permissions.js';
 
 const reader = { role: 'CUSTOM_READER', permissionEntries: [{ resource: 'users', actions: ['view'] }] };
+
+test('job route and execution controls require distinct permissions', () => {
+  assert.equal(canVisit(reader, '/jobs'), false);
+  const viewer = { role: 'CUSTOM_VIEWER', permissionEntries: [{ resource: 'jobs', actions: ['view'] }] };
+  assert.equal(canVisit(viewer, '/jobs'), true);
+  assert.equal(can(viewer, 'jobs', 'execute'), false);
+  assert.equal(canVisit({ role: 'SCHOOL_ADMIN', permissionEntries: [] }, '/jobs'), false);
+});
 test('custom reader sees users route but not roles or subscriptions', () => {
   assert.equal(canVisit(reader, '/users'), true);
   assert.equal(canVisit(reader, '/roles'), false);

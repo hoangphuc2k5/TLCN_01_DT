@@ -4,6 +4,9 @@ export const loginApi = (email, password) =>
   axios.post('/v1/api/auth/login', { email, password });
 
 export const getMeApi = () => axios.get('/v1/api/auth/me');
+export const verifyMfaApi = (data) => axios.post('/v1/api/auth/mfa/verify', data);
+export const getSecurityApi = () => axios.get('/v1/api/auth/security');
+export const securityActionApi = (action, data) => axios.post(`/v1/api/auth/${action}`, data);
 
 export const updateProfileApi = (data) => axios.put('/v1/api/auth/profile', data);
 
@@ -152,8 +155,33 @@ export const gradeAttemptApi = (attemptId, grades) =>
 export const getAttemptsApi = (params) => axios.get('/v1/api/exam-attempts', { params });
 
 export const getMaterialsApi = (params) => axios.get('/v1/api/materials', { params });
+export const getJobsApi = params => axios.get('/v1/api/jobs', { params });
+export const retryJobApi = (id, data = {}) => axios.post(`/v1/api/jobs/${id}/retry`, data);
+export const cancelJobApi = id => axios.post(`/v1/api/jobs/${id}/cancel`);
 export const createMaterialApi = (data) => axios.post('/v1/api/materials', data);
 export const deleteMaterialApi = (id) => axios.delete(`/v1/api/materials/${id}`);
+export const getFileUsageApi = () => axios.get('/v1/api/files/usage');
+export const uploadMaterialApi = (data, file) => {
+  const form = new FormData();
+  for (const [key, value] of Object.entries(data)) if (value !== undefined && value !== null) form.append(key, String(value));
+  form.append('file', file);
+  return axios.post('/v1/api/materials/upload', form);
+};
+export const downloadFileAssetApi = async id => {
+  const meta = await axios.get(`/v1/api/files/${id}`);
+  if (meta?.EC !== 0) throw new Error(meta?.EM || 'Không tải được thông tin file');
+  const response = await fetch(`${apiOrigin()}/v1/api/files/${id}/download`, { headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` } });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.EM || 'Tải file thất bại');
+  }
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = meta.data.originalName;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
 
 export const getBooksApi = (params) => axios.get('/v1/api/library/books', { params });
 export const createBookApi = (data) => axios.post('/v1/api/library/books', data);

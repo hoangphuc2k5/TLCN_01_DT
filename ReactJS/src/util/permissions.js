@@ -21,6 +21,7 @@ export const canExport = (user, resource) => {
 };
 
 const resources = {
+  jobs: 'jobs',
   clusters: 'clusters', users: 'users', roles: 'roles', subscriptions: 'subscriptions',
   classes: 'classes', attendance: 'attendance', grades: 'grades', fees: 'fees',
   exams: 'exams', materials: 'materials', library: 'library', facilities: 'facilities',

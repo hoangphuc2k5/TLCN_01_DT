@@ -23,6 +23,7 @@ const TEMPLATES = {
         code: 'HS001',
         phone: '0901000001',
         className: '8A',
+        password: '',
       },
       {
         email: 'gvtoan@gmail.com',
@@ -31,6 +32,7 @@ const TEMPLATES = {
         code: 'GV001',
         phone: '0901000002',
         className: '',
+        password: '',
       },
     ],
   },
@@ -179,10 +181,11 @@ const importUsers = async (actor, buffer) => {
       const code = String(pick(row, 'code', 'Code', 'Ma') || '').trim();
       const phone = String(pick(row, 'phone', 'Phone', 'SDT') || '').trim();
       const className = String(pick(row, 'className', 'Lop', 'class') || '').trim();
-      const passwordRaw = String(pick(row, 'password', 'Password', 'MatKhau') || '').trim();
+      const passwordRaw = String(pick(row, 'password', 'Password', 'MatKhau') || '');
       const password =
         passwordRaw ||
-        (process.env.ALLOW_PASSWORD_LOGIN === 'false' ? undefined : 'Password@123');
+        undefined;
+      if (!password && process.env.ALLOW_PASSWORD_LOGIN !== 'false') throw new Error('Thiếu mật khẩu riêng cho tài khoản (ít nhất 15 ký tự).');
 
       if (!Object.values(ROLES).includes(role) || role === ROLES.SUPER_ADMIN) {
         throw new Error(`Role không hợp lệ: ${role}`);

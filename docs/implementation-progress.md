@@ -1,6 +1,73 @@
 # Tiến trình triển khai
 
-Cập nhật: 06/09/2026. Đã rà lại checklist Đợt 0 và sửa thêm các đường đọc chưa được test cũ bao phủ. Kết quả mới: backend 93/93, frontend 9/9, E2E 24/24, build đạt. Phạm vi và giới hạn được ghi cụ thể trong [báo cáo rà soát](phase0-review-2026-09-06.md).
+Cập nhật: 08/09/2026. Đã hoàn tất và kiểm thử nhánh tổng hợp Phase 1 (`integration/phase1`): backend 165/165, policy frontend 10/10, E2E Phase 0 + Phase 1 29/29, build đạt. Chi tiết merge và phạm vi xem [bàn giao Phase 1](phase1-integration.md). Phase 2 tiếp tục ở nhánh chức năng riêng; chưa merge main.
+
+## Nhánh tổng hợp Phase 1
+
+- `integration/phase1` được tạo từ `integration/phase0` tại `cdbdb11`, merge tuần tự bốn nhánh Phase 1 bằng `--no-ff`. Các merge commit lần lượt là `0073e94`, `dbd607a`, `2e09242`, `418a4ee`.
+- Kiểm thử trên đúng cây tổng hợp: backend **165/165**, frontend policy **10/10**, E2E **29/29**, build đạt và `git diff --check` đạt.
+- Phase 2.1 xin nghỉ dạy/dạy bù đang ở `feat/phase2-teaching-schedule`, không đưa vào `integration/phase1`.
+
+## Phase 1 — 1.4 Backup/Restore
+
+- Nhánh bàn giao `feat/phase1-backup-restore`, nền `feat/phase1-auth-security` tại `2ee28d1`; không merge main/integration/phase0.
+- Đã commit/push code, test và runbook tại `142dc50` lên `origin/feat/phase1-backup-restore`; dùng nhánh này làm nền phiên tiếp theo.
+- Thêm `npm run backup -- create|verify|restore`: sao lưu logic toàn database ứng dụng + file FileAsset local/S3, raw BSON, index, collection rỗng, validator/collation. Archive AES-256-GCM, kiểm tra lại toàn bộ trước khi công bố file đích; không ghi đè backup cũ.
+- Restore mặc định chỉ lập kế hoạch, `--apply --maintenance` mới ghi. Đích bắt buộc DB rỗng khác tên nguồn và thư mục local mới; không drop/overwrite hoặc tự chuyển cấu hình. Toàn bộ tag mã hóa/cấu trúc/checksum/tenant/quota được kiểm tra trước khi ghi; lỗi index/validator hoặc lỗi ghi vẫn có thể xảy ra và giữ marker chặn đích.
+- `restoreguard` claim bền vững chặn restore cạnh tranh; trạng thái COMPLETE là điểm commit sau khi DB/file/index/report hoàn tất. API/worker probe guard trước Mongoose tự tạo collection/index/seed; sai trạng thái hoặc fingerprint khóa thì không khởi động. Guard COMPLETE được giữ lại; backup tiếp theo kiểm tra và bỏ marker nội bộ khỏi archive.
+- Bảo toàn ID/quan hệ/secret TOTP; buộc JWT secret mới, xóa challenge/setup/auth attempts và mã khôi phục cũ, chống phục hồi lại mã đã dùng sau snapshot. Người dùng 2FA đăng nhập bằng authenticator gốc và tạo mã khôi phục mới. Giữ lịch sử job, hủy QUEUED/RUNNING và tắt ý định email cũ để không tự gửi lại.
+- Cấu trúc: Facade `backupService`, adapter `mongoSnapshot`/reader local-S3, codec streaming `archive`, state machine `snapshotValidator`, policy đường dẫn/kích thước và `restoreGuard`. Không thêm dependency, không thêm HTTP restore hoặc logic này vào controller nghiệp vụ.
+- Kiểm thử: **165/165 backend toàn bộ**, gồm **20 test backup**. Test dùng replica set tạm, file thật, native BSON, CLI create/verify/plan/apply, lỗi giữa chừng, đích không rỗng, concurrent restore, sai khóa/tamper/checksum, symlink, startup API/worker và TOTP login/download qua API sau restore. S3 reader dùng adapter giả. `git diff --check` đạt; frontend không thay đổi và không chạy lại build/E2E trong đợt này.
+- Chưa kết nối Atlas, chưa chạy backup/restore trên DB người dùng, chưa gửi mail hoặc truy cập bucket thật. Giữ các `.env` thực tế và hai file untracked ban đầu. `.env.example` bổ sung BACKUP_ENCRYPTION_KEY, BACKUP_STAGING_ROOT, BACKUP_MAX_BYTES và các biến RESTORE_*.
+- Hướng dẫn cấu hình, lệnh, commit marker, lỗi và giới hạn: [phase1-backup-restore.md](phase1-backup-restore.md). Phải dừng API/worker/mọi writer khi tạo snapshot; --maintenance chỉ là xác nhận vận hành. Staging có plaintext tạm và cần ACL riêng; snapshot không chứa khóa JWT/TOTP/backup nên phải sao lưu khóa riêng.
+- Giới hạn: công cụ bảo trì toàn instance, restore local mới; chưa có UI, scheduler/retention/offsite tự động, tenant-only restore, restore S3, PITR/oplog, key rotation hay UAT hạ tầng thật. Không gọi toàn bộ spec backup doanh nghiệp là hoàn tất.
+- Điểm tiếp tục: code nền 1.1–1.4 đã có; tiếp tục nghiệp vụ còn thiếu theo spec từ nhánh này. Các kiểm chứng Atlas/S3/Google/SMTP và diễn tập restore hạ tầng thật vẫn là việc triển khai riêng, chưa được đánh dấu đạt.
+
+## Phase 1 — 1.3 2FA và password policy
+
+- Nhánh bàn giao `feat/phase1-auth-security`, nền `feat/phase1-job-queue` tại `6cee993`. Không merge vào main hoặc integration/phase0.
+- Đã commit/push code, test và tài liệu tại `56a4ce2` lên `origin/feat/phase1-auth-security`. Phiên sau checkout nhánh này để tiếp tục 1.4.
+- TOTP qua QR/khóa nhập tay, xác nhận bật, tắt, cấp lại 10 mã khôi phục dùng một lần; màn hình đăng nhập xử lý challenge trước khi có JWT. Cả mật khẩu và Google đều đi qua 2FA nếu tài khoản đã bật.
+- Secret mã hóa AES-256-GCM gắn user ID; challenge/recovery chỉ lưu hash. MongoDB CAS theo revision chống request đồng thời, mã dùng lại và ghi đè trạng thái mới; hạn setup 10 phút, challenge 5 phút. Throttle chia sẻ MongoDB theo tài khoản/IP, không reset hạn mức khi xin challenge mới.
+- Policy chung cho tạo user/import/đổi/reset: tối thiểu 15 ký tự, tối đa 72 byte UTF-8, bcrypt cost 12, lịch sử 5 mật khẩu và chặn một số mẫu dễ đoán. Bỏ mật khẩu mặc định chung khi import/reset. Admin reset tạo mật khẩu tạm riêng và buộc đổi trước khi dùng nghiệp vụ; giữ 2FA.
+- Bật/tắt/cấp lại mã/đổi/reset tăng sessionVersion và xóa challenge/setup; middleware thu hồi JWT cũ. Bí mật không xuất hiện trong profile/danh sách/audit body. API bảo mật chỉ thao tác chính tài khoản đang đăng nhập, admin reset giữ quyền/scope cũ.
+- Cấu trúc: adapter `totpProvider`/`googleIdentity`, policy `passwordPolicy`, repository `authSecurityRepository`, service điều phối `authSecurityService`, cấp phiên riêng `authSessionService`; không có phụ thuộc vòng giữa cấp phiên và 2FA.
+- Kiểm thử cuối: **145/145 backend** (thêm 22 test auth), **10/10 frontend policy**, **29/29 E2E đầy đủ**, production build đạt. E2E mới kiểm tra bật → nhập sai → recovery login → tắt → đổi mật khẩu; admin reset → redirect Tài khoản sau tải lại → bắt đổi mật khẩu. `git diff --check` đạt. Vite test chạy `CI=true` để không thoát khi stdin đóng trên Windows; không thay cấu hình Vite chạy thực tế.
+- Tất cả test dùng MongoDB/file tạm và Google SDK giả; không kết nối Atlas, Google/Gmail/S3 thật. Không thay các `.env` người dùng hoặc file production example chưa track. Build còn cảnh báo chunk lớn (~1.54 MB).
+- Cần cấu hình khóa `AUTH_MFA_ENCRYPTION_KEY` 64 hex trong môi trường thật để bật TOTP. Chưa có khóa thì enrollment báo chưa khả dụng; không tự bỏ qua 2FA đã bật. Cấu hình, API, giới hạn và khôi phục: [phase1-auth-security.md](phase1-auth-security.md).
+- Tiếp theo: **1.4 Backup/restore** từ nhánh này. Thiết kế phải tính tới private storage, dữ liệu queue và User.security; sao lưu khóa 2FA riêng, giữ user ID khi restore, xử lý thu hồi phiên sau restore. Chưa chạy backup/restore hoặc worker trên DB người dùng.
+- Giới hạn 1.3: TOTP tự nguyện, policy cố định dùng chung; chưa bắt buộc MFA theo tenant/role, chưa có WebAuthn/SMS OTP, kiểm tra mật khẩu rò rỉ đầy đủ, key rotation hoặc UAT Google thật. Không coi toàn bộ spec bảo mật doanh nghiệp là hoàn tất.
+
+## Phase 1 — 1.2 Job/queue
+
+- Nhánh `feat/phase1-job-queue`, nền `feat/phase1-file-storage` tại `9f27526`. Chưa merge vào main hoặc integration/phase0.
+- Đã push code/test tại `5a41949` lên `origin/feat/phase1-job-queue`. Lấy nhánh này làm nền cho Phase 1.3.
+- Job MongoDB có unique key theo tenant/loại/nguồn; lịch runAt, atomic claim, lease/heartbeat, retry backoff, giới hạn attempts, giữ totalAttempts và mã lỗi an toàn. Worker cũ mất lease không ack/ghi đè worker mới.
+- Handler thật: email từ Notification đã lưu và xóa file DELETING/hoàn quota. Dispatcher đọc ý định bền vững, khôi phục khoảng gián đoạn enqueue/đánh dấu nguồn. Không tự gửi notification cũ, không tự xóa UPLOADING.
+- Email tin nhắn/điểm danh/thông báo/kết quả duyệt đơn chuyển khỏi request sang worker. Message API hỗ trợ emailRunAt một lần; SMTP chưa cấu hình được ghi lỗi/retry, không báo đã gửi.
+- Thêm trang Tác vụ nền và quyền jobs.view/jobs.execute: xem/lọc/phân trang, thử lại ngay hoặc theo lịch, hủy job chờ. Scope trường/cụm áp dụng ở API; retry/hủy có audit. Role cũ không tự bị ghi đè quyền.
+- Kiểm thử: **123/123 backend**, **10/10 frontend policy**, **27/27 E2E**, build đạt. Test dùng MongoDB tạm, file thật trong thư mục tạm, SMTP giả; chưa kết nối Atlas hoặc gửi email Gmail thật. Thêm guard dừng nhận việc khi worker được yêu cầu dừng.
+- Chạy worker riêng từ ExpressJS bằng `npm run worker`, dùng cùng cấu hình DB/storage với API. Chưa khởi động worker trên môi trường người dùng. Cấu hình, trạng thái, giới hạn và cách vận hành: [phase1-job-queue.md](phase1-job-queue.md).
+- Giới hạn: lịch một lần, SMTP có thể trùng nếu crash sau khi nhà cung cấp nhận thư nhưng trước ack; Observer trước bước lưu Notification chưa thành transactional outbox. UPLOADING vẫn xử lý khi bảo trì. Không coi 1.3/1.4 là đã làm.
+
+## Phase 1 — 1.1 Kho file học liệu
+
+- Nhánh `feat/phase1-file-storage`, nền `integration/phase0` tại `cdbdb11`. Không nhập code Phase 1 vào nhánh tổng hợp Phase 0.
+- Đã commit/push code và test tại `f73ec42`; nhánh đang track `origin/feat/phase1-file-storage`. Phiên tiếp theo lấy nhánh này làm nền cho 1.2.
+- Thêm FileAsset, storageUsedBytes, liên kết fileAssetId; adapter local/S3, API upload/metadata/download/usage; dùng scope và quyền học liệu hiện hành. File mới tải qua JWT, không expose thư mục public.
+- Giao dịch MongoDB giữ chỗ dung lượng và metadata; chống vượt quota khi upload đồng thời. Xóa file trước khi hoàn quota; trạng thái UPLOADING/READY/DELETING và lệnh bảo trì giúp phục hồi gián đoạn.
+- UI Học liệu hỗ trợ tải file hoặc liên kết, chia sẻ/riêng tư, hiển thị hạn mức, download đúng tên và xóa. Giữ tên file tiếng Việt.
+- Thêm 13 test backend so với Phase 0: **106/106 đạt**. Frontend **9/9**, build đạt (còn cảnh báo chunk lớn). E2E đầy đủ **25/25**, gồm upload → download so sánh bytes → xóa; chạy lại riêng luồng file sau chỉnh phục hồi/tên file.
+- Yêu cầu mới: MongoDB replica set cho upload/xóa. Test dùng replica set/thư mục tạm; không kết nối database người dùng, không đổi `.env`. S3 được kiểm tra bằng adapter test, chưa smoke test bucket thật. Local đã kiểm tra end-to-end.
+- Cấu hình, API, quyền, lệnh phục hồi và giới hạn: [phase1-file-storage.md](phase1-file-storage.md). `.env.example` có biến mẫu mới; giữ nguyên file production example chưa track và package-lock ở root của người dùng.
+
+### Checklist Phase 1
+
+- [x] 1.1 Kho file theo tenant tích hợp học liệu: code, kiểm thử local, adapter S3 và tài liệu.
+- [x] 1.2 Job/queue: retry, idempotency, trạng thái, lịch chạy một lần và handler email/xóa file; phục hồi DELETING, giữ UPLOADING cho bảo trì.
+- [x] 1.3 TOTP/recovery + password policy chung, thu hồi phiên và bắt đổi mật khẩu tạm; giới hạn triển khai ghi ở mục 1.3.
+- [x] 1.4 Backup/verify/restore bằng CLI bảo trì, archive mã hóa và DB/local root mới; giới hạn ở mục 1.4.
+- [ ] Smoke test S3/IAM thực tế trước khi chọn triển khai adapter S3; không chặn dùng local.
 
 ## Rà soát bổ sung sau tổng hợp Phase 0
 
@@ -178,12 +245,12 @@ Cập nhật: 06/09/2026. Đã rà lại checklist Đợt 0 và sửa thêm các
 - Schema thêm trường nullable, không cần migration phá dữ liệu. Cache/API trả scope role để frontend kiểm tra nút quản lý.
 - `npm test` backend: **68/68 đạt**. Chưa hoàn tất thi online và nút nghiệp vụ/E2E.
 
-## Việc tiếp theo — Đợt 1 chưa bắt đầu
+## Việc tiếp theo — sau nền tảng Phase 1
 
-1. Bắt đầu từ `integration/phase0`; kiểm tra git status trước khi sửa. File kế hoạch cũ `docs/feature-gap-implementation-plan.md` không tồn tại trong checkout này; tài liệu này là điểm bàn giao hiện hành.
-2. Triển khai kho file theo tenant: metadata FileAsset, adapter lưu trữ local/S3 theo cấu hình, upload/download có scope, hạn mức dung lượng, kiểm thử truy cập chéo trường. Chưa chọn dịch vụ cloud hoặc cần secret mới.
-3. Tiếp đó nền job/queue: retry, idempotency, trạng thái và lịch chạy để phục vụ thông báo/backup; không tạo job giả chỉ đổi trạng thái.
-4. Tiếp đó 2FA và password policy (spec 2.6), rồi backup/restore (2.7); từng chức năng phải có kiểm thử, nhánh riêng, push và bổ sung tài liệu trước khi chuyển tiếp.
+1. Tiếp tục từ `feat/phase1-backup-restore`; kiểm tra git status trước khi sửa. File kế hoạch cũ `docs/feature-gap-implementation-plan.md` không tồn tại trong checkout này; tài liệu này là điểm bàn giao hiện hành.
+2. Kho file local và adapter S3 đã có. Không tự chuyển storage hoặc chạy lệnh bảo trì apply trên database đang phục vụ; đọc hướng dẫn vận hành trước. Chưa chọn dịch vụ cloud hoặc cấp secret mới.
+3. Job/queue đã có, đọc `phase1-job-queue.md` trước khi bổ sung handler. API không tự chạy worker; không tự gửi email thử tới người dùng hoặc chạy job trên DB thật trong phiên code.
+4. 2FA/password policy và backup/restore đã có trong phạm vi mục 1.3/1.4. Đọc runbook trước khi vận hành; không tự chạy restore --apply trên DB thật. Chọn nghiệp vụ tiếp theo từ danh sách spec còn thiếu, lập phạm vi cụ thể rồi kiểm thử, tạo nhánh/push và ghi tài liệu sau từng chức năng.
 5. Giữ riêng các việc nghiệp vụ: thời lượng/tự nộp thi, giao dịch đồng thời học phí/tồn kho, di chuyển trường giữa cụm và migration dữ liệu liên quan, bộ duyệt custom role, Google/SMTP/SMS/Zalo/payment thật. Chưa có kết quả UAT cho các phần này.
 
 Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend và 4 ở frontend từ cây dependency; chưa chạy audit fix vì có thể thay major/ngoài scope. File .env và hai file untracked ban đầu không thuộc các commit bàn giao.

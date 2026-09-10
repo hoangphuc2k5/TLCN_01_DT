@@ -23,10 +23,12 @@ const RESOURCES = [
   { key: 'subscriptions', label: 'Gói dịch vụ' },
   { key: 'reports', label: 'Báo cáo' },
   { key: 'own_data', label: 'Dữ liệu cá nhân' },
+  { key: 'jobs', label: 'Tác vụ nền' },
 ];
 
 /** Legacy flat permission → resource/actions */
 const LEGACY_PERMISSION_MAP = {
+  MANAGE_JOBS: { resource: 'jobs', actions: ['view', 'execute'] },
   MANAGE_TENANTS: { resource: 'schools', actions: ['view', 'create', 'update', 'delete'] },
   MANAGE_CLUSTERS: { resource: 'clusters', actions: ['view', 'create', 'update', 'delete'] },
   MANAGE_USERS: { resource: 'users', actions: ['view', 'create', 'update', 'delete'] },

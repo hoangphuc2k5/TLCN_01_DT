@@ -5,6 +5,7 @@ const notFoundHandler = (req, res, next) => {
 };
 
 const errorHandler = (err, req, res, next) => {
+  if (res.headersSent) return next(err);
   let statusCode = err.statusCode || 500;
   let message = err.message || 'Internal Server Error';
   let errorCode = err.errorCode || 1;
