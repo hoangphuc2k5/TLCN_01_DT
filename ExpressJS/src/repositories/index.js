@@ -14,6 +14,13 @@ const Subject = require('../models/Subject');
 const AcademicYear = require('../models/AcademicYear');
 const TeacherAssignment = require('../models/TeacherAssignment');
 const Payment = require('../models/Payment');
+const OnlinePayment = require('../models/OnlinePayment');
+const TeacherAppointment = require('../models/TeacherAppointment');
+const SatisfactionSurvey = require('../models/SatisfactionSurvey');
+const RewardDisciplineRecord = require('../models/RewardDisciplineRecord');
+const AdmissionApplication = require('../models/AdmissionApplication');
+const StudentDocument = require('../models/StudentDocument');
+const PayrollRecord = require('../models/PayrollRecord');
 
 module.exports = {
   userRepo: new BaseRepository(User),
@@ -31,4 +38,11 @@ module.exports = {
   academicYearRepo: new BaseRepository(AcademicYear),
   assignmentRepo: new BaseRepository(TeacherAssignment),
   paymentRepo: new BaseRepository(Payment),
+  onlinePaymentRepo: new BaseRepository(OnlinePayment),
+  appointmentRepo: new BaseRepository(TeacherAppointment),
+  surveyRepo: new BaseRepository(SatisfactionSurvey),
+  rewardRepo: new BaseRepository(RewardDisciplineRecord),
+  admissionRepo: new BaseRepository(AdmissionApplication),
+  studentDocumentRepo: new BaseRepository(StudentDocument),
+  payrollRepo: new BaseRepository(PayrollRecord),
 };

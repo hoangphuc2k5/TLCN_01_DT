@@ -126,6 +126,7 @@ const applyTemplate = asyncHandler(async (req, res) => {
     'Áp dụng mẫu thành công'
   );
 });
+const listTemplateDeployments = asyncHandler(async (req, res) => success(res, await adminExtraService.listTemplateDeployments(req.user, req.query)));
 
 module.exports = {
   listSubscriptions,
@@ -163,4 +164,5 @@ module.exports = {
   createTemplate,
   updateTemplate,
   applyTemplate,
+  listTemplateDeployments,
 };

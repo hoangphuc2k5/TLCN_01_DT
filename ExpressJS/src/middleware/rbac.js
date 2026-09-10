@@ -51,11 +51,11 @@ const authorizePermissionAction = (actions, ...permissions) => async (req, res, 
   } catch (error) { next(error); }
 };
 
-const authorizeRead = (resource, { personal = false } = {}) => async (req, _res, next) => {
+const authorizeRead = (resource, { personal = false, personalRoles = ['STUDENT', 'PARENT'] } = {}) => async (req, _res, next) => {
   try {
     if (!req.user) throw new ApiError(401, 'Chưa xác thực');
     const cache = require('../services/rolePermissionCache');
-    const own = personal && ['STUDENT', 'PARENT'].includes(req.user.role) && await cache.canAccess(req.user.role, 'own_data', 'view');
+    const own = personal && personalRoles.includes(req.user.role) && await cache.canAccess(req.user.role, 'own_data', 'view');
     if (!own && !(await cache.canAccess(req.user.role, resource, 'view'))) throw new ApiError(403, 'Không có quyền xem');
     next();
   } catch (error) { next(error); }

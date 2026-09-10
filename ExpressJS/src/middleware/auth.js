@@ -8,15 +8,20 @@ const roleCache = require('../services/rolePermissionCache');
 const PUBLIC_PATHS = [
   '/v1/api/auth/login',
   '/v1/api/auth/google',
+  '/v1/api/auth/phone/request',
+  '/v1/api/auth/phone/verify',
+  '/v1/api/auth/sso',
   '/v1/api/auth/config',
   '/v1/api/auth/mfa/verify',
   '/v1/api/health',
+  '/v1/api/online-payments/vnpay/ipn',
+  '/v1/api/online-payments/vnpay/return',
 ];
 
 const authenticate = async (req, res, next) => {
   try {
     const path = req.originalUrl.split('?')[0].replace(/\/$/, '').toLowerCase();
-    if (PUBLIC_PATHS.includes(path) || req.method === 'OPTIONS') {
+    if (PUBLIC_PATHS.includes(path) || path.startsWith('/v1/api/online-payments/webhook/') || path === '/v1/api/admissions/public' || path.startsWith('/v1/api/admissions/public/') || req.method === 'OPTIONS') {
       return next();
     }
 

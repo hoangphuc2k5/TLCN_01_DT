@@ -17,7 +17,12 @@ import RolesPage from './features/roles/RolesPage.jsx';
 import ClassesPage from './features/classes/ClassesPage.jsx';
 import AttendancePage from './features/attendance/AttendancePage.jsx';
 import GradesPage from './features/grades/GradesPage.jsx';
+import VnpayReturnPage from './features/fees/VnpayReturnPage.jsx';
 import FeesPage from './features/fees/FeesPage.jsx';
+import AppointmentsPage from './features/appointments/AppointmentsPage.jsx';
+import RewardsPage from './features/rewards/RewardsPage.jsx';
+import AdmissionApplyPage from './features/admissions/AdmissionApplyPage.jsx';
+import AdmissionsPage from './features/admissions/AdmissionsPage.jsx';
 import AnnouncementsPage from './features/announcements/AnnouncementsPage.jsx';
 import LeavePage from './features/leave/LeavePage.jsx';
 import TimetablePage from './features/timetable/TimetablePage.jsx';
@@ -34,14 +39,25 @@ import TemplatesPage from './features/admin/TemplatesPage.jsx';
 import MessagesPage from './features/messages/MessagesPage.jsx';
 import CalendarPage from './features/calendar/CalendarPage.jsx';
 import JobsPage from './features/admin/JobsPage.jsx';
+import AssignmentsPage from './features/assignments/AssignmentsPage.jsx';
+import ContactBookPage from './features/contactBook/ContactBookPage.jsx';
+import ClassLifePage from './features/classLife/ClassLifePage.jsx';
+import ActivitiesPage from './features/activities/ActivitiesPage.jsx';
+import StudentDocumentsPage from './features/studentDocuments/StudentDocumentsPage.jsx';
+import PayrollPage from './features/fees/PayrollPage.jsx';
+import EquipmentMaintenancePage from './features/facilities/EquipmentMaintenancePage.jsx';
+import MonitoringPage from './features/admin/MonitoringPage.jsx';
+import SchoolComparisonPage from './features/admin/SchoolComparisonPage.jsx';
 import { ROLES } from './constants/roles.js';
 import './styles/global.css';
 
 const router = createBrowserRouter([
+  { path: '/payments/vnpay-return', element: <VnpayReturnPage /> },
   {
     path: '/login',
     element: <LoginPage />,
   },
+  { path: '/admissions/apply', element: <AdmissionApplyPage /> },
   {
     path: '/',
     element: <App />,
@@ -68,6 +84,13 @@ const router = createBrowserRouter([
               { path: 'attendance', element: <AttendancePage /> },
               { path: 'grades', element: <GradesPage /> },
               { path: 'fees', element: <FeesPage /> },
+              { path: 'payroll', element: <PayrollPage /> },
+              { path: 'equipment-maintenance', element: <EquipmentMaintenancePage /> },
+              { path: 'monitoring', element: <MonitoringPage /> },
+              { path: 'school-comparison', element: <SchoolComparisonPage /> },
+              { path: 'appointments', element: <AppointmentsPage /> },
+              { path: 'rewards', element: <RewardsPage /> },
+              { path: 'admissions', element: <AdmissionsPage /> },
               { path: 'announcements', element: <AnnouncementsPage /> },
               { path: 'messages', element: <MessagesPage /> },
               { path: 'calendar', element: <CalendarPage /> },
@@ -83,6 +106,11 @@ const router = createBrowserRouter([
               { path: 'conduct', element: <ConductPage /> },
               { path: 'templates', element: <TemplatesPage /> },
               { path: 'jobs', element: <JobsPage /> },
+  { path: 'assignments', element: <AssignmentsPage /> },
+  { path: 'contact-book', element: <ContactBookPage /> },
+  { path: 'class-life', element: <ClassLifePage /> },
+              { path: 'activities', element: <ActivitiesPage /> },
+              { path: 'student-documents', element: <StudentDocumentsPage /> },
             ],
           },
         ],

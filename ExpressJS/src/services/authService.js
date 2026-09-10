@@ -10,6 +10,7 @@ const { listLegacyPermissionsForRole } = require('../constants/permissions');
 const { ROLE_LABELS } = require('../constants/roles');
 const { STATUS } = require('../constants/status');
 const roleCache = require('./rolePermissionCache');
+const sso = require('./ssoIdentity');
 
 
 const login = async (email, password) => {
@@ -80,6 +81,15 @@ const loginWithGoogle = async (idToken) => {
   return security.beginLogin(user);
 };
 
+const loginWithSso = async assertion => {
+  const identity = sso.verifyAssertion(assertion);
+  let user = await userRepo.findOne({ $or: [{ ssoSubject: identity.sub }, { email: String(identity.email).toLowerCase() }] }).select('+password +security');
+  if (!user) throw new ApiError(404, 'Khong tim thay tai khoan doanh nghiep');
+  if (user.status !== STATUS.ACTIVE) throw new ApiError(403, 'Tai khoan da bi khoa hoac tam ngung');
+  user = await require('../repositories/authSecurityRepository').update(user, { ssoSubject: identity.sub, authProvider: user.password ? 'both' : 'sso', ...(identity.name && user.name.startsWith('User') ? { name: identity.name } : {}) });
+  return security.beginLogin(user);
+};
+
 const getAuthConfig = () => {
   const { getAppName } = require('../utils/appName');
   return {
@@ -87,6 +97,8 @@ const getAuthConfig = () => {
     googleClientId: process.env.GOOGLE_CLIENT_ID || '',
     gmailOnly: process.env.AUTH_GMAIL_ONLY !== 'false',
     allowPasswordLogin: process.env.ALLOW_PASSWORD_LOGIN !== 'false',
+    phoneLogin: process.env.PHONE_LOGIN_ENABLED !== 'false',
+    enterpriseSso: !!process.env.ENTERPRISE_SSO_SECRET,
   };
 };
 
@@ -126,6 +138,7 @@ const hashPassword = require('./passwordPolicy').hash;
 module.exports = {
   login,
   loginWithGoogle,
+  loginWithSso,
   getAuthConfig,
   getMe,
   updateProfile,

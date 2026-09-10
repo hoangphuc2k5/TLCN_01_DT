@@ -225,6 +225,24 @@ const seedSystemRoles = async ({ force = false } = {}) => {
         existing.level = DEFAULT_ROLE_LEVELS[code] ?? 100;
         dirty = true;
       }
+      // Add newly introduced baseline capabilities without overwriting
+      // permissions that an operator may have customized on a system role.
+      const newBaseline = code === ROLES.CLUSTER_ADMIN
+        ? ['MANAGE_DOCUMENTS', 'VIEW_MONITORING']
+        : [ROLES.STUDENT, ROLES.PARENT].includes(code)
+        ? (code === ROLES.PARENT ? ['PAY_ONLINE', 'REQUEST_APPOINTMENTS', 'SUBMIT_SURVEYS'] : ['PAY_ONLINE'])
+        : [ROLES.SCHOOL_ADMIN, ROLES.ACADEMIC_AFFAIRS, ROLES.SUBJECT_TEACHER, ROLES.HOMEROOM_TEACHER].includes(code)
+          ? ['MANAGE_APPOINTMENTS', 'MANAGE_REWARDS', ...([ROLES.SCHOOL_ADMIN, ROLES.ACADEMIC_AFFAIRS].includes(code) ? ['MANAGE_ADMISSIONS', 'MANAGE_DOCUMENTS'] : []), ...(code === ROLES.SCHOOL_ADMIN ? ['MANAGE_FACILITIES', 'VIEW_MONITORING'] : [])] : [];
+      if (newBaseline.length) {
+        const next = mergePermissionEntries([
+          ...(existing.permissions || []),
+          ...legacyPermissionsToEntries(newBaseline),
+        ]);
+        if (JSON.stringify(next) !== JSON.stringify(existing.permissions || [])) {
+          existing.permissions = next;
+          dirty = true;
+        }
+      }
       if (dirty) await existing.save();
       continue;
     }

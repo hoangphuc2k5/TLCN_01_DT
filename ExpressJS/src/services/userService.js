@@ -13,6 +13,7 @@ const Class = require('../models/Class');
 const Cluster = require('../models/Cluster');
 const User = require('../models/User');
 const { objectId } = require('./dataScope');
+const { assertWithinLimits } = require('./subscriptionService');
 
 const validateUserReferences = async (actor, target) => {
   const role = await roleCache.getRole(target.role);
@@ -176,6 +177,7 @@ const createUser = async (actor, data) => {
 
   const target = { role: roleCode, schoolId: resolvedSchoolId, clusterId: resolvedClusterId, classId, parentOf };
   await validateUserReferences(actor, target);
+  await assertWithinLimits(target.schoolId, target.role);
   resolvedSchoolId = target.schoolId; resolvedClusterId = target.clusterId;
   const hashed = password ? await hashPassword(password, { email: normalizedEmail }) : null;
   const user = await userRepo.create({

@@ -8,6 +8,7 @@ const { ROLES } = require('../constants/roles');
 const { scopedDocument, reference, targetSchool, academicReferences } = require('./writeScope');
 const { objectId, schoolScope, personalStudentIds, teacherClassScope } = require('./dataScope');
 const User = require('../models/User');
+const TemplateDeployment = require('../models/TemplateDeployment');
 
 // Audit
 const listAuditLogs = async (actor, query = {}) => {
@@ -167,6 +168,7 @@ const updateTemplate = async (actor, id, data) => {
     if (data[k] !== undefined) tpl[k] = data[k];
   });
   await tpl.save();
+  await TemplateDeployment.updateMany({ templateId: tpl._id }, { $set: { name: tpl.name, type: tpl.type, version: tpl.version, content: tpl.content, sourceUpdatedAt: tpl.updatedAt, syncedAt: new Date() } });
   return tpl;
 };
 
@@ -187,7 +189,18 @@ const applyTemplateToSchool = async (actor, schoolId, templateId) => {
   ids.add(String(templateId));
   school.appliedTemplateIds = [...ids];
   await school.save();
+  await TemplateDeployment.findOneAndUpdate(
+    { schoolId: school._id, templateId: template._id },
+    { schoolId: school._id, templateId: template._id, name: template.name, type: template.type, version: template.version, content: template.content, sourceUpdatedAt: template.updatedAt, syncedAt: new Date() },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
   return school.populate('appliedTemplateIds');
+};
+
+const listTemplateDeployments = async (actor, query = {}) => {
+  const filter = { ...(await schoolScope(actor)) };
+  if (query.templateId) filter.templateId = objectId(query.templateId, 'templateId');
+  return TemplateDeployment.find(filter).populate('schoolId', 'name code').populate('templateId', 'name type version').sort({ syncedAt: -1 }).limit(500);
 };
 
 module.exports = {
@@ -201,4 +214,5 @@ module.exports = {
   createTemplate,
   updateTemplate,
   applyTemplateToSchool,
+  listTemplateDeployments,
 };

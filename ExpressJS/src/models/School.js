@@ -12,6 +12,7 @@ const schoolSchema = new mongoose.Schema(
     email: { type: String, default: '' },
     logo: { type: String, default: '' },
     storageUsedBytes: { type: Number, default: 0, min: 0, select: false },
+    scheduleRevision: { type: Number, default: 0, select: false },
     schoolType: {
       type: String,
       enum: ['PRESCHOOL', 'PRIMARY', 'SECONDARY', 'HIGH', 'MULTI'],

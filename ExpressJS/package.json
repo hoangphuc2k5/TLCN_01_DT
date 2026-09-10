@@ -9,7 +9,7 @@
     "worker": "node scripts/job-worker.js",
     "backup": "node scripts/backup.js",
     "seed": "node ./src/seed/seedDemo.js",
-    "test": "node --test"
+    "test": "node --test --test-concurrency=1"
   },
   "keywords": [
     "nodejs",

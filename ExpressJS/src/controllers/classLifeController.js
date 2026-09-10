@@ -1,0 +1,10 @@
+const asyncHandler = require('../utils/asyncHandler');
+const { success } = require('../utils/response');
+const service = require('../services/classLifeService');
+exports.listActivities = asyncHandler(async (req, res) => success(res, await service.listActivities(req.user, req.query)));
+exports.createActivity = asyncHandler(async (req, res) => success(res, await service.createActivity(req.user, req.body), 'Da tao sinh hoat lop', 201));
+exports.publishActivity = asyncHandler(async (req, res) => success(res, await service.publishActivity(req.user, req.params.id), 'Da cong bo', 200));
+exports.listMeetings = asyncHandler(async (req, res) => success(res, await service.listMeetings(req.user)));
+exports.createMeeting = asyncHandler(async (req, res) => success(res, await service.createMeeting(req.user, req.body), 'Da tao lich hop', 201));
+exports.cancelMeeting = asyncHandler(async (req, res) => success(res, await service.cancelMeeting(req.user, req.params.id), 'Da huy lich hop'));
+exports.rsvp = asyncHandler(async (req, res) => success(res, await service.rsvp(req.user, req.params.id, req.body), 'Da cap nhat RSVP'));

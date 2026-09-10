@@ -156,6 +156,12 @@ const createLeave = asyncHandler(async (req, res) => {
 const reviewLeave = asyncHandler(async (req, res) => {
   return success(res, await leaveService.reviewLeave(req.user, req.params.id, req.body), 'Duyệt đơn thành công');
 });
+const cancelMakeup = asyncHandler(async (req, res) => {
+  return success(res, await leaveService.cancelMakeup(req.user, req.params.id, req.body));
+});
+const datedSchedule = asyncHandler(async (req, res) => {
+  return success(res, await require('../services/teachingScheduleService').schedule(req.user, req.query));
+});
 const listTimetables = asyncHandler(async (req, res) => {
   return success(res, await timetableService.listTimetables(req.user, req.query));
 });
@@ -228,6 +234,8 @@ module.exports = {
   listLeaves,
   createLeave,
   reviewLeave,
+  cancelMakeup,
+  datedSchedule,
   listTimetables,
   upsertTimetable,
   approveTimetable,

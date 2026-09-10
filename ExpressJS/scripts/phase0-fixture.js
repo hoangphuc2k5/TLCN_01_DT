@@ -1,5 +1,8 @@
 // Local E2E only: never connects to MONGODB_URI or imports the production seed.
 Object.assign(process.env, {
+  VNPAY_TMN_CODE: 'TESTCODE', VNPAY_HASH_SECRET: 'isolated-vnpay-fixture-secret',
+  VNPAY_URL: 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
+  VNPAY_RETURN_URL: 'http://127.0.0.1:5175/payments/vnpay-return',
   NODE_ENV: 'test', JWT_SECRET: 'phase0-local-fixture-secret', AUTH_MFA_ENCRYPTION_KEY: 'ab'.repeat(32),
   ALLOW_PASSWORD_LOGIN: 'true', AUTH_GMAIL_ONLY: 'false',
   GOOGLE_CLIENT_ID: '', GMAIL_USER: '', GMAIL_APP_PASSWORD: '',
@@ -55,6 +58,12 @@ async function start() {
     const admin = await user('admin', 'SCHOOL_ADMIN');
     await require('../src/models/Job').create({ schoolId: school._id, kind: 'NOTIFICATION_EMAIL', resourceId: new mongoose.Types.ObjectId(), label: `QA Job ${i}`, status: 'FAILED', attempts: 2, maxAttempts: 2, totalAttempts: 2, lastError: 'SMTP_UNCONFIGURED' });
     await Assignment.create({ schoolId: school._id, teacherId: teacher._id, classId: cls._id, subjectId: subject._id, academicYearId: year._id });
+    await require('../src/models/Homework').create({ schoolId: school._id, classId: cls._id, subjectId: subject._id, academicYearId: year._id, teacherId: teacher._id, title: `QA Homework ${i}`, instructions: 'Submit a short solution.', availableFrom: '2026-08-15T00:00:00.000Z', dueAt: '2027-01-15T23:59:00.000Z', maxScore: 10, status: 'PUBLISHED' });
+    await require('../src/models/ContactBookEntry').create({ schoolId: school._id, classId: cls._id, studentId: student._id, academicYearId: year._id, authorId: teacher._id, periodType: 'MONTH', periodKey: '2026-09', academicSummary: 'Fixture progress', conductSummary: 'Good', status: 'PUBLISHED', publishedAt: new Date() });
+    await require('../src/models/ClassActivity').create({ schoolId: school._id, classId: cls._id, academicYearId: year._id, organizerId: teacher._id, title: `QA Class Activity ${i}`, scheduledAt: '2026-09-20T09:00:00.000Z', agenda: 'Class review', status: 'PUBLISHED', publishedAt: new Date() });
+    await require('../src/models/ParentMeeting').create({ schoolId: school._id, classId: cls._id, academicYearId: year._id, organizerId: teacher._id, title: `QA Parent Meeting ${i}`, scheduledAt: '2026-10-01T09:00:00.000Z', meetingUrl: 'https://meet.example.test/qa', agenda: 'Term review', status: 'SCHEDULED' });
+    await require('../src/models/Club').create({ schoolId: school._id, name: `QA Science Club ${i}`, description: 'Fixture club', capacity: 20, coordinatorId: admin._id, status: 'OPEN' });
+    await require('../src/models/Timetable').create({ schoolId: school._id, classId: cls._id, academicYearId: year._id, status: 'APPROVED', slots: [{ dayOfWeek: 1, period: 1, teacherId: teacher._id, subjectId: subject._id, room: `QA Room ${i}` }] });
     for (const pupil of [student, peer]) {
       await require('../src/models/Grade').create({ schoolId: school._id, classId: cls._id, subjectId: subject._id, academicYearId: year._id, studentId: pupil._id, teacherId: teacher._id, average: 8 });
       await require('../src/models/FeeInvoice').create({ schoolId: school._id, studentId: pupil._id, academicYearId: year._id, title: `QA Tuition ${pupil.name}`, amount: 100, dueDate: '2027-01-01' });

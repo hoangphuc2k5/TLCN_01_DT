@@ -1,5 +1,31 @@
 # Tiến trình triển khai
 
+## Phase 2.2 - Online homework
+
+- Branch `feat/phase2-online-assignments`, based on `integration/phase1`.
+- Implemented homework lifecycle, scoped student submissions, resubmission before grading, teacher grading/feedback, late policy, close policy, permissions, API and React page. API path is `/v1/api/homeworks` to preserve the existing teacher-assignment endpoints at `/v1/api/assignments`.
+- Tests: backend homework **7/7**, full backend suite **172/172**, frontend policy **10/10**, build passed, dedicated E2E **2/2**, full E2E **31/31**.
+- Details and continuation notes: [phase2-online-assignments.md](phase2-online-assignments.md).
+
+## Phase 2.3 - Periodic contact book
+
+- Branch `feat/phase2-contact-book`, based on `feat/phase2-online-assignments`.
+- Added scoped weekly/monthly/term contact-book entries, teacher draft/publish flow and parent reply at `/contact-book`; API is `/v1/api/contact-books`.
+- Dedicated backend test: **3/3**; full backend **175/175**, frontend policy **10/10**, build passed, dedicated E2E **1/1**, full E2E **32/32**. Details: [phase2-contact-book.md](phase2-contact-book.md).
+
+## Phase 2.4 - Class activities and parent meetings
+
+- Branch `feat/phase2-parent-meetings`, based on `feat/phase2-contact-book`.
+- Added class activity publishing, online parent-meeting scheduling/cancellation and parent RSVP at `/class-life`; APIs are `/v1/api/class-activities` and `/v1/api/parent-meetings`.
+- Dedicated backend test: **2/2**, frontend policy **10/10**, build passed, dedicated E2E **1/1**. Details: [phase2-parent-meetings.md](phase2-parent-meetings.md).
+- Full backend regression after this branch: **177/177**.
+
+## Phase 2.5 - CLB and retake requests
+
+- Branch `feat/phase2-clubs-retakes`, based on `feat/phase2-parent-meetings`.
+- Added school-scoped clubs with capacity/registration and student retake requests with administrative review at `/activities`.
+- Dedicated backend test **1/1**, build passed, dedicated E2E **1/1**. Details: [phase2-clubs-retakes.md](phase2-clubs-retakes.md).
+
 Cập nhật: 08/09/2026. Đã hoàn tất và kiểm thử nhánh tổng hợp Phase 1 (`integration/phase1`): backend 165/165, policy frontend 10/10, E2E Phase 0 + Phase 1 29/29, build đạt. Chi tiết merge và phạm vi xem [bàn giao Phase 1](phase1-integration.md). Phase 2 tiếp tục ở nhánh chức năng riêng; chưa merge main.
 
 ## Nhánh tổng hợp Phase 1
@@ -254,3 +280,113 @@ Cập nhật: 08/09/2026. Đã hoàn tất và kiểm thử nhánh tổng hợp 
 5. Giữ riêng các việc nghiệp vụ: thời lượng/tự nộp thi, giao dịch đồng thời học phí/tồn kho, di chuyển trường giữa cụm và migration dữ liệu liên quan, bộ duyệt custom role, Google/SMTP/SMS/Zalo/payment thật. Chưa có kết quả UAT cho các phần này.
 
 Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend và 4 ở frontend từ cây dependency; chưa chạy audit fix vì có thể thay major/ngoài scope. File .env và hai file untracked ban đầu không thuộc các commit bàn giao.
+
+
+## Phase 2.6 - Thanh toan hoc phi online (8.4)
+
+- Nhanh: `feat/phase2-online-payments`.
+- Them `OnlinePayment`, adapter gateway MOCK/VNPay/MoMo, request idempotency va webhook HMAC. Callback PAID dung transaction de cap nhat hoa don va tao duy nhat Payment ONLINE; callback lap khong tao thu trung.
+- Hoc sinh/phu huynh duoc cap `PAY_ONLINE` va chi thanh toan hoa don cua ban than/con; ke toan/quan tri van xem giao dich qua quyen hoc phi.
+- API: POST/GET `/online-payments`, GET `/online-payments/:id`, POST `/online-payments/webhook/:provider`. Fees page co nut tao checkout MOCK.
+- Test rieng: `node --test test/online-payment.test.js` - **2/2**; frontend `npm run build` - dat.
+- Cau hinh gateway qua `PAYMENT_MOCK_SECRET`, `VNPAY_*`, `MOMO_*`; khong commit secret. Chi tiet: [phase2-online-payments.md](phase2-online-payments.md).
+
+
+## Phase 2.7 - Hen giao vien va khao sat hai long (8.6/8.8)
+
+- Nhanh: `feat/phase2-appointments-surveys`.
+- Them TeacherAppointment va SatisfactionSurvey; parent dat lich cho con, giao vien xac nhan/tu choi/hoan tat, parent huy va danh gia 1-5. Scope theo truong, child relation, teacher owner va unique survey.
+- API: GET/POST `/appointments`, PATCH review/cancel, POST survey, GET surveys; React page `/appointments`.
+- Test rieng: `node --test test/appointments-surveys.test.js` - **2/2**. Chi tiet: [phase2-appointments-surveys.md](phase2-appointments-surveys.md).
+
+
+## Phase 2.8 - Khen thuong va ky luat (4.10)
+
+- Nhanh: `feat/phase2-rewards-discipline`.
+- Them RewardDisciplineRecord (REWARD/DISCIPLINE) tach khoi xep loai hanh kiem; giao vien tao cho lop duoc phan cong, quan ly duyet, HS/PH chi xem ban ghi APPROVED cua minh.
+- API `/rewards` va giao dien React them tao/duyet, co scope truong va ca nhan.
+- Test rieng: `node --test test/rewards-discipline.test.js` - **2/2**. Chi tiet: [phase2-rewards-discipline.md](phase2-rewards-discipline.md).
+
+
+## Phase 2.9 - Tuyen sinh online (4.6)
+
+- Nhanh: `feat/phase2-online-admissions`.
+- Them AdmissionApplication, form public theo ma truong/subdomain, tracking code va tra cuu trang thai; staff scope theo truong/cum duyet UNDER_REVIEW/ACCEPTED/REJECTED/WAITLISTED.
+- API public `/admissions/public`, quan ly `/admissions`; React form `/admissions/apply` va bang duyet.
+- Test backend rieng **2/2**, Playwright E2E **1/1**, build dat. Chi tiet: [phase2-online-admissions.md](phase2-online-admissions.md).
+
+## Phase 2.10 - Ho so scan va chung nhan dien tu (5.4-5.5)
+
+- Nhanh: `feat/phase2-student-dossiers-certificates`.
+- Them StudentDocument, upload tai lieu quet theo hoc sinh voi quota storage va phan quyen school/cluster; HS/PH chi xem tai lieu cua minh/con.
+- Them xuat bang diem dien tu ket hop diem, hanh kiem va khen thuong/ky luat da duyet; PDF native nhe va Word-compatible RTF `.doc`.
+- API: `/student-documents/upload`, `/student-documents`, `/student-documents/:id/download`, `/students/:studentId/certificate/:format`; React `/student-documents`.
+- Test rieng backend **2/2**; production build dat. Chi tiet: [phase2-student-dossiers-certificates.md](phase2-student-dossiers-certificates.md).
+
+## Phase 2.11 - Khoan thu khac, nhac no va quan ly luong (9.2, 9.4, 9.6)
+
+- Nhanh: `feat/phase2-fees-payroll`.
+- Mo rong hoa don voi category/description; danh sach cong no va nhac no hang ngay idempotent qua Notification cho hoc sinh + phu huynh.
+- Them PayrollRecord theo thang, tinh net luong va quy trinh DRAFT -> APPROVED -> PAID.
+- API `/fees/debtors`, `/fees/reminders/run`, `/payroll`; React them truong khoan thu, nut nhac no va trang bang luong.
+- Test backend rieng **2/2**; production build dat. Chi tiet: [phase2-fees-payroll.md](phase2-fees-payroll.md).
+
+## Phase 2.12 - Bao tri thiet bi chi tiet (10.4)
+
+- Nhanh: `feat/phase2-equipment-maintenance`.
+- Them EquipmentAsset va EquipmentMaintenance: ton kho, serial/vị tri/bao hanh, muc do uu tien, chi phi va quy trinh OPEN -> IN_PROGRESS -> RESOLVED/CANCELLED.
+- Bao cao su co tu dong chuyen thiet bi sang MAINTENANCE; khi xu ly phieu cuoi cung thi tra ve AVAILABLE; phan quyen manager/nguoi bao cao tach rieng.
+- API `/equipment`, `/equipment-maintenance`; React `/equipment-maintenance`.
+- Test backend rieng **1/1**; production build dat. Chi tiet: [phase2-equipment-maintenance.md](phase2-equipment-maintenance.md).
+
+## Phase 2.13 - SSO doanh nghiep, dang nhap so dien thoai va thong bao realtime (11.1-11.2)
+
+- Nhanh: `feat/phase2-sso-phone-realtime`.
+- Them signed enterprise SSO assertion, phone OTP 5 phut/5 lan va adapter SMS; them adapter SMS/Zalo/push co timeout, khong gui that khi chua cau hinh.
+- Them SSE `/notifications/stream` co auth, hook Notification -> eventBus va endpoint yeu cau delivery; frontend co API/thunk va form OTP.
+- Test backend rieng **2/2** (OTP, SSO, SSE, delivery); production build dat. Chi tiet: [phase2-sso-phone-realtime.md](phase2-sso-phone-realtime.md).
+
+## Phase 2.14 - Nen tang van hanh va bao cao (2.4, 2.5/3.3, 3.4, 2.2, subdomain)
+
+- Nhanh: `feat/phase2-platform-hardening`.
+- Them monitoring database/process/storage, TemplateDeployment dong bo full content/version, bao cao doi chieu lien truong, enforce gioi han hoc sinh/GV theo subscription va tenant routing theo `TENANT_BASE_DOMAIN`.
+- React them man hinh monitoring va doi chieu; API `/monitoring`, `/reports/schools/compare`, `/template-deployments`.
+- Test backend rieng **2/2**; production build dat. Chi tiet: [phase2-platform-hardening.md](phase2-platform-hardening.md).
+
+## Phase 2.1 - Xin nghi day va day bu tu cap nhat TKB (5.8, 6.1.10)
+
+- Nhanh: `feat/phase2-teaching-schedule`, da merge vao `integration/phase2`.
+- Them nghi day/day bu theo tiet/ngay, snapshot makeup, lich theo ngay va transaction chong xung dot; lich HS/PH cap nhat sau duyet.
+- Test branch: backend **192/192**, frontend policy **10/10**, Playwright **31/31**, build dat. Chi tiet: [phase2-teaching-schedule.md](phase2-teaching-schedule.md).
+
+## Phase 2 - Tong hop va kiem thu cuoi
+
+> Cập nhật 09/09/2026: phần tổng hợp cũ dưới đây ghi kết quả tại thời điểm đó. Đợt rà soát VNPay bên dưới thay thế kết luận về scope CSVC và khả năng dùng VNPay sandbox thật.
+
+- Nhanh tong hop: `integration/phase2`; da merge cac nhanh nghiep vu Phase 2, bao gom `feat/phase2-teaching-schedule`.
+- Sua phan hoi review CSVC: SCHOOL_ADMIN nhan 403 khi yeu cau ton tai nhung nam ngoai tenant; cac vai tro khac van giu 404 de khong lo du lieu cross-school.
+- Backend regression voi `node --test --test-concurrency=1`: **222/222 pass**, 0 fail. Chay tuan tu de moi bo test MongoMemoryServer co vong doi Mongo rieng va tranh tranh chap tai nguyen khi chay song song.
+- Frontend policy tests: **10/10 pass**. Production build `npm run build`: thanh cong (chi con canh bao bundle chinh lon hon 500 kB).
+- Playwright E2E: **38/38 pass**, gom Phase 0, Phase 1 va cac luong Phase 2 tren fixture API + Vite proxy.
+- Cac adapter payment, SSO, SMS/Zalo/push va S3 da co cau hinh/kiem thu mock; chua goi dich vu that trong regression vi khong co credential production. PDF bang diem tao native nhe va Word export dang RTF `.doc`.
+
+## Rà soát Phase 2 và VNPay sandbox — 09/09/2026
+
+- Nhánh tính năng `feat/phase2-vnpay-sandbox`, đích gộp `integration/phase2`. Tất cả nhánh tính năng Phase 2 cũ đã nằm trong nhánh tổng hợp.
+- Thay adapter VNPay, nối giao diện thanh toán, IPN GET và trang Return; xác thực checksum/merchant/amount/status, giờ GMT+7, expiry và Return URL do server quản lý.
+- Sửa giao dịch thu tay để không đua với IPN; bỏ tùy chọn ghi tay ONLINE. Sửa CSVC để không truy vấn ngoài tenant nhằm phân biệt mã lỗi. Sửa test quyền tương ứng.
+- Backend toàn bộ `npm test`: **231/231 đạt**. Frontend policy **10/10 đạt**; production build đạt, vẫn có cảnh báo bundle lớn.
+- E2E chạy lại riêng với fixture sạch: **39/39 đạt**, 0 fail/flaky/skipped. Bao gồm Return chờ IPN → đã ghi nhận, chữ ký sai không xóa phiên. Lần chạy trước đồng thời với backend mất kết nối Vite sau 24 ca đạt; không tính lần đó là đạt.
+- Cấu hình sandbox được lưu trong `.env` local và không commit secret. Gọi trực tiếp VNPay trả lỗi **71 — terminal chưa được duyệt**. Chưa có giao dịch ngân hàng/OTP/IPN thật thành công; cần VNPay duyệt terminal và đăng ký IPN HTTPS công khai.
+- Chi tiết và hướng dẫn tiếp tục: [phase2-vnpay-sandbox.md](phase2-vnpay-sandbox.md).
+- Đã push nhánh tính năng tại `a13a1cb`; merge không xung đột vào `integration/phase2` tại `b55c7a3` và push thành công. Nhánh tổng hợp chứa cùng nội dung mã nguồn đã kiểm thử.
+
+## Chẩn đoán app không chạy — DNS/Atlas
+
+- Frontend cổng 5173 vẫn trả HTTP 200; backend 8080 không lắng nghe nên API qua Vite trả 500.
+- Tái hiện startup: `querySrv ECONNREFUSED`. Resolver hệ thống thất bại; Cloudflare/Google phân giải được SRV (3 bản ghi) và TXT của Atlas.
+- Thêm `DNS_SERVERS` tùy chọn cho tiến trình Node trong `src/config/database.js`, trước khi mở kết nối. `.env` local cấu hình `1.1.1.1,8.8.8.8`; `.env.example` để trống. Không thay DNS toàn máy hay URI database.
+- Kiểm tra cú pháp và xác nhận cả callback/promise DNS API nhận đúng resolver: đạt.
+- Sau sửa DNS, kết nối Atlas thật vẫn thất bại với `ERR_SSL_TLSV1_ALERT_INTERNAL_ERROR` (TLS alert 80), tái hiện cả TLS 1.2/1.3. Chưa phục hồi backend, chưa chạy được Atlas ping. Không suy ra lỗi code VNPay từ lỗi này.
+- Bước tiếp: kiểm tra cluster đang hoạt động và Network Access cho IP public của máy chạy backend; nếu IP đã được cho phép, kiểm tra VPN/firewall/TLS interception. Sau khi sửa quyền mạng, khởi động lại backend bằng `npm run dev`, kiểm tra `/v1/api/health` trực tiếp và qua Vite.
+- Nguồn: [Atlas connection troubleshooting](https://www.mongodb.com/docs/atlas/troubleshoot-connection/), [Node DNS configuration](https://nodejs.org/api/dns.html#dnssetserversservers).

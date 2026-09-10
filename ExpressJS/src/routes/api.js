@@ -9,7 +9,17 @@ const c = require('../controllers/moduleController');
 const a = require('../controllers/advancedController');
 
 const router = express.Router();
+const onlinePayments = require('../controllers/onlinePaymentController');
+const appointments = require('../controllers/appointmentController');
+const rewards = require('../controllers/rewardController');
+const admissions = require('../controllers/admissionController');
 const jobs = require('../controllers/jobController');
+const studentDocuments = require('../controllers/studentDocumentController');
+const payroll = require('../controllers/payrollController');
+const equipment = require('../controllers/equipmentController');
+const notificationController = require('../controllers/notificationController');
+const monitoringController = require('../controllers/monitoringController');
+const platformController = require('../controllers/platformController');
 router.get('/jobs', authorizeRead('jobs'), jobs.list);
 router.post('/jobs/:id/retry', authorizePermissionAction('execute', PERMISSIONS.MANAGE_JOBS), audit('RETRY', 'Job'), jobs.retry);
 router.post('/jobs/:id/cancel', authorizePermissionAction('execute', PERMISSIONS.MANAGE_JOBS), audit('CANCEL', 'Job'), jobs.cancel);
@@ -18,15 +28,24 @@ router.post('/materials/upload', authorizePermissionAction('create', PERMISSIONS
 router.get('/files/usage', authorizeRead('materials'), files.usage);
 router.get('/files/:id', authorizeRead('materials', { personal: true }), files.metadata);
 router.get('/files/:id/download', authorizeRead('materials', { personal: true }), files.download);
+router.post('/student-documents/upload', authorizePermissionAction('create', PERMISSIONS.MANAGE_DOCUMENTS), require('../middleware/fileUpload').upload, audit('CREATE', 'StudentDocument'), studentDocuments.upload);
+router.get('/student-documents', authorizeRead('student_documents', { personal: true }), studentDocuments.list);
+router.get('/student-documents/:id/download', authorizeRead('student_documents', { personal: true }), studentDocuments.download);
+router.get('/students/:studentId/certificate/:format', authorizeRead('student_documents', { personal: true }), studentDocuments.certificate);
 
 router.get('/health', (req, res) => res.json({ EC: 0, EM: 'OK', data: { status: 'up' } }));
+router.get('/monitoring', authorizePermissionAction('view', PERMISSIONS.VIEW_MONITORING), monitoringController.metrics);
+router.get('/reports/schools/compare', authorizePermissionAction('view', PERMISSIONS.VIEW_REPORTS), platformController.compareSchools);
 
 // Auth
 const authSecurity = require('../controllers/authSecurityController');
 router.use('/auth', authSecurity.noStore);
-router.post(['/auth/login', '/auth/google', '/auth/mfa/verify', '/auth/mfa/setup', '/auth/mfa/confirm', '/auth/mfa/disable', '/auth/mfa/recovery', '/auth/password'], authSecurity.limit);
+router.post(['/auth/login', '/auth/google', '/auth/phone/request', '/auth/phone/verify', '/auth/sso', '/auth/mfa/verify', '/auth/mfa/setup', '/auth/mfa/confirm', '/auth/mfa/disable', '/auth/mfa/recovery', '/auth/password'], authSecurity.limit);
 router.post('/auth/login', authController.loginValidators, validate, authController.login);
 router.post('/auth/google', authController.loginGoogle);
+router.post('/auth/phone/request', authController.loginPhoneRequest);
+router.post('/auth/phone/verify', authController.loginPhoneVerify);
+router.post('/auth/sso', authController.loginSso);
 router.get('/auth/config', authController.authConfig);
 router.get('/auth/me', authController.me);
 router.put('/auth/profile', authController.updateProfile);
@@ -41,6 +60,8 @@ router.post('/auth/password', audit('CHANGE_PASSWORD', 'User'), authSecurity.pas
 // Dashboard & notifications
 router.get('/dashboard', c.getDashboard);
 router.get('/notifications', c.listNotifications);
+router.get('/notifications/stream', notificationController.stream);
+router.post('/notifications/:id/deliver', notificationController.deliver);
 router.patch('/notifications/read-all', c.markAllRead);
 router.patch('/notifications/:id/read', c.markRead);
 
@@ -110,6 +131,43 @@ router.get('/fees', c.listInvoices);
 router.post('/fees', authorizePermissionAction('create', PERMISSIONS.MANAGE_FEES), audit('CREATE', 'FeeInvoice'), c.createInvoice);
 router.get('/payments', authorizePermissionAction('view', PERMISSIONS.MANAGE_FEES), c.listPayments);
 router.post('/payments', authorizePermissionAction('create', PERMISSIONS.MANAGE_FEES), audit('CREATE', 'Payment'), c.recordPayment);
+router.get('/fees/debtors', authorizePermissionAction('view', PERMISSIONS.MANAGE_FEES), payroll.debtors);
+router.post('/fees/reminders/run', authorizePermissionAction('execute', PERMISSIONS.MANAGE_FEES), audit('RUN_REMINDERS', 'FeeInvoice'), payroll.reminders);
+router.get('/payroll', authorizePermissionAction('view', PERMISSIONS.MANAGE_FEES), payroll.list);
+router.post('/payroll', authorizePermissionAction('create', PERMISSIONS.MANAGE_FEES), audit('CREATE', 'PayrollRecord'), payroll.create);
+router.patch('/payroll/:id/status', authorizePermissionAction('execute', PERMISSIONS.MANAGE_FEES), audit('UPDATE_STATUS', 'PayrollRecord'), payroll.status);
+router.get('/equipment', authorizeRead('facilities', { personal: true }), equipment.list);
+router.post('/equipment', authorizePermissionAction('create', PERMISSIONS.MANAGE_FACILITIES), audit('CREATE', 'EquipmentAsset'), equipment.create);
+router.put('/equipment/:id', authorizePermissionAction('update', PERMISSIONS.MANAGE_FACILITIES), audit('UPDATE', 'EquipmentAsset'), equipment.update);
+router.get('/equipment-maintenance', authorizeRead('facilities', { personal: true }), equipment.listMaintenance);
+router.post('/equipment-maintenance', authorizePermissionAction('create', PERMISSIONS.MANAGE_FACILITIES), audit('CREATE', 'EquipmentMaintenance'), equipment.createMaintenance);
+router.patch('/equipment-maintenance/:id', authorizePermissionAction('execute', PERMISSIONS.MANAGE_FACILITIES), audit('UPDATE', 'EquipmentMaintenance'), equipment.updateMaintenance);
+// Gateway callbacks are authenticated by an HMAC signature in the provider adapter.
+router.get('/online-payments/vnpay/ipn', onlinePayments.vnpayIpn);
+router.get('/online-payments/vnpay/return', onlinePayments.vnpayReturn);
+router.post('/online-payments/webhook/:provider', onlinePayments.webhook);
+router.post('/online-payments', authorizePermissionAction('create', PERMISSIONS.PAY_ONLINE), onlinePayments.create);
+router.get('/online-payments', authorizePermissionAction('view', PERMISSIONS.PAY_ONLINE, PERMISSIONS.MANAGE_FEES), onlinePayments.list);
+router.get('/online-payments/:id', authorizePermissionAction('view', PERMISSIONS.PAY_ONLINE, PERMISSIONS.MANAGE_FEES), onlinePayments.get);
+
+// Teacher appointments and parent satisfaction surveys
+router.get('/appointments', authorizePermissionAction('view', PERMISSIONS.MANAGE_APPOINTMENTS, PERMISSIONS.REQUEST_APPOINTMENTS), appointments.list);
+router.post('/appointments', authorizePermissionAction('create', PERMISSIONS.REQUEST_APPOINTMENTS), appointments.create);
+router.patch('/appointments/:id/review', authorizePermissionAction('update', PERMISSIONS.MANAGE_APPOINTMENTS), appointments.review);
+router.patch('/appointments/:id/cancel', authorizePermissionAction('update', PERMISSIONS.REQUEST_APPOINTMENTS, PERMISSIONS.MANAGE_APPOINTMENTS), appointments.cancel);
+router.get('/surveys', authorizePermissionAction('view', PERMISSIONS.MANAGE_APPOINTMENTS, PERMISSIONS.SUBMIT_SURVEYS), appointments.surveys);
+router.post('/appointments/:id/survey', authorizePermissionAction('create', PERMISSIONS.SUBMIT_SURVEYS), appointments.submitSurvey);
+
+// Rewards and discipline records (in addition to semester conduct ratings)
+router.get('/rewards', authorizeRead('rewards', { personal: true }), rewards.list);
+router.post('/rewards', authorizePermissionAction(['create', 'update'], PERMISSIONS.MANAGE_REWARDS), audit('CREATE', 'RewardDisciplineRecord'), rewards.create);
+router.patch('/rewards/:id/review', authorizePermissionAction('execute', PERMISSIONS.MANAGE_REWARDS), rewards.review);
+
+// Public application and tracking endpoints; staff management remains scoped and authenticated.
+router.post('/admissions/public', admissions.createPublic);
+router.get('/admissions/public/:code', admissions.getPublic);
+router.get('/admissions', authorizePermissionAction('view', PERMISSIONS.MANAGE_ADMISSIONS), admissions.list);
+router.patch('/admissions/:id/review', authorizePermissionAction('execute', PERMISSIONS.MANAGE_ADMISSIONS), admissions.review);
 
 // Announcements
 router.get('/announcements', c.listAnnouncements);
@@ -122,6 +180,8 @@ router.post('/leave-requests', authorizePermissionAction('create', PERMISSIONS.M
 router.patch('/leave-requests/:id/review', authorizePermissionAction('execute', PERMISSIONS.MANAGE_LEAVE), authorizeRoles(ROLES.SCHOOL_ADMIN, ROLES.ACADEMIC_AFFAIRS, ROLES.HOMEROOM_TEACHER, ROLES.CLUSTER_ADMIN), audit('REVIEW', 'LeaveRequest'), c.reviewLeave);
 
 // Timetable
+router.patch('/leave-requests/:id/cancel-makeup', authorizePermissionAction('execute', PERMISSIONS.MANAGE_LEAVE), audit('CANCEL_MAKEUP', 'LeaveRequest'), c.cancelMakeup);
+router.get('/timetables/schedule', authorizeRead('timetable', { personal: true, personalRoles: [ROLES.STUDENT, ROLES.PARENT, ROLES.SUBJECT_TEACHER, ROLES.HOMEROOM_TEACHER] }), c.datedSchedule);
 router.get('/timetables', c.listTimetables);
 router.post('/timetables', authorizePermissionAction(['create', 'update'], PERMISSIONS.MANAGE_TIMETABLE), audit('UPSERT', 'Timetable'), c.upsertTimetable);
 router.patch('/timetables/:id/approve', authorizePermissionAction('execute', PERMISSIONS.MANAGE_TIMETABLE), authorizeRoles(ROLES.SCHOOL_ADMIN), c.approveTimetable);
@@ -132,6 +192,7 @@ router.post('/subscriptions', authorizePermissionAction(['create', 'update'], PE
 router.get('/subscription-invoices', authorizePermissionAction('view', PERMISSIONS.MANAGE_SUBSCRIPTIONS), a.listSubInvoices);
 router.post('/subscription-invoices', authorizePermissionAction('create', PERMISSIONS.MANAGE_SUBSCRIPTIONS), audit('CREATE', 'SubscriptionInvoice'), a.createSubInvoice);
 router.patch('/subscription-invoices/:id/paid', authorizePermissionAction('execute', PERMISSIONS.MANAGE_SUBSCRIPTIONS), a.markSubInvoicePaid);
+router.get('/template-deployments', authorizePermissionAction('view', PERMISSIONS.MANAGE_TEMPLATES), a.listTemplateDeployments);
 
 // Exams
 router.get('/exams', authorizeRead('exams', { personal: true }), a.listExams);
@@ -144,6 +205,45 @@ router.post('/exam-attempts/:attemptId/grade', authorizePermissionAction('update
 router.get('/exam-attempts', authorizeRead('exams', { personal: true }), a.listAttempts);
 
 // Materials
+const homework = require('../controllers/homeworkController');
+// Online homework uses /homeworks to keep the existing teacher-assignment API at /assignments.
+router.get('/homeworks', authorizeRead('assignments', { personal: true }), homework.list);
+router.get('/homeworks/:id', authorizeRead('assignments', { personal: true }), homework.get);
+router.get('/homeworks/:id/submissions', authorizeRead('assignments', { personal: true }), homework.submissions);
+router.post('/homeworks', authorizePermissionAction('create', PERMISSIONS.MANAGE_ASSIGNMENTS), audit('CREATE', 'Homework'), homework.create);
+router.put('/homeworks/:id', authorizePermissionAction('update', PERMISSIONS.MANAGE_ASSIGNMENTS), audit('UPDATE', 'Homework'), homework.update);
+router.patch('/homeworks/:id/publish', authorizePermissionAction('execute', PERMISSIONS.MANAGE_ASSIGNMENTS), audit('PUBLISH', 'Homework'), homework.publish);
+router.patch('/homeworks/:id/close', authorizePermissionAction('execute', PERMISSIONS.MANAGE_ASSIGNMENTS), audit('CLOSE', 'Homework'), homework.close);
+router.post('/homeworks/:id/submissions', authorizePermissionAction('create', PERMISSIONS.SUBMIT_ASSIGNMENTS), audit('SUBMIT', 'HomeworkSubmission'), homework.submit);
+router.patch('/assignment-submissions/:submissionId/grade', authorizePermissionAction('update', PERMISSIONS.MANAGE_ASSIGNMENTS), audit('GRADE', 'HomeworkSubmission'), homework.grade);
+
+const contactBooks = require('../controllers/contactBookController');
+router.get('/contact-books', authorizeRead('contact_books', { personal: true }), contactBooks.list);
+router.get('/contact-books/:id', authorizeRead('contact_books', { personal: true }), contactBooks.get);
+router.post('/contact-books', authorizePermissionAction('create', PERMISSIONS.MANAGE_CONTACT_BOOKS), audit('CREATE', 'ContactBookEntry'), contactBooks.create);
+router.put('/contact-books/:id', authorizePermissionAction('update', PERMISSIONS.MANAGE_CONTACT_BOOKS), audit('UPDATE', 'ContactBookEntry'), contactBooks.update);
+router.patch('/contact-books/:id/publish', authorizePermissionAction('execute', PERMISSIONS.MANAGE_CONTACT_BOOKS), audit('PUBLISH', 'ContactBookEntry'), contactBooks.publish);
+router.patch('/contact-books/:id/reply', authorizeRead('contact_books', { personal: true }), audit('REPLY', 'ContactBookEntry'), contactBooks.reply);
+
+const classLife = require('../controllers/classLifeController');
+router.get('/class-activities', authorizeRead('class_activities', { personal: true }), classLife.listActivities);
+router.post('/class-activities', authorizePermissionAction('create', PERMISSIONS.MANAGE_CLASS_ACTIVITIES), audit('CREATE', 'ClassActivity'), classLife.createActivity);
+router.patch('/class-activities/:id/publish', authorizePermissionAction('execute', PERMISSIONS.MANAGE_CLASS_ACTIVITIES), audit('PUBLISH', 'ClassActivity'), classLife.publishActivity);
+router.get('/parent-meetings', authorizeRead('parent_meetings', { personal: true }), classLife.listMeetings);
+router.post('/parent-meetings', authorizePermissionAction('create', PERMISSIONS.MANAGE_PARENT_MEETINGS), audit('CREATE', 'ParentMeeting'), classLife.createMeeting);
+router.patch('/parent-meetings/:id/cancel', authorizePermissionAction('execute', PERMISSIONS.MANAGE_PARENT_MEETINGS), audit('CANCEL', 'ParentMeeting'), classLife.cancelMeeting);
+router.patch('/parent-meetings/:id/rsvp', authorizeRead('parent_meetings', { personal: true }), audit('RSVP', 'ParentMeetingResponse'), classLife.rsvp);
+
+const clubs = require('../controllers/clubController');
+router.get('/clubs', authorizeRead('clubs', { personal: true }), clubs.listClubs);
+router.post('/clubs', authorizePermissionAction('create', PERMISSIONS.MANAGE_CLUBS), audit('CREATE', 'Club'), clubs.createClub);
+router.post('/clubs/:id/register', authorizePermissionAction('create', PERMISSIONS.REGISTER_CLUBS), audit('REGISTER', 'ClubRegistration'), clubs.register);
+router.patch('/club-registrations/:id/cancel', authorizePermissionAction('update', PERMISSIONS.REGISTER_CLUBS), audit('CANCEL', 'ClubRegistration'), clubs.cancel);
+router.get('/club-registrations', authorizeRead('clubs', { personal: true }), clubs.registrations);
+router.get('/retake-requests', authorizeRead('retakes', { personal: true }), clubs.retakes);
+router.post('/retake-requests', authorizePermissionAction('create', PERMISSIONS.REQUEST_RETAKES), audit('CREATE', 'RetakeRequest'), clubs.createRetake);
+router.patch('/retake-requests/:id/review', authorizePermissionAction('execute', PERMISSIONS.MANAGE_RETAKES), audit('REVIEW', 'RetakeRequest'), clubs.reviewRetake);
+
 router.get('/materials', authorizeRead('materials', { personal: true }), a.listMaterials);
 router.post('/materials', authorizePermissionAction('create', PERMISSIONS.MANAGE_MATERIALS), audit('CREATE', 'LearningMaterial'), a.createMaterial);
 router.delete('/materials/:id', authorizePermissionAction('delete', PERMISSIONS.MANAGE_MATERIALS), a.deleteMaterial);
