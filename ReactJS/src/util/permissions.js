@@ -26,6 +26,7 @@ const resources = {
   classes: 'classes', attendance: 'attendance', grades: 'grades', fees: 'fees',
   exams: 'exams', materials: 'materials', library: 'library', facilities: 'facilities',
   assignments: 'assignments',
+  'lesson-plans': 'lesson_plans',
   'contact-book': 'contact_books',
   'class-life': 'class_activities',
   activities: 'clubs',
