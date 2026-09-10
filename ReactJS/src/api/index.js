@@ -226,7 +226,9 @@ export const createExamApi = (data) => axios.post('/v1/api/exams', data);
 export const updateExamApi = (id, data) => axios.put(`/v1/api/exams/${id}`, data);
 export const startAttemptApi = (examId) => axios.post(`/v1/api/exams/${examId}/attempts`);
 export const submitAttemptApi = (attemptId, answers) =>
-  axios.post(`/v1/api/exam-attempts/${attemptId}/submit`, { answers });
+    axios.post(`/v1/api/exam-attempts/${attemptId}/submit`, { answers });
+  export const saveAttemptDraftApi = (attemptId, answers) =>
+    axios.patch(`/v1/api/exam-attempts/${attemptId}/draft`, { answers });
 export const gradeAttemptApi = (attemptId, grades) =>
   axios.post(`/v1/api/exam-attempts/${attemptId}/grade`, { grades });
 export const getAttemptsApi = (params) => axios.get('/v1/api/exam-attempts', { params });

@@ -11,6 +11,12 @@
 - Đã bổ sung lịch sử và snapshot điểm trước chuyển vào bản in PDF/DOCX bằng Noto Sans Unicode; PDF tự phân trang. Đã render kiểm tra trực quan với dữ liệu tiếng Việt và 30 bản ghi.
 - Các mục mô tả còn thiếu khác chưa được coi là hoàn tất. Chi tiết luồng hiện tại: [student-class-transfers.md](student-class-transfers.md).
 
+## Vòng đời thi: bản nháp và resume — 10/09/2026
+
+- Bổ sung API lưu bản nháp có kiểm tra câu hỏi/phạm vi, tự khôi phục lượt `IN_PROGRESS` còn hạn khi học sinh mở lại đề, và chốt request đến muộn bằng dữ liệu đã lưu trước hạn.
+- React debounce lưu câu trả lời và khôi phục đáp án khi resume; không cho payload gửi sau hạn thay thế bản nháp hợp lệ.
+- Kiểm thử backend phase exam: **88/88**; frontend policy **11/11**, build đạt. E2E toàn bộ được CI kiểm tra sau khi merge.
+
 ## Hoàn thiện báo cáo liên trường — 10/09/2026
 
 - Nhánh `fix/school-comparison-complete`, nền `integration/phase3` tại `7faeb7a`.
