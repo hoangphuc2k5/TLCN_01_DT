@@ -1,5 +1,13 @@
 # Tiến trình triển khai
 
+## Phase 3.4 — Học bạ PDF phân trang và DOCX thật
+
+- Nhánh `feat/phase3-docx-transcripts`, nền `integration/phase3` tại `99d2c13`.
+- Chứng nhận `doc`/`docx` trả DOCX Open XML Unicode; PDF không còn cắt 42 dòng, có phân trang và bổ sung trường/lớp/năm học, điểm thành phần, hạnh kiểm, khen thưởng–kỷ luật đã duyệt.
+- Route xuất ghi audit `StudentTranscript` theo học sinh và định dạng; frontend đổi nút Word sang `.docx`.
+- Backend hồ sơ **2/2**, frontend **11/11**, build đạt và Playwright tải DOCX **1/1**; preview DOCX độc lập đã xem **1/1 trang**, toàn bộ dùng dữ liệu local.
+- Chi tiết: [phase3-docx-transcripts.md](phase3-docx-transcripts.md).
+
 ## Phase 3.3 — Tin nhắn realtime
 
 - Nhánh `feat/phase3-realtime-messaging`, commit `f6b7b4d`; đã merge vào `integration/phase3` tại `f100b92`.
