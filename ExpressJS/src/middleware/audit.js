@@ -8,11 +8,12 @@ const audit = (action, resource) => async (req, res, next) => {
       schoolId: req.schoolId || req.user?.schoolId || null,
       action,
       resource,
-      resourceId: String(req.params.id || res.locals?.resourceId || ''),
+      resourceId: String(req.params.id || req.params.studentId || res.locals?.resourceId || ''),
       details: {
         method: req.method,
         path: req.originalUrl,
         bodyKeys: Object.keys(req.body || {}),
+        ...(req.params.format ? { format: req.params.format } : {}),
       },
       ip: req.ip,
     }).catch(() => {});

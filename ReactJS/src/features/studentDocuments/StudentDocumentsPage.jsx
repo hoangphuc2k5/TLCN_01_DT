@@ -31,7 +31,7 @@ const StudentDocumentsPage = () => {
     return [...map.values()];
   }, [rows, user]);
   const certificateStudentId = selectedStudent || (user?.role === 'STUDENT' ? user._id : personalStudents[0]?._id || personalStudents[0]);
-  const certButtons = id => id && <Space><Button size="small" onClick={() => downloadCertificateApi(id, 'pdf').catch(e => message.error(e.message))}>PDF</Button><Button size="small" onClick={() => downloadCertificateApi(id, 'doc').catch(e => message.error(e.message))}>Word</Button></Space>;
+  const certButtons = id => id && <Space><Button size="small" onClick={() => downloadCertificateApi(id, 'pdf').catch(e => message.error(e.message))}>PDF</Button><Button size="small" onClick={() => downloadCertificateApi(id, 'docx').catch(e => message.error(e.message))}>Word (.docx)</Button></Space>;
 
   return <Space direction="vertical" style={{ width: '100%' }}>
     <Card title="Student documents" extra={canManage && <Button type="primary" onClick={() => setOpen(true)}>Upload document</Button>}>

@@ -300,7 +300,7 @@ const downloadPrivateFile = async (path, fallbackName) => {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
 export const downloadStudentDocumentApi = (id, name = 'student-document') => downloadPrivateFile(`/student-documents/${id}/download`, name);
-export const downloadCertificateApi = (studentId, format) => downloadPrivateFile(`/students/${studentId}/certificate/${format}`, `student-transcript.${format === 'pdf' ? 'pdf' : 'doc'}`);
+export const downloadCertificateApi = (studentId, format) => downloadPrivateFile(`/students/${studentId}/certificate/${format}`, `student-transcript.${format === 'pdf' ? 'pdf' : 'docx'}`);
 export const downloadFileAssetApi = async id => {
   const meta = await axios.get(`/v1/api/files/${id}`);
   if (meta?.EC !== 0) throw new Error(meta?.EM || 'Không tải được thông tin file');
