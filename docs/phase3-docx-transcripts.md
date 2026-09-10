@@ -1,6 +1,6 @@
 # Phase 3.4 — Học bạ PDF phân trang và DOCX thật
 
-Cập nhật: 10/09/2026. Nhánh: `feat/phase3-docx-transcripts`, nền `integration/phase3` tại `99d2c13`.
+Cập nhật: 10/09/2026. Nhánh: `feat/phase3-docx-transcripts`, nền `integration/phase3` tại `99d2c13`; đã merge vào `integration/phase3` tại `165590d`.
 
 ## Phạm vi hoàn thành
 

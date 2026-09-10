@@ -1,8 +1,15 @@
 # Tiến trình triển khai
 
+## Phase 3.5 — Regression cuối và rà soát quyền/menu
+
+- Nhánh `feat/phase3-final-regression`, nền `integration/phase3` sau merge Phase 3.4 tại `165590d`.
+- Rà soát menu/direct URL và permission matrix qua test frontend; backend kiểm tra lại tenant scope, custom role, parent/student scope, payment, realtime, file, lịch dạy bù và học bạ.
+- Kiểm thử local: backend **238/238**, frontend policy **11/11**, production build đạt (giữ cảnh báo bundle lớn đã có), Playwright toàn bộ **43/43**.
+- Không kết nối Atlas hay dịch vụ thật trong regression. VNPay/S3/SMTP/SMS/Zalo/SSO vẫn cần credential, callback hoặc UAT nhà cung cấp theo ghi chú ở kế hoạch.
+
 ## Phase 3.4 — Học bạ PDF phân trang và DOCX thật
 
-- Nhánh `feat/phase3-docx-transcripts`, nền `integration/phase3` tại `99d2c13`.
+- Nhánh `feat/phase3-docx-transcripts`, nền `integration/phase3` tại `99d2c13`; đã merge vào `integration/phase3` tại `165590d`.
 - Chứng nhận `doc`/`docx` trả DOCX Open XML Unicode; PDF không còn cắt 42 dòng, có phân trang và bổ sung trường/lớp/năm học, điểm thành phần, hạnh kiểm, khen thưởng–kỷ luật đã duyệt.
 - Route xuất ghi audit `StudentTranscript` theo học sinh và định dạng; frontend đổi nút Word sang `.docx`.
 - Backend hồ sơ **2/2**, frontend **11/11**, build đạt và Playwright tải DOCX **1/1**; preview DOCX độc lập đã xem **1/1 trang**, toàn bộ dùng dữ liệu local.
