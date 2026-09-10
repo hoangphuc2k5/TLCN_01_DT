@@ -15,6 +15,7 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const buildAuthPayload = async (user) => {
   const roleMeta = await roleCache.getRole(user.role);
+  if (!roleMeta || !require('./roleService').visibleRole(user, roleMeta)) throw new ApiError(403, 'Vai trò không hợp lệ hoặc ngoài phạm vi tài khoản');
   const permissions = await listLegacyPermissionsForRole(user.role);
   return {
     access_token: jwt.sign(
@@ -49,7 +50,7 @@ const login = async (email, password) => {
     // Dev seed dùng email trường — vẫn cho phép khi ALLOW_PASSWORD_LOGIN
   }
 
-  const user = await userRepo.findOne({ email: normalized });
+  const user = await userRepo.findOne({ email: normalized }).select('+password');
   if (!user) {
     throw new ApiError(401, 'Email/mật khẩu không hợp lệ', 1);
   }
@@ -108,9 +109,9 @@ const loginWithGoogle = async (idToken) => {
     throw new ApiError(e.statusCode || 403, e.message, e.errorCode || 403);
   }
 
-  let user = await userRepo.findOne({ email });
+  let user = await userRepo.findOne({ email }).select('+password');
   if (!user && payload.sub) {
-    user = await userRepo.findOne({ googleId: payload.sub });
+    user = await userRepo.findOne({ googleId: payload.sub }).select('+password');
   }
 
   if (!user) {

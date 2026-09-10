@@ -2,18 +2,11 @@ const ApiError = require('../utils/ApiError');
 const { gradeRepo } = require('../repositories');
 const { getGradeStrategy } = require('../patterns/gradeStrategy');
 const { ROLES } = require('../constants/roles');
+const { buildExportScope } = require('./exportScopeService');
+const { academicReferences } = require('./writeScope');
 
 const listGrades = async (actor, query = {}) => {
-  const filter = {};
-  if (actor.schoolId) filter.schoolId = actor.schoolId;
-  if (query.classId) filter.classId = query.classId;
-  if (query.subjectId) filter.subjectId = query.subjectId;
-  if (query.studentId) filter.studentId = query.studentId;
-  if (query.semester) filter.semester = Number(query.semester);
-
-  if (actor.role === ROLES.STUDENT) filter.studentId = actor._id;
-  if (actor.role === ROLES.PARENT) filter.studentId = { $in: actor.parentOf || [] };
-  if ([ROLES.SUBJECT_TEACHER].includes(actor.role)) filter.teacherId = actor._id;
+  const { filter } = await buildExportScope(actor, 'grades', query);
 
   return gradeRepo.find(filter, {
     populate: 'studentId subjectId classId teacherId',
@@ -37,11 +30,12 @@ const upsertGrade = async (actor, data) => {
   }
 
   const calc = getGradeStrategy(strategy);
+  const cls = await academicReferences(actor, data);
   const average = calc.calculateAverage(scores);
   const classification = calc.classify(average);
 
   const filter = {
-    schoolId: actor.schoolId,
+    schoolId: cls.schoolId,
     academicYearId,
     classId,
     subjectId,
@@ -71,6 +65,7 @@ const upsertGrade = async (actor, data) => {
 const addScore = async (actor, gradeId, scoreItem) => {
   const grade = await gradeRepo.findById(gradeId);
   if (!grade) throw new ApiError(404, 'Không tìm thấy bảng điểm');
+  await academicReferences(actor, grade);
   if (actor.role !== ROLES.SUPER_ADMIN && String(grade.schoolId) !== String(actor.schoolId)) {
     throw new ApiError(403, 'Ngoài phạm vi');
   }

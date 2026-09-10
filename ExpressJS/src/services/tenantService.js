@@ -2,10 +2,12 @@ const ApiError = require('../utils/ApiError');
 const { clusterRepo, schoolRepo } = require('../repositories');
 const { ROLES } = require('../constants/roles');
 const School = require('../models/School');
+const { pick } = require('./writeScope');
+const { objectId } = require('./dataScope');
 
 const listClusters = async (actor, query = {}) => {
   const filter = {};
-  if (actor.role === ROLES.CLUSTER_ADMIN) {
+  if (actor.role !== ROLES.SUPER_ADMIN) {
     filter._id = actor.clusterId;
   }
   if (query.q) filter.name = new RegExp(query.q, 'i');
@@ -58,7 +60,8 @@ const createSchool = async (actor, data) => {
   if (actor.role === ROLES.CLUSTER_ADMIN) {
     clusterId = actor.clusterId;
   }
-  return schoolRepo.create({ ...data, clusterId });
+  if (clusterId && !(await clusterRepo.findById(objectId(clusterId)))) throw new ApiError(400, 'Cụm không tồn tại');
+  return schoolRepo.create({ ...pick(data, ['name', 'code', 'subdomain', 'address', 'phone', 'email', 'logo', 'schoolType', 'status']), clusterId });
 };
 
   const updateSchool = async (actor, id, data) => {

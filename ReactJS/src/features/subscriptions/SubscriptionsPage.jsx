@@ -1,3 +1,5 @@
+import { useSelector } from 'react-redux';
+import { can } from '../../util/permissions';
 import { useEffect, useState } from 'react';
 import { Button, Form, Input, InputNumber, Modal, Select, Table, Tabs, Tag, message } from 'antd';
 import dayjs from 'dayjs';
@@ -11,6 +13,8 @@ import {
 } from '../../api';
 
 const SubscriptionsPage = () => {
+  const { user } = useSelector(s => s.auth);
+  const isSuper = user?.role === 'SUPER_ADMIN';
   const [subs, setSubs] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [schools, setSchools] = useState([]);
@@ -22,7 +26,7 @@ const SubscriptionsPage = () => {
   const load = async () => {
     const [s, i, sc] = await Promise.all([
       getSubscriptionsApi(),
-      getSubInvoicesApi(),
+      can(user, 'subscriptions') ? getSubInvoicesApi() : Promise.resolve(null),
       getSchoolsApi(),
     ]);
     if (s?.EC === 0) setSubs(s.data || []);
@@ -43,9 +47,9 @@ const SubscriptionsPage = () => {
             label: 'Gói dịch vụ',
             children: (
               <>
-                <Button type="primary" style={{ marginBottom: 16 }} onClick={() => setOpen(true)}>
+                {isSuper && <Button type="primary" style={{ marginBottom: 16 }} onClick={() => setOpen(true)}>
                   Gán / cập nhật gói
-                </Button>
+                </Button>}
                 <Table
                   rowKey="_id"
                   dataSource={subs}
@@ -68,12 +72,13 @@ const SubscriptionsPage = () => {
           },
           {
             key: 'invoices',
+            disabled: !can(user, 'subscriptions'),
             label: 'Hóa đơn gia hạn',
             children: (
               <>
-                <Button type="primary" style={{ marginBottom: 16 }} onClick={() => setOpenInv(true)}>
+                {isSuper && <Button type="primary" style={{ marginBottom: 16 }} onClick={() => setOpenInv(true)}>
                   Tạo hóa đơn
-                </Button>
+                </Button>}
                 <Table
                   rowKey="_id"
                   dataSource={invoices}
@@ -98,7 +103,7 @@ const SubscriptionsPage = () => {
                     {
                       title: 'Thao tác',
                       render: (_, r) =>
-                        r.status !== 'PAID' ? (
+                        isSuper && r.status !== 'PAID' ? (
                           <Button
                             size="small"
                             onClick={async () => {

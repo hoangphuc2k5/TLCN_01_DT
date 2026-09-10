@@ -2,6 +2,11 @@ const ApiError = require('../utils/ApiError');
 const { feeRepo, paymentRepo } = require('../repositories');
 const { FEE_STATUS } = require('../constants/status');
 const { ROLES } = require('../constants/roles');
+const { buildExportScope } = require('./exportScopeService');
+const { targetSchool, reference } = require('./writeScope');
+const { schoolScope, objectId } = require('./dataScope');
+const User = require('../models/User');
+const AcademicYear = require('../models/AcademicYear');
 
 const refreshStatus = (invoice) => {
   if (invoice.paidAmount <= 0) {
@@ -16,12 +21,11 @@ const refreshStatus = (invoice) => {
 };
 
 const listInvoices = async (actor, query = {}) => {
-  const filter = {};
-  if (actor.schoolId) filter.schoolId = actor.schoolId;
-  if (query.status) filter.status = query.status;
-  if (query.studentId) filter.studentId = query.studentId;
-  if (actor.role === ROLES.STUDENT) filter.studentId = actor._id;
-  if (actor.role === ROLES.PARENT) filter.studentId = { $in: actor.parentOf || [] };
+  const { filter } = await buildExportScope(actor, 'fees', query);
+  if (query.status) {
+    if (!Object.values(FEE_STATUS).includes(query.status)) throw new ApiError(400, 'Invalid fee status');
+    filter.$and.push({ status: query.status });
+  }
   return feeRepo.find(filter, { populate: 'studentId academicYearId', limit: 200 });
 };
 
@@ -29,8 +33,11 @@ const createInvoice = async (actor, data) => {
   if (!data.studentId || !data.academicYearId || !data.title || data.amount == null || !data.dueDate) {
     throw new ApiError(400, 'Thiếu thông tin hóa đơn');
   }
+  const schoolId = await targetSchool(actor, data.schoolId);
+  await reference(User, data.studentId, schoolId, { role: ROLES.STUDENT });
+  await reference(AcademicYear, data.academicYearId, schoolId);
   const invoice = await feeRepo.create({
-    schoolId: actor.schoolId,
+    schoolId,
     studentId: data.studentId,
     academicYearId: data.academicYearId,
     title: data.title,
@@ -46,6 +53,7 @@ const createInvoice = async (actor, data) => {
 const recordPayment = async (actor, data) => {
   const { invoiceId, amount, method = 'CASH', note = '' } = data;
   if (!invoiceId || amount == null) throw new ApiError(400, 'Thiếu invoiceId/amount');
+  if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) throw new ApiError(400, 'Số tiền phải lớn hơn 0');
 
   const invoice = await feeRepo.findById(invoiceId);
   if (!invoice) throw new ApiError(404, 'Không tìm thấy hóa đơn');
@@ -71,9 +79,8 @@ const recordPayment = async (actor, data) => {
 };
 
 const listPayments = async (actor, query = {}) => {
-  const filter = {};
-  if (actor.schoolId) filter.schoolId = actor.schoolId;
-  if (query.invoiceId) filter.invoiceId = query.invoiceId;
+  const filter = await schoolScope(actor);
+  if (query.invoiceId) filter.invoiceId = objectId(query.invoiceId, 'invoiceId');
   return paymentRepo.find(filter, { populate: 'invoiceId studentId recordedBy', limit: 200 });
 };
 

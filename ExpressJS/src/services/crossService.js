@@ -9,6 +9,10 @@ const XLSX = require('xlsx');
 const Grade = require('../models/Grade');
 const FeeInvoice = require('../models/FeeInvoice');
 const Attendance = require('../models/Attendance');
+const { buildExportScope } = require('./exportScopeService');
+const { schoolScope, objectId } = require('./dataScope');
+const { scopedDocument, academicReferences, targetSchool } = require('./writeScope');
+const { classAudienceScope, roleAudienceScope } = require('./audienceScope');
 
 // ——— Messaging ———
 const listMessages = async (actor, query = {}) => {
@@ -26,8 +30,22 @@ const sendMessage = async (actor, data) => {
   if (!data.receiverId || !data.body) {
     throw new ApiError(400, 'Thiếu người nhận hoặc nội dung');
   }
-  const receiver = await User.findById(data.receiverId);
+  const receiver = await User.findById(objectId(data.receiverId, 'receiverId'));
   if (!receiver) throw new ApiError(404, 'Không tìm thấy người nhận');
+  if (actor.role !== ROLES.SUPER_ADMIN && receiver.role !== ROLES.SUPER_ADMIN) {
+    const scope = await schoolScope(actor);
+    const inScope = actor.role === ROLES.CLUSTER_ADMIN
+      ? (receiver.role === ROLES.CLUSTER_ADMIN && String(receiver.clusterId) === String(actor.clusterId)) || scope.schoolId.$in.some(s => String(s) === String(receiver.schoolId))
+      : String(receiver.schoolId) === String(actor.schoolId) || (receiver.role === ROLES.CLUSTER_ADMIN && actor.clusterId && String(receiver.clusterId) === String(actor.clusterId));
+    if (!inScope) throw new ApiError(403, 'Người nhận ngoài phạm vi liên lạc');
+  }
+  if (data.parentMessageId) {
+    const parent = await Message.findOne({ _id: objectId(data.parentMessageId, 'parentMessageId'), $or: [
+      { senderId: actor._id, receiverId: receiver._id },
+      { senderId: receiver._id, receiverId: actor._id },
+    ] });
+    if (!parent) throw new ApiError(403, 'Tin nhắn gốc không thuộc cuộc hội thoại');
+  }
 
   const msg = await Message.create({
     schoolId: actor.schoolId || receiver.schoolId || null,
@@ -68,8 +86,7 @@ const markMessageRead = async (actor, id) => {
 
 // ——— Calendar ———
 const listEvents = async (actor, query = {}) => {
-  const filter = {};
-  if (actor.schoolId) filter.schoolId = actor.schoolId;
+  const filter = { $and: [await schoolScope(actor), await classAudienceScope(actor), roleAudienceScope(actor)] };
   if (query.from || query.to) {
     filter.startAt = {};
     if (query.from) filter.startAt.$gte = new Date(query.from);
@@ -86,8 +103,11 @@ const createEvent = async (actor, data) => {
   if (!data.title || !data.startAt || !data.endAt) {
     throw new ApiError(400, 'Thiếu title/startAt/endAt');
   }
+  if (!Number.isFinite(new Date(data.startAt).getTime()) || !Number.isFinite(new Date(data.endAt).getTime()) || new Date(data.startAt) > new Date(data.endAt)) throw new ApiError(400, 'Thời gian sự kiện không hợp lệ');
+  const schoolId = await targetSchool(actor, data.schoolId);
+  if (data.classId) await academicReferences(actor, data, { homeroomAllowed: true, expectedSchoolId: schoolId });
   return CalendarEvent.create({
-    schoolId: actor.schoolId || null,
+    schoolId,
     title: data.title,
     description: data.description || '',
     type: data.type || 'EVENT',
@@ -100,7 +120,7 @@ const createEvent = async (actor, data) => {
 };
 
 const deleteEvent = async (actor, id) => {
-  const ev = await CalendarEvent.findById(id);
+  const ev = await scopedDocument(CalendarEvent, actor, id);
   if (!ev) throw new ApiError(404, 'Không tìm thấy sự kiện');
   if (
     String(ev.createdBy) !== String(actor._id) &&
@@ -114,9 +134,7 @@ const deleteEvent = async (actor, id) => {
 
 // ——— Export Excel ———
 const exportGradesExcel = async (actor, query = {}) => {
-  const filter = {};
-  if (actor.schoolId) filter.schoolId = actor.schoolId;
-  if (query.classId) filter.classId = query.classId;
+  const { filter } = await buildExportScope(actor, 'grades', query);
   const grades = await Grade.find(filter)
     .populate('studentId', 'name code')
     .populate('subjectId', 'name code')
@@ -139,9 +157,8 @@ const exportGradesExcel = async (actor, query = {}) => {
   return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 };
 
-const exportFeesExcel = async (actor) => {
-  const filter = {};
-  if (actor.schoolId) filter.schoolId = actor.schoolId;
+const exportFeesExcel = async (actor, query = {}) => {
+  const { filter } = await buildExportScope(actor, 'fees', query);
   const fees = await FeeInvoice.find(filter).populate('studentId', 'name code').limit(1000);
   const rows = fees.map((f) => ({
     HocSinh: f.studentId?.name,
@@ -159,9 +176,8 @@ const exportFeesExcel = async (actor) => {
 };
 
 const exportAttendanceExcel = async (actor, query = {}) => {
-  const filter = {};
-  if (actor.schoolId) filter.schoolId = actor.schoolId;
-  if (query.classId) filter.classId = query.classId;
+  const { filter, studentIds } = await buildExportScope(actor, 'attendance', query);
+  const allowedStudents = studentIds === null ? null : new Set(studentIds.map(String));
   const list = await Attendance.find(filter)
     .populate('classId', 'name')
     .populate('records.studentId', 'name code')
@@ -170,6 +186,7 @@ const exportAttendanceExcel = async (actor, query = {}) => {
   const rows = [];
   for (const a of list) {
     for (const r of a.records || []) {
+      if (allowedStudents && !allowedStudents.has(String(r.studentId?._id))) continue;
       rows.push({
         Ngay: a.date,
         Tiet: a.period,
@@ -194,12 +211,10 @@ const globalSearch = async (actor, q) => {
   const userFilter = {
     $or: [{ name: regex }, { email: regex }, { code: regex }],
   };
-  if (actor.schoolId) userFilter.schoolId = actor.schoolId;
-  if (actor.role === ROLES.CLUSTER_ADMIN) userFilter.clusterId = actor.clusterId;
+  Object.assign(userFilter, await schoolScope(actor));
 
   const Class = require('../models/Class');
-  const classFilter = { name: regex };
-  if (actor.schoolId) classFilter.schoolId = actor.schoolId;
+  const classFilter = { name: regex, ...await schoolScope(actor) };
 
   const [users, classes] = await Promise.all([
     User.find(userFilter).select('name email role code').limit(20),

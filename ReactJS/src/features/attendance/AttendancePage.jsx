@@ -11,7 +11,7 @@ import {
   downloadExport,
 } from '../../api';
 import ImportExcelButton from '../../components/ImportExcelButton';
-import { ROLES } from '../../constants/roles';
+import { can, canExport } from '../../util/permissions';
 
 const statusOptions = [
   { value: 'PRESENT', label: 'Có mặt' },
@@ -22,12 +22,7 @@ const statusOptions = [
 
 const AttendancePage = () => {
   const { user } = useSelector((s) => s.auth);
-  const canTake = [
-    ROLES.SUBJECT_TEACHER,
-    ROLES.HOMEROOM_TEACHER,
-    ROLES.SCHOOL_ADMIN,
-    ROLES.ACADEMIC_AFFAIRS,
-  ].includes(user?.role);
+  const canTake = can(user, 'attendance', 'create') && can(user, 'attendance', 'update');
 
   const [rows, setRows] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -79,10 +74,10 @@ const AttendancePage = () => {
 
   return (
     <div>
-      {canTake && (
+      {(canTake || canExport(user, 'attendance')) && (
         <Space style={{ marginBottom: 16 }}>
-          <ImportExcelButton type="attendance" onDone={loadHistory} />
-          <Button
+          {canTake && <ImportExcelButton type="attendance" onDone={loadHistory} />}
+          {canExport(user, 'attendance') && <Button
             onClick={async () => {
               try {
                 await downloadExport('attendance');
@@ -92,7 +87,7 @@ const AttendancePage = () => {
             }}
           >
             Xuất Excel
-          </Button>
+          </Button>}
         </Space>
       )}
       {canTake && (

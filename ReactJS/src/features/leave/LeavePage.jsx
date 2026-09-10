@@ -4,6 +4,7 @@ import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
 import { createLeaveApi, getLeavesApi, reviewLeaveApi } from '../../api';
 import { ROLES } from '../../constants/roles';
+import { can } from '../../util/permissions';
 
 const TYPE_LABELS = {
   STUDENT_ABSENCE: 'Xin nghỉ học',
@@ -39,9 +40,9 @@ const LeavePage = () => {
     ROLES.ACADEMIC_AFFAIRS,
     ROLES.HOMEROOM_TEACHER,
     ROLES.CLUSTER_ADMIN,
-  ].includes(user?.role);
+  ].includes(user?.role) && can(user, 'leave', 'execute');
   const typeOptions = useMemo(() => leaveTypeOptionsByRole(user?.role), [user?.role]);
-  const canCreate = typeOptions.length > 0;
+  const canCreate = typeOptions.length > 0 && can(user, 'leave', 'create');
   const [rows, setRows] = useState([]);
   const [open, setOpen] = useState(false);
   const [selectedType, setSelectedType] = useState(typeOptions[0]?.value);
@@ -111,7 +112,7 @@ const LeavePage = () => {
             ? {
                 title: 'Duyệt',
                 render: (_, r) =>
-                  r.status === 'PENDING' ? (
+                  r.status === 'PENDING' && (r.requesterId?._id || r.requesterId) !== user?._id ? (
                     <Space>
                       <Button
                         size="small"

@@ -10,7 +10,7 @@ export default defineConfig({
     // Proxy API qua cùng origin → Cloudflare Tunnel chỉ cần trỏ frontend
     proxy: {
       '/v1': {
-        target: 'http://localhost:8080',
+        target: process.env.API_PROXY_TARGET || 'http://localhost:8080',
         changeOrigin: true,
       },
     },
@@ -20,7 +20,7 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       '/v1': {
-        target: 'http://localhost:8080',
+        target: process.env.API_PROXY_TARGET || 'http://localhost:8080',
         changeOrigin: true,
       },
     },

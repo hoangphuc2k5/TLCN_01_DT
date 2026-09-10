@@ -24,6 +24,7 @@ import {
 } from '../../api';
 import ImportExcelButton from '../../components/ImportExcelButton';
 import { ROLE_LABELS, canManageLevel } from '../../constants/roles';
+import { can } from '../../util/permissions';
 import RolesPage from '../roles/RolesPage';
 
 const UsersPage = () => {
@@ -106,6 +107,7 @@ const UsersPage = () => {
       <Space style={{ marginBottom: 16 }}>
         <Button
           type="primary"
+          disabled={!can(me, 'users', 'create')}
           onClick={() => {
             setEditing(null);
             form.resetFields();
@@ -114,7 +116,7 @@ const UsersPage = () => {
         >
           Thêm người dùng
         </Button>
-        <ImportExcelButton type="users" onDone={load} label="Import Excel" />
+        {can(me, 'users', 'create') && can(me, 'users', 'update') && <ImportExcelButton type="users" onDone={load} label="Import Excel" />}
       </Space>
       <Table
         rowKey="_id"
@@ -142,6 +144,7 @@ const UsersPage = () => {
                 <Space size={8} style={{ whiteSpace: 'nowrap' }}>
                   <Button
                     size="small"
+                    disabled={!can(me, 'users', 'update')}
                     onClick={() => {
                       setEditing(r);
                       form.setFieldsValue({
@@ -166,7 +169,7 @@ const UsersPage = () => {
                     description="Mật khẩu sẽ về giá trị DEFAULT_PASSWORD trong .env (thường là Password@123)."
                     onConfirm={() => onResetPassword(r._id)}
                   >
-                    <Button size="small">Reset MK</Button>
+                    <Button size="small" disabled={!can(me, 'users', 'update')}>Reset MK</Button>
                   </Popconfirm>
                   <Popconfirm
                     title="Xóa user?"
@@ -178,7 +181,7 @@ const UsersPage = () => {
                       } else message.error(res?.EM);
                     }}
                   >
-                    <Button size="small" danger>
+                    <Button size="small" danger disabled={!can(me, 'users', 'delete')}>
                       Xóa
                     </Button>
                   </Popconfirm>

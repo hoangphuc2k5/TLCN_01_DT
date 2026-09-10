@@ -25,16 +25,12 @@ import {
   updateExamApi,
 } from '../../api';
 import { ROLES } from '../../constants/roles';
+import { can } from '../../util/permissions';
 
 const ExamsPage = () => {
   const { user } = useSelector((s) => s.auth);
-  const canManage = [
-    ROLES.SUBJECT_TEACHER,
-    ROLES.HOMEROOM_TEACHER,
-    ROLES.SCHOOL_ADMIN,
-    ROLES.ACADEMIC_AFFAIRS,
-  ].includes(user?.role);
-  const isStudent = user?.role === ROLES.STUDENT;
+  const canManage = can(user, 'exams', 'create');
+  const isStudent = user?.role === ROLES.STUDENT && can(user, 'exams', 'execute');
 
   const [exams, setExams] = useState([]);
   const [attempts, setAttempts] = useState([]);
@@ -82,7 +78,7 @@ const ExamsPage = () => {
     }));
     const res = await submitAttemptApi(attemptId, payload);
     if (res?.EC === 0) {
-      message.success(`Nộp bài thành công — Điểm MCQ: ${res.data.score}/${res.data.maxScore}`);
+      message.success(res.data.score == null ? 'Nộp bài thành công — điểm chưa công bố' : `Nộp bài thành công — Điểm MCQ: ${res.data.score}/${res.data.maxScore}`);
       setTaking(null);
       load();
     } else message.error(res?.EM);
@@ -117,7 +113,7 @@ const ExamsPage = () => {
                     Làm bài
                   </Button>
                 )}
-                {canManage && r.status === 'DRAFT' && (
+                {can(user, 'exams', 'update') && r.status === 'DRAFT' && (
                   <Button
                     size="small"
                     onClick={async () => {
@@ -145,7 +141,7 @@ const ExamsPage = () => {
         columns={[
           { title: 'Đề', render: (_, r) => r.examId?.title },
           { title: 'HS', render: (_, r) => r.studentId?.name },
-          { title: 'Điểm', render: (_, r) => `${r.score}/${r.maxScore}` },
+          { title: 'Điểm', render: (_, r) => r.score == null ? 'Chưa công bố' : `${r.score}/${r.maxScore}` },
           { title: 'TT', dataIndex: 'status' },
         ]}
       />

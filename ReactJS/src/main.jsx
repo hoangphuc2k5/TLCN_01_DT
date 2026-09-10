@@ -1,12 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { Provider } from 'react-redux';
-import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, Navigate, Outlet, RouterProvider } from 'react-router-dom';
 import { ConfigProvider } from 'antd';
 import viVN from 'antd/locale/vi_VN';
 import App from './App.jsx';
 import store from './Redux/store.js';
-import { PrivateRoute, RoleRoute } from './components/guards/AuthGuards.jsx';
+import { PrivateRoute } from './components/guards/AuthGuards.jsx';
 import AppLayout from './components/layout/AppLayout.jsx';
 import LoginPage from './pages/login.jsx';
 import DashboardPage from './features/dashboard/DashboardPage.jsx';
@@ -54,7 +54,7 @@ const router = createBrowserRouter([
               { index: true, element: <Navigate to="/dashboard" replace /> },
               { path: 'dashboard', element: <DashboardPage /> },
               {
-                element: <RoleRoute roles={[ROLES.SUPER_ADMIN]} />,
+                element: <Outlet />,
                 children: [
                   { path: 'clusters', element: <ClustersPage /> },
                   { path: 'subscriptions', element: <SubscriptionsPage /> },
