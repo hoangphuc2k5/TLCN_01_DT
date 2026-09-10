@@ -1,6 +1,8 @@
 const {
   AlignmentType, BorderStyle, Document, Packer, Paragraph, Table, TableCell, TableRow, TextRun, WidthType,
 } = require('docx');
+const path = require('node:path');
+const PDFDocument = require('pdfkit');
 const ApiError = require('../utils/ApiError');
 const User = require('../models/User');
 const School = require('../models/School');
@@ -90,43 +92,45 @@ const linesFor = transcript => {
   return lines.filter((line, index, all) => line || all[index - 1]);
 };
 
-const pdfEscape = value => ascii(value).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
-const wrap = (value, width = 92) => {
-  const words = ascii(value).split(/\s+/); const lines = []; let current = '';
-  for (const word of words) {
-    if (!word) continue;
-    if (!current || current.length + word.length + 1 <= width) current += `${current ? ' ' : ''}${word}`;
-    else { lines.push(current); current = word; }
+const createPdf = transcript => new Promise((resolve, reject) => {
+  const doc = new PDFDocument({ size: 'A4', margin: 48 });
+  const chunks = [];
+  const fontPath = path.join(__dirname, '../assets/fonts/NotoSans.ttf');
+  doc.on('data', chunk => chunks.push(chunk));
+  doc.on('end', () => resolve(Buffer.concat(chunks)));
+  doc.on('error', reject);
+  doc.font(fontPath);
+  const section = title => doc.moveDown(0.8).fontSize(13).text(title, { underline: true });
+  const line = (value, options = {}) => doc.fontSize(options.size || 9).text(String(value ?? '-'), { paragraphGap: options.gap ?? 3 });
+  doc.fontSize(18).text(transcript.school.name || 'TRƯỜNG HỌC', { align: 'center' });
+  doc.fontSize(14).text('HỌC BẠ ĐIỆN TỬ / BẢNG KẾT QUẢ HỌC TẬP', { align: 'center' });
+  line(`Mã trường: ${transcript.school.code || '-'}    Địa chỉ: ${transcript.school.address || '-'}    Điện thoại: ${transcript.school.phone || '-'}`, { size: 9 });
+  section('THÔNG TIN HỌC SINH');
+  line(`Họ và tên: ${transcript.student.name || '-'}    Mã học sinh: ${transcript.student.code || '-'}`);
+  line(`Ngày sinh: ${dateText(transcript.student.dateOfBirth) || '-'}    Giới tính: ${transcript.student.gender || '-'}`);
+  line(`Lớp hiện tại: ${transcript.student.classId?.name || '-'}    Khối: ${transcript.student.classId?.gradeLevel || '-'}    Năm học: ${transcript.student.classId?.academicYearId?.name || '-'}`);
+  if (transcript.classHistory.length) {
+    section('LỊCH SỬ CHUYỂN LỚP');
+    transcript.classHistory.forEach(item => line(`${item.fromClassName || '-'} -> ${item.toClassName || '-'} | ${item.academicYearName || '-'} | HK${item.semester || '-'} | ${item.reason || '-'}`));
   }
-  if (current || !words.some(Boolean)) lines.push(current);
-  return lines;
-};
-const createPdf = transcript => {
-  const printable = linesFor(transcript).flatMap(line => wrap(line));
-  const chunks = []; for (let index = 0; index < printable.length; index += 44) chunks.push(printable.slice(index, index + 44));
-  if (!chunks.length) chunks.push([]);
-  const fontId = 3 + chunks.length * 2;
-  const pageIds = chunks.map((_, index) => 3 + index * 2);
-  const objects = [
-    '<< /Type /Catalog /Pages 2 0 R >>',
-    `<< /Type /Pages /Kids [${pageIds.map(id => `${id} 0 R`).join(' ')}] /Count ${pageIds.length} >>`,
-  ];
-  chunks.forEach((lines, pageIndex) => {
-    const pageId = pageIds[pageIndex]; const contentId = pageId + 1;
-    let content = 'BT\n/F1 9 Tf\n42 800 Td\n';
-    [...lines, `Trang ${pageIndex + 1}/${chunks.length}`].forEach((line, index) => { if (index) content += '0 -16 Td\n'; content += `(${pdfEscape(line)}) Tj\n`; });
-    content += 'ET\n';
-    objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 ${fontId} 0 R >> >> /Contents ${contentId} 0 R >>`);
-    objects.push(`<< /Length ${Buffer.byteLength(content, 'ascii')} >>\nstream\n${content}endstream`);
+  section('KẾT QUẢ HỌC TẬP');
+  line('Năm học | Học kỳ | Lớp | Môn học | Điểm thành phần | Trung bình | Xếp loại', { size: 8 });
+  if (transcript.grades.length) transcript.grades.forEach(item => {
+    line(`${item.year} | HK${item.semester} | ${item.className} | ${item.subject} | ${scoreText(item.scores)} | ${item.average ?? '-'} | ${item.classification || '-'}`, { size: 8, gap: 5 });
+    item.transferHistory.forEach(snapshot => line(`  Bản sao trước chuyển: ${snapshot.className || '-'} | TB ${snapshot.average ?? '-'} | ${scoreText(snapshot.scores || [])}`, { size: 7, gap: 2 }));
   });
-  objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
-  let pdf = '%PDF-1.4\n%\xE2\xE3\xCF\xD3\n'; const offsets = [0];
-  objects.forEach((object, index) => { offsets[index + 1] = Buffer.byteLength(pdf, 'binary'); pdf += `${index + 1} 0 obj\n${object}\nendobj\n`; });
-  const xref = Buffer.byteLength(pdf, 'binary'); pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
-  offsets.slice(1).forEach(offset => { pdf += `${String(offset).padStart(10, '0')} 00000 n \n`; });
-  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
-  return Buffer.from(pdf, 'binary');
-};
+  else line('Chưa có điểm');
+  section('RÈN LUYỆN / HẠNH KIỂM');
+  line('Năm học | Học kỳ | Lớp | Xếp loại | Nhận xét', { size: 8 });
+  if (transcript.conduct.length) transcript.conduct.forEach(item => line(`${item.year} | HK${item.semester} | ${item.className} | ${item.rating} | ${item.comment || '-'}`, { size: 8 }));
+  else line('Chưa có dữ liệu rèn luyện');
+  section('KHEN THƯỞNG - KỶ LUẬT ĐÃ DUYỆT');
+  line('Năm học | Ngày | Loại | Nội dung | Điểm', { size: 8 });
+  if (transcript.records.length) transcript.records.forEach(item => line(`${item.year} | ${dateText(item.awardedAt)} | ${item.type} | ${item.title}${item.description ? ` - ${item.description}` : ''} | ${item.points}`, { size: 8 }));
+  else line('Không có bản ghi đã duyệt');
+  doc.moveDown(1).fontSize(9).text(`Ngày xuất: ${dateText(transcript.generatedAt)}`, { align: 'right' });
+  doc.end();
+});
 
 const cell = (value, bold = false) => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(value ?? ''), bold })] })] });
 const table = (headers, rows, widths) => new Table({
@@ -137,6 +141,7 @@ const table = (headers, rows, widths) => new Table({
 const heading = text => new Paragraph({ children: [new TextRun({ text, bold: true, color: '000000', size: 24 })], spacing: { before: 280, after: 120 } });
 const createDocx = async transcript => {
   const { school, student, grades, conduct, records, generatedAt } = transcript;
+  const transferSnapshots = grades.flatMap(item => item.transferHistory.map(snapshot => [item.year, item.semester, item.subject, snapshot.className || '-', scoreText(snapshot.scores || []), snapshot.average ?? '-']));
   const children = [
     new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: school.name || 'TRƯỜNG HỌC', bold: true, size: 24 })] }),
     new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'HỌC BẠ ĐIỆN TỬ / BẢNG KẾT QUẢ HỌC TẬP', bold: true, size: 30 })] }),
@@ -144,8 +149,10 @@ const createDocx = async transcript => {
     heading('Thông tin học sinh'),
     table(['Họ và tên', 'Mã học sinh', 'Ngày sinh', 'Giới tính'], [[student.name, student.code || '-', dateText(student.dateOfBirth) || '-', student.gender || '-']], [3200, 1600, 1800, 1400]),
     new Paragraph({ text: `Lớp hiện tại: ${student.classId?.name || '-'}     Khối: ${student.classId?.gradeLevel || '-'}     Năm học: ${student.classId?.academicYearId?.name || '-'}`, spacing: { before: 120 } }),
+    ...(transcript.classHistory.length ? [heading('Lịch sử chuyển lớp'), table(['Từ lớp', 'Đến lớp', 'Năm học', 'HK', 'Lý do'], transcript.classHistory.map(item => [item.fromClassName || '-', item.toClassName || '-', item.academicYearName || '-', item.semester, item.reason || '-']), [1800, 1800, 1500, 600, 4300])] : []),
     heading('Kết quả học tập'),
     table(['Năm học', 'HK', 'Lớp', 'Môn học', 'Điểm thành phần', 'TB', 'Xếp loại'], grades.length ? grades.map(item => [item.year, item.semester, item.className, item.subject, scoreText(item.scores), item.average ?? '-', item.classification || '-']) : [['-', '-', '-', 'Chưa có điểm', '-', '-', '-']], [1400, 500, 900, 1600, 3000, 700, 1000]),
+    ...(transferSnapshots.length ? [heading('Bản sao điểm trước chuyển lớp'), table(['Năm học', 'HK', 'Môn học', 'Lớp cũ', 'Điểm thành phần', 'TB'], transferSnapshots, [1400, 500, 1800, 1200, 3900, 700])] : []),
     heading('Rèn luyện / hạnh kiểm'),
     table(['Năm học', 'HK', 'Lớp', 'Xếp loại', 'Nhận xét'], conduct.length ? conduct.map(item => [item.year, item.semester, item.className, item.rating, item.comment || '-']) : [['-', '-', '-', '-', 'Chưa có dữ liệu']], [1600, 600, 1000, 1300, 4000]),
     heading('Khen thưởng – kỷ luật đã duyệt'),
@@ -164,7 +171,7 @@ const createCertificate = async (actor, studentId, format = 'pdf') => {
   const normalized = String(format).toLowerCase();
   if (!['pdf', 'doc', 'docx'].includes(normalized)) throw new ApiError(400, 'Định dạng chỉ hỗ trợ PDF hoặc DOCX');
   const transcript = await getTranscript(actor, studentId);
-  if (normalized === 'pdf') return { buffer: createPdf(transcript), mimeType: 'application/pdf', extension: 'pdf', transcript };
+  if (normalized === 'pdf') return { buffer: await createPdf(transcript), mimeType: 'application/pdf', extension: 'pdf', transcript };
   return { buffer: await createDocx(transcript), mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', extension: 'docx', transcript };
 };
 

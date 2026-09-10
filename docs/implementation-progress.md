@@ -8,7 +8,8 @@
 - UI quản lý người dùng có thao tác Chuyển lớp, chọn lớp đích/học kỳ/lý do và xem lịch sử. API học bạ trả thêm lịch sử lớp/điểm.
 - Backend toàn bộ **251/251**; bộ chuyển lớp riêng **6/6** (bao gồm quyền giáo viên cũ/mới, ghi điểm đồng thời chuyển lớp, thêm điểm đồng thời). Frontend **11/11**, build đạt; Playwright chuyển lớp **1/1** qua UI/API/DB local thật, kiểm tra lịch sử sau reload. Không chạy lại toàn bộ Playwright.
 - Sửa fixture chuyển lớp chờ tạo index trước teardown; chạy lại **6/6** sạch. Một số fixture cũ trong bộ toàn bộ còn log ECONNRESET lúc teardown nhưng không fail assertion.
-- Cần tiếp tục: bổ sung lịch sử vào bản in học bạ và sửa PDF tiếng Việt; các mục mô tả còn thiếu chưa được coi là hoàn tất. Chi tiết luồng hiện tại: [student-class-transfers.md](student-class-transfers.md).
+- Đã bổ sung lịch sử và snapshot điểm trước chuyển vào bản in PDF/DOCX bằng Noto Sans Unicode; PDF tự phân trang. Đã render kiểm tra trực quan với dữ liệu tiếng Việt và 30 bản ghi.
+- Các mục mô tả còn thiếu khác chưa được coi là hoàn tất. Chi tiết luồng hiện tại: [student-class-transfers.md](student-class-transfers.md).
 
 ## Hoàn thiện báo cáo liên trường — 10/09/2026
 
