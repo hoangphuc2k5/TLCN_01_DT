@@ -81,6 +81,17 @@ const expireAttempt = async (attempt, exam, now = new Date()) => {
     { new: true, runValidators: true }
   );
 };
+const validateAttemptAnswers = (exam, answers) => {
+  if (!Array.isArray(answers)) throw new ApiError(400, 'answers phải là danh sách');
+  const questionIds = new Set();
+  for (const answer of answers) {
+    if (!answer?.questionId || questionIds.has(String(answer.questionId)) || !exam.questions.some(q => String(q._id) === String(answer.questionId))) {
+      throw new ApiError(400, 'Câu trả lời bị trùng hoặc không thuộc đề');
+    }
+    questionIds.add(String(answer.questionId));
+  }
+  return answers.map(answer => ({ questionId: answer.questionId, answerKey: answer.answerKey || '', answerText: answer.answerText || '' }));
+};
 const presentAttempt = (actor, attempt, showResults) => {
   const result = attempt.toObject ? attempt.toObject() : attempt;
   if (personalActor(actor) && !showResults) {
@@ -174,6 +185,11 @@ const startAttempt = async (actor, examId) => {
   if (!exam || exam.status !== 'PUBLISHED') throw new ApiError(400, 'Đề chưa mở');
   const now = new Date();
   if ((exam.startAt && now < exam.startAt) || (exam.endAt && now > exam.endAt)) throw new ApiError(400, 'Ngoài thời gian mở đề');
+  const active = await ExamAttempt.findOne({ examId, studentId: actor._id, status: 'IN_PROGRESS' }).sort({ attemptNumber: -1 });
+  if (active) {
+    const refreshed = await expireAttempt(active, exam, now);
+    if (refreshed?.status === 'IN_PROGRESS') return refreshed;
+  }
   const count = await ExamAttempt.countDocuments({ examId, studentId: actor._id });
   if (count >= exam.maxAttempts) throw new ApiError(400, 'Đã hết lượt làm bài');
 
@@ -205,15 +221,10 @@ const submitAttempt = async (actor, attemptId, answers = []) => {
   if (attempt.status !== 'IN_PROGRESS') throw new ApiError(400, 'Bài đã nộp');
 
   const exam = await examDocument(actor, attempt.examId);
-  if (!Array.isArray(answers)) throw new ApiError(400, 'answers phải là danh sách');
-  const questionIds = new Set();
-  for (const a of answers) {
-    if (questionIds.has(String(a.questionId)) || !exam.questions.some(q => String(q._id) === String(a.questionId))) throw new ApiError(400, 'Câu trả lời bị trùng hoặc không thuộc đề');
-    questionIds.add(String(a.questionId));
-  }
-  const { graded, score } = gradeAnswers(exam, answers || []);
   const now = new Date();
   const timedOut = attemptDeadline(attempt, exam) <= now;
+  const selectedAnswers = timedOut ? (attempt.answers || []) : validateAttemptAnswers(exam, answers);
+  const { graded, score } = gradeAnswers(exam, selectedAnswers);
 
   const saved = await ExamAttempt.findOneAndUpdate(
     { _id: attempt._id, status: 'IN_PROGRESS', studentId: actor._id },
@@ -221,6 +232,25 @@ const submitAttempt = async (actor, attemptId, answers = []) => {
     { new: true, runValidators: true }
   );
   if (!saved) throw new ApiError(409, 'Bài đã được nộp');
+  return presentAttempt(actor, saved, exam.showResults);
+};
+
+const saveDraft = async (actor, attemptId, answers = []) => {
+  const attempt = await scopedDocument(ExamAttempt, actor, attemptId);
+  if (actor.role !== ROLES.STUDENT || String(attempt.studentId) !== String(actor._id)) throw new ApiError(403, 'Không phải bài của bạn');
+  if (attempt.status !== 'IN_PROGRESS') throw new ApiError(409, 'Bài đã nộp');
+  const exam = await examDocument(actor, attempt.examId);
+  if (attemptDeadline(attempt, exam) <= new Date()) {
+    await expireAttempt(attempt, exam);
+    throw new ApiError(409, 'Bài đã hết thời gian');
+  }
+  const safeAnswers = validateAttemptAnswers(exam, answers);
+  const saved = await ExamAttempt.findOneAndUpdate(
+    { _id: attempt._id, status: 'IN_PROGRESS', studentId: actor._id },
+    { $set: { answers: safeAnswers } },
+    { new: true, runValidators: true }
+  );
+  if (!saved) throw new ApiError(409, 'Bài vừa được nộp');
   return presentAttempt(actor, saved, exam.showResults);
 };
 
@@ -286,6 +316,7 @@ module.exports = {
   updateExam,
   startAttempt,
   submitAttempt,
+  saveDraft,
   gradeEssay,
   listAttempts,
 };

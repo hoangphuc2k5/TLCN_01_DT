@@ -203,6 +203,7 @@ router.post('/exams', authorizePermissionAction('create', PERMISSIONS.MANAGE_EXA
 router.put('/exams/:id', authorizePermissionAction('update', PERMISSIONS.MANAGE_EXAMS), audit('UPDATE', 'Exam'), a.updateExam);
 router.post('/exams/:id/attempts', authorizePermissionAction('execute', PERMISSIONS.TAKE_EXAMS), a.startAttempt);
 router.post('/exam-attempts/:attemptId/submit', authorizePermissionAction('execute', PERMISSIONS.TAKE_EXAMS), a.submitAttempt);
+router.patch('/exam-attempts/:attemptId/draft', authorizePermissionAction('execute', PERMISSIONS.TAKE_EXAMS), a.saveAttemptDraft);
 router.post('/exam-attempts/:attemptId/grade', authorizePermissionAction('update', PERMISSIONS.MANAGE_EXAMS), a.gradeAttempt);
 router.get('/exam-attempts', authorizeRead('exams', { personal: true }), a.listAttempts);
 

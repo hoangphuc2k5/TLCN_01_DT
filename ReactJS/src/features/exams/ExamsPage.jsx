@@ -20,6 +20,7 @@ import {
   getExamApi,
   getExamsApi,
   getSubjectsApi,
+  saveAttemptDraftApi,
   startAttemptApi,
   submitAttemptApi,
   updateExamApi,
@@ -75,7 +76,7 @@ const ExamsPage = () => {
         ? [...(detail.data.questions || [])].sort((a, b) => order.indexOf(String(a._id)) - order.indexOf(String(b._id)))
         : detail.data.questions;
       setTaking({ ...detail.data, questions });
-      setAnswers({});
+      setAnswers(Object.fromEntries((start.data.answers || []).map(answer => [answer.questionId, { answerKey: answer.answerKey || '', answerText: answer.answerText || '' }])));
     }
   };
 
@@ -111,6 +112,21 @@ const ExamsPage = () => {
     const timer = window.setInterval(tick, 1000);
     return () => window.clearInterval(timer);
   }, [taking, deadlineAt]);
+
+  useEffect(() => {
+    if (!taking || !attemptId || !Object.keys(answers).length) return undefined;
+    const timer = window.setTimeout(async () => {
+      const payload = (taking.questions || []).map(q => ({
+        questionId: q._id,
+        answerKey: answers[q._id]?.answerKey || '',
+        answerText: answers[q._id]?.answerText || '',
+      })).filter(answer => answer.answerKey || answer.answerText);
+      if (!payload.length) return;
+      const result = await saveAttemptDraftApi(attemptId, payload);
+      if (result?.EC !== 0 && result?.EM) message.warning(result.EM);
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [answers, attemptId, taking]);
 
   const formatRemaining = (seconds) => {
     if (seconds == null) return '--:--';
@@ -210,6 +226,7 @@ const ExamsPage = () => {
                     [q._id]: { answerKey: e.target.value },
                   }))
                 }
+                value={answers[q._id]?.answerKey}
               >
                 {(q.options || []).map((o) => (
                   <Radio key={o.key} value={o.key} style={{ display: 'block' }}>
@@ -221,6 +238,7 @@ const ExamsPage = () => {
               <Input.TextArea
                 style={{ marginTop: 8 }}
                 rows={3}
+                value={answers[q._id]?.answerText || ''}
                 onChange={(e) =>
                   setAnswers((prev) => ({
                     ...prev,
