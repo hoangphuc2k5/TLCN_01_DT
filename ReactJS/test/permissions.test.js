@@ -25,6 +25,10 @@ test('system role alone does not grant mutation permission', () => {
 test('custom role may open subscriptions if explicitly granted view', () => {
   assert.equal(canVisit({ role: 'BILLING_READER', permissionEntries: [{ resource: 'subscriptions', actions: ['view'] }] }, '/subscriptions'), true);
 });
+test('lesson-plan route follows its own resource permission', () => {
+  assert.equal(canVisit({ role: 'CUSTOM', permissionEntries: [{ resource: 'lesson_plans', actions: ['view'] }] }, '/lesson-plans'), true);
+  assert.equal(canVisit(reader, '/lesson-plans'), false);
+});
 test('student and parent retain personal pages but not management routes', () => {
   for (const role of ['STUDENT', 'PARENT']) {
     const user = { role, permissionEntries: [{ resource: 'own_data', actions: ['view'] }] };

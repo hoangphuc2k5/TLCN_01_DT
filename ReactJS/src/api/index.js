@@ -206,6 +206,12 @@ export const closeHomeworkApi = (id) => axios.patch(`/v1/api/homeworks/${id}/clo
 export const getHomeworkSubmissionsApi = (id) => axios.get(`/v1/api/homeworks/${id}/submissions`);
 export const submitHomeworkApi = (id, data) => axios.post(`/v1/api/homeworks/${id}/submissions`, data);
 export const gradeHomeworkApi = (id, data) => axios.patch(`/v1/api/assignment-submissions/${id}/grade`, data);
+export const getLessonPlansApi = (params) => axios.get('/v1/api/lesson-plans', { params });
+export const createLessonPlanApi = data => axios.post('/v1/api/lesson-plans', data);
+export const updateLessonPlanApi = (id, data) => axios.put(`/v1/api/lesson-plans/${id}`, data);
+export const submitLessonPlanApi = id => axios.patch(`/v1/api/lesson-plans/${id}/submit`);
+export const reviewLessonPlanApi = (id, data) => axios.patch(`/v1/api/lesson-plans/${id}/review`, data);
+export const deleteLessonPlanApi = id => axios.delete(`/v1/api/lesson-plans/${id}`);
 export const getContactBooksApi = (params) => axios.get('/v1/api/contact-books', { params });
 export const createContactBookApi = (data) => axios.post('/v1/api/contact-books', data);
 export const updateContactBookApi = (id, data) => axios.put(`/v1/api/contact-books/${id}`, data);
