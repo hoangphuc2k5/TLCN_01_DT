@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Card, Form, Input, Button, Typography, Alert, Divider } from 'antd';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { clearError, loginGoogleThunk, loginThunk } from '../Redux/authSlice';
+import { clearError, loginGoogleThunk, loginThunk, requestPhoneLoginThunk, verifyPhoneLoginThunk, verifyMfaThunk, logout } from '../Redux/authSlice';
 import { getAuthConfigApi } from '../api';
 
 const waitForGoogle = (timeoutMs = 10000) =>
@@ -26,10 +26,12 @@ const waitForGoogle = (timeoutMs = 10000) =>
 const LoginPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error } = useSelector((s) => s.auth);
+  const { loading, error, challenge } = useSelector((s) => s.auth);
+  const phoneChallenge = useSelector((s) => s.auth.phoneChallenge);
   const [localError, setLocalError] = useState('');
   const [googleReady, setGoogleReady] = useState(false);
   const [googleRenderError, setGoogleRenderError] = useState('');
+  const [phoneMode, setPhoneMode] = useState(false);
   const [config, setConfig] = useState({
     googleClientId: '',
     allowPasswordLogin: true,
@@ -46,8 +48,8 @@ const LoginPage = () => {
         return;
       }
       const result = await dispatch(loginGoogleThunk(response.credential));
-      if (loginGoogleThunk.fulfilled.match(result)) {
-        navigate('/dashboard');
+      if (loginGoogleThunk.fulfilled.match(result) && !result.payload.mfaRequired) {
+        navigate(result.payload.mustChangePassword ? '/profile' : '/dashboard');
       }
     },
     [dispatch, navigate]
@@ -113,8 +115,8 @@ const LoginPage = () => {
     setLocalError('');
     dispatch(clearError());
     const result = await dispatch(loginThunk(values));
-    if (loginThunk.fulfilled.match(result)) {
-      navigate('/dashboard');
+    if (loginThunk.fulfilled.match(result) && !result.payload.mfaRequired) {
+      navigate(result.payload.mustChangePassword ? '/profile' : '/dashboard');
     }
   };
 
@@ -144,7 +146,18 @@ const LoginPage = () => {
           <Alert style={{ marginBottom: 16 }} type="error" message={localError || error} />
         )}
 
-        {allowPassword && (
+        {challenge && <Form layout="vertical" onFinish={async ({ code }) => {
+          const result = await dispatch(verifyMfaThunk({ challengeToken: challenge.challengeToken, code }));
+          if (verifyMfaThunk.fulfilled.match(result)) navigate(result.payload.mustChangePassword ? '/profile' : '/dashboard');
+        }}>
+          <Alert type="info" message="Xác thực hai bước" description="Nhập mã 6 số từ ứng dụng xác thực hoặc mã khôi phục. Phiên có hiệu lực 5 phút." style={{ marginBottom: 16 }} />
+          <Form.Item name="code" label="Mã xác thực" rules={[{ required: true }]}>
+            <Input autoComplete="one-time-code" maxLength={32} autoFocus />
+          </Form.Item>
+          <Button aria-label="Xác minh" type="primary" htmlType="submit" loading={loading} block>Xác minh</Button>
+          <Button onClick={() => dispatch(logout())} block>Đăng nhập lại</Button>
+        </Form>}
+        {allowPassword && !challenge && !phoneMode && (
           <Form layout="vertical" onFinish={onFinish}>
             <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}>
               <Input size="large" placeholder="superadmin@system.vn" />
@@ -157,7 +170,15 @@ const LoginPage = () => {
             </Button>
           </Form>
         )}
+        {!challenge && phoneMode && <Form layout="vertical" onFinish={async values => {
+          if (!phoneChallenge) { const result = await dispatch(requestPhoneLoginThunk(values.phone)); if (requestPhoneLoginThunk.fulfilled.match(result) && result.payload.devCode) setLocalError(`Development OTP: ${result.payload.devCode}`); }
+          else { const result = await dispatch(verifyPhoneLoginThunk({ challengeId: phoneChallenge.challengeId, code: values.code })); if (verifyPhoneLoginThunk.fulfilled.match(result) && !result.payload.mfaRequired) navigate(result.payload.mustChangePassword ? '/profile' : '/dashboard'); }
+        }}>
+          {!phoneChallenge ? <><Form.Item name="phone" label="So dien thoai" rules={[{ required: true }]}><Input size="large" placeholder="+84901234567" /></Form.Item><Button type="primary" htmlType="submit" loading={loading} block>Gui OTP</Button></> : <><Form.Item name="code" label="Ma OTP" rules={[{ required: true }]}><Input size="large" maxLength={6} autoComplete="one-time-code" /></Form.Item><Button type="primary" htmlType="submit" loading={loading} block>Xac minh</Button></>}
+        </Form>}
+        {!challenge && <Button type="link" onClick={() => setPhoneMode(value => !value)} block>{phoneMode ? 'Dang nhap bang email' : 'Dang nhap bang so dien thoai'}</Button>}
 
+        <div style={{ display: challenge ? 'none' : undefined }}>
         <Divider plain>Hoặc (tùy chọn)</Divider>
 
         <div style={{ minHeight: 44, display: 'flex', justifyContent: 'center' }} ref={googleBtnRef} />
@@ -181,6 +202,7 @@ const LoginPage = () => {
         {googleRenderError && (
           <Alert type="warning" showIcon style={{ marginTop: 8 }} message={googleRenderError} />
         )}
+        </div>
       </Card>
     </div>
   );

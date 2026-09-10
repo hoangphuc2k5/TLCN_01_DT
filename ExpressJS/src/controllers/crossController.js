@@ -11,6 +11,10 @@ const sendMessage = asyncHandler(async (req, res) => {
 const markMessageRead = asyncHandler(async (req, res) => {
   return success(res, await crossService.markMessageRead(req.user, req.params.id));
 });
+const realtimeTicket = asyncHandler(async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  return success(res, await require('../services/messageRealtimeService').issueTicket(req.user));
+});
 
 const listEvents = asyncHandler(async (req, res) => {
   return success(res, await crossService.listEvents(req.user, req.query));
@@ -35,7 +39,7 @@ const exportGrades = asyncHandler(async (req, res) => {
 });
 
 const exportFees = asyncHandler(async (req, res) => {
-  const buffer = await crossService.exportFeesExcel(req.user);
+  const buffer = await crossService.exportFeesExcel(req.user, req.query);
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', 'attachment; filename=hoc-phi.xlsx');
   return res.send(buffer);
@@ -52,6 +56,7 @@ module.exports = {
   listMessages,
   sendMessage,
   markMessageRead,
+  realtimeTicket,
   listEvents,
   createEvent,
   deleteEvent,

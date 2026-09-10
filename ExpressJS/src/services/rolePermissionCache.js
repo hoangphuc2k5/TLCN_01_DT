@@ -26,6 +26,8 @@ const normalizeRoleDoc = (doc) => {
     description: obj.description || '',
     level: obj.level,
     isSystem: !!obj.isSystem,
+    schoolId: obj.schoolId || null,
+    clusterId: obj.clusterId || null,
     status: obj.status,
     permissions: obj.permissions || [],
   };
@@ -36,20 +38,6 @@ const reload = async () => {
   const next = new Map();
   for (const r of roles) {
     next.set(r.code, normalizeRoleDoc(r));
-  }
-  if (next.size === 0) {
-    const ROLE_PERMISSIONS = getStaticRolePermissions();
-    for (const [code, legacyKeys] of Object.entries(ROLE_PERMISSIONS)) {
-      next.set(code, {
-        code,
-        name: ROLE_LABELS[code] || code,
-        description: '',
-        level: DEFAULT_ROLE_LEVELS[code] ?? 100,
-        isSystem: true,
-        status: STATUS.ACTIVE,
-        permissions: legacyPermissionsToEntries(legacyKeys),
-      });
-    }
   }
   cacheByCode = next;
   loaded = true;
@@ -93,16 +81,9 @@ const hasPermissionLegacy = async (roleCode, legacyPermission) => {
 
 const hasPermissionLegacySync = (roleCode, legacyPermission) => {
   if (roleCode === ROLES.SUPER_ADMIN) return true;
-  if (!loaded) {
-    const ROLE_PERMISSIONS = getStaticRolePermissions();
-    return (ROLE_PERMISSIONS[roleCode] || []).includes(legacyPermission);
-  }
+  if (!loaded) return false;
   const role = getRoleSync(roleCode);
-  if (!role) {
-    const ROLE_PERMISSIONS = getStaticRolePermissions();
-    return (ROLE_PERMISSIONS[roleCode] || []).includes(legacyPermission);
-  }
-  return entriesSatisfyLegacy(role.permissions, legacyPermission);
+  return role ? entriesSatisfyLegacy(role.permissions, legacyPermission) : false;
 };
 
 const canAccess = async (roleCode, resource, action) => {

@@ -7,14 +7,15 @@ import {
   createBookApi,
   getBooksApi,
   getLoansApi,
-  getUsersApi,
+  getUserDirectoryApi,
   returnBookApi,
 } from '../../api';
 import { ROLES } from '../../constants/roles';
+import { can } from '../../util/permissions';
 
 const LibraryPage = () => {
   const { user } = useSelector((s) => s.auth);
-  const canManage = user?.role === ROLES.LIBRARIAN;
+  const canManage = can(user, 'library', 'create');
   const [books, setBooks] = useState([]);
   const [loans, setLoans] = useState([]);
   const [students, setStudents] = useState([]);
@@ -32,7 +33,7 @@ const LibraryPage = () => {
   useEffect(() => {
     (async () => {
       if (canManage) {
-        const u = await getUsersApi({ role: ROLES.STUDENT });
+        const u = await getUserDirectoryApi({ role: ROLES.STUDENT });
         if (u?.EC === 0) setStudents(u.data || []);
       }
       load();
@@ -93,7 +94,7 @@ const LibraryPage = () => {
                       dataIndex: 'status',
                       render: (v) => <Tag color={v === 'RETURNED' ? 'green' : 'blue'}>{v}</Tag>,
                     },
-                    canManage
+                    can(user, 'library', 'execute')
                       ? {
                           title: 'Thao tác',
                           render: (_, r) =>

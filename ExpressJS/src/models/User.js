@@ -2,13 +2,29 @@ const mongoose = require('mongoose');
 const { ROLES } = require('../constants/roles');
 const { STATUS } = require('../constants/status');
 
+const securitySchema = new mongoose.Schema({
+  revision: { type: Number, default: 0 },
+  sessionVersion: { type: Number, default: 0 },
+  passwordHistory: { type: [String], default: [] },
+  passwordChangedAt: Date,
+  mustChangePassword: { type: Boolean, default: false },
+  mfaEnabled: { type: Boolean, default: false },
+  secret: String,
+  lastCounter: { type: Number, default: -1 },
+  recoveryHashes: { type: [String], default: [] },
+  setup: { secret: String, expiresAt: Date },
+  challenge: { hash: String, expiresAt: Date },
+}, { _id: false });
+
 const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    password: { type: String, default: null },
+    password: { type: String, default: null, select: false },
+    security: { type: securitySchema, default: () => ({}), select: false },
     googleId: { type: String, default: null, index: true },
-    authProvider: { type: String, enum: ['password', 'google', 'both'], default: 'password' },
+    authProvider: { type: String, enum: ['password', 'google', 'sso', 'both'], default: 'password' },
+    ssoSubject: { type: String, default: '', index: true },
     role: { type: String, required: true, uppercase: true, trim: true },
     schoolId: { type: mongoose.Schema.Types.ObjectId, ref: 'School', default: null },
     clusterId: { type: mongoose.Schema.Types.ObjectId, ref: 'Cluster', default: null },
@@ -22,16 +38,31 @@ const userSchema = new mongoose.Schema(
     parentOf: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     code: { type: String, default: '' },
     classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', default: null },
+    academicRevision: { type: Number, default: 0, select: false },
+    classHistory: [{
+      fromClassId: mongoose.Schema.Types.ObjectId,
+      toClassId: mongoose.Schema.Types.ObjectId,
+      fromClassName: String,
+      toClassName: String,
+      academicYearId: mongoose.Schema.Types.ObjectId,
+      academicYearName: String,
+      semester: Number,
+      reason: String,
+      effectiveAt: Date,
+      changedBy: mongoose.Schema.Types.ObjectId,
+    }],
   },
   { timestamps: true }
 );
 
 userSchema.index({ schoolId: 1, role: 1 });
 userSchema.index({ clusterId: 1 });
+userSchema.index({ 'security.challenge.hash': 1 }, { sparse: true });
 
 userSchema.methods.toSafeObject = function toSafeObject() {
   const obj = this.toObject();
   delete obj.password;
+  delete obj.security;
   return obj;
 };
 

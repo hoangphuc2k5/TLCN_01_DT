@@ -3,17 +3,25 @@ const jwt = require('jsonwebtoken');
 const ApiError = require('../utils/ApiError');
 const User = require('../models/User');
 const { STATUS } = require('../constants/status');
+const roleCache = require('../services/rolePermissionCache');
 
 const PUBLIC_PATHS = [
   '/v1/api/auth/login',
   '/v1/api/auth/google',
+  '/v1/api/auth/phone/request',
+  '/v1/api/auth/phone/verify',
+  '/v1/api/auth/sso',
   '/v1/api/auth/config',
+  '/v1/api/auth/mfa/verify',
   '/v1/api/health',
+  '/v1/api/online-payments/vnpay/ipn',
+  '/v1/api/online-payments/vnpay/return',
 ];
 
 const authenticate = async (req, res, next) => {
   try {
-    if (PUBLIC_PATHS.some((p) => req.originalUrl.startsWith(p)) || req.method === 'OPTIONS') {
+    const path = req.originalUrl.split('?')[0].replace(/\/$/, '').toLowerCase();
+    if (PUBLIC_PATHS.includes(path) || path.startsWith('/v1/api/online-payments/webhook/') || path === '/v1/api/admissions/public' || path.startsWith('/v1/api/admissions/public/') || req.method === 'OPTIONS') {
       return next();
     }
 
@@ -23,12 +31,24 @@ const authenticate = async (req, res, next) => {
     }
 
     const token = header.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded._id).select('-password');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
+    if (decoded.purpose && decoded.purpose !== 'access') throw new ApiError(401, 'Token không hợp lệ.');
+    const user = await User.findById(decoded._id).select('+security');
     if (!user || user.status !== STATUS.ACTIVE) {
       throw new ApiError(401, 'Tài khoản không hợp lệ hoặc đã bị khóa', 401);
     }
 
+    if ((decoded.sessionVersion || 0) !== (user.security?.sessionVersion || 0)) throw new ApiError(401, 'Phiên đã bị thu hồi. Hãy đăng nhập lại.');
+    if (user.security?.mustChangePassword && !['/v1/api/auth/me', '/v1/api/auth/security', '/v1/api/auth/password'].includes(path)) {
+      throw new ApiError(403, 'Bạn phải đổi mật khẩu tạm trước khi tiếp tục.');
+    }
+
+    const role = await roleCache.getRole(user.role);
+    if (!role || !(require('../services/roleService').visibleRole(user, role))) {
+      throw new ApiError(403, 'Vai trò không tồn tại hoặc đã bị vô hiệu hóa', 403);
+    }
+    // Keep security material out of downstream controllers and serializers.
+    user.set('security', undefined);
     req.user = user;
     next();
   } catch (error) {

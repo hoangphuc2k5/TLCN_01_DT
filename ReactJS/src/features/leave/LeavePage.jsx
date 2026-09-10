@@ -1,9 +1,11 @@
+import MakeupFields from './MakeupFields';
 import { useEffect, useMemo, useState } from 'react';
 import { Button, Form, Input, Modal, Select, Space, Table, Tag, message } from 'antd';
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
-import { createLeaveApi, getLeavesApi, reviewLeaveApi } from '../../api';
+import { createLeaveApi, getLeavesApi, reviewLeaveApi, cancelMakeupApi } from '../../api';
 import { ROLES } from '../../constants/roles';
+import { can } from '../../util/permissions';
 
 const TYPE_LABELS = {
   STUDENT_ABSENCE: 'Xin nghỉ học',
@@ -39,13 +41,15 @@ const LeavePage = () => {
     ROLES.ACADEMIC_AFFAIRS,
     ROLES.HOMEROOM_TEACHER,
     ROLES.CLUSTER_ADMIN,
-  ].includes(user?.role);
+  ].includes(user?.role) && can(user, 'leave', 'execute');
   const typeOptions = useMemo(() => leaveTypeOptionsByRole(user?.role), [user?.role]);
-  const canCreate = typeOptions.length > 0;
+  const canCreate = typeOptions.length > 0 && can(user, 'leave', 'create');
   const [rows, setRows] = useState([]);
   const [open, setOpen] = useState(false);
   const [selectedType, setSelectedType] = useState(typeOptions[0]?.value);
   const [form] = Form.useForm();
+  const [cancelForm] = Form.useForm();
+  const [cancelTarget, setCancelTarget] = useState(null);
 
   const load = async () => {
     const res = await getLeavesApi();
@@ -90,6 +94,12 @@ const LeavePage = () => {
           { title: 'Người gửi', render: (_, r) => r.requesterId?.name },
           { title: 'Học sinh', render: (_, r) => r.studentId?.name || '—' },
           { title: 'Lý do', dataIndex: 'reason' },
+          { title: 'Lý do hủy', dataIndex: 'cancellationNote' },
+          { title: 'Lịch bù', render: (_, r) => r.makeup ? <span>
+            {r.makeup.classId?.name} · {r.makeup.subjectId?.name}<br />
+            {dayjs(r.makeup.date).format('DD/MM/YYYY')} · Tiết {r.makeup.period} · {r.makeup.room || 'Chưa chọn phòng'}<br />
+            Bù ngày {dayjs(r.makeup.originalDate).format('DD/MM/YYYY')}, tiết {r.makeup.originalPeriod}
+          </span> : r.makeupProposal || '—' },
           {
             title: 'Từ ngày',
             dataIndex: 'fromDate',
@@ -111,7 +121,9 @@ const LeavePage = () => {
             ? {
                 title: 'Duyệt',
                 render: (_, r) =>
-                  r.status === 'PENDING' ? (
+                  r.type === 'MAKEUP_CLASS' && r.status === 'APPROVED' && user?.role !== ROLES.HOMEROOM_TEACHER && (r.requesterId?._id || r.requesterId) !== user?._id ? (
+                    <Button size="small" danger onClick={() => { cancelForm.resetFields(); setCancelTarget(r); }}>Hủy lịch bù</Button>
+                  ) : r.status === 'PENDING' && (r.requesterId?._id || r.requesterId) !== user?._id ? (
                     <Space>
                       <Button
                         size="small"
@@ -145,12 +157,24 @@ const LeavePage = () => {
             : {},
         ].filter((c) => c.title)}
       />
+      <Modal open={!!cancelTarget} title="Hủy lịch dạy bù" onCancel={() => setCancelTarget(null)} onOk={() => cancelForm.submit()}>
+        <p>Lịch bù sẽ được gỡ khỏi lịch theo ngày. Giáo viên có thể gửi đề xuất mới cho tiết nghỉ này.</p>
+        <Form form={cancelForm} layout="vertical" onFinish={async values => {
+          const res = await cancelMakeupApi(cancelTarget._id, values);
+          if (res?.EC === 0) { message.success('Đã hủy lịch bù'); setCancelTarget(null); load(); }
+          else message.error(res?.EM);
+        }}>
+          <Form.Item name="note" label="Lý do hủy lịch" rules={[{ required: true, whitespace: true }]}><Input.TextArea maxLength={1000} /></Form.Item>
+        </Form>
+      </Modal>
       <Modal open={open} title="Gửi đơn từ" onCancel={() => setOpen(false)} onOk={() => form.submit()}>
         <Form
           form={form}
           layout="vertical"
           onFinish={async (v) => {
-            const res = await createLeaveApi(v);
+            const { makeupSource, ...payload } = v;
+            if (v.type === 'MAKEUP_CLASS') { payload.fromDate = v.makeup?.date; payload.toDate = v.makeup?.date; }
+            const res = await createLeaveApi(payload);
             if (res?.EC === 0) {
               message.success(res.EM);
               setOpen(false);
@@ -162,7 +186,7 @@ const LeavePage = () => {
           <Form.Item name="type" label="Loại đơn" rules={[{ required: true }]}>
             <Select
               options={typeOptions}
-              onChange={(v) => setSelectedType(v)}
+              onChange={(v) => { setSelectedType(v); form.setFieldsValue({ makeup: undefined, makeupSource: undefined }); }}
               disabled={typeOptions.length <= 1}
             />
           </Form.Item>
@@ -174,21 +198,15 @@ const LeavePage = () => {
           <Form.Item name="reason" label="Lý do" rules={[{ required: true }]}>
             <Input.TextArea />
           </Form.Item>
-          {selectedType === 'MAKEUP_CLASS' && (
-            <Form.Item
-              name="makeupProposal"
-              label="Đề xuất dạy bù (ngày / tiết / phòng)"
-              rules={[{ required: true }]}
-            >
-              <Input.TextArea placeholder="Ví dụ: Thứ 5 tuần sau, tiết 3-4, phòng 201" />
-            </Form.Item>
-          )}
+          {selectedType === 'MAKEUP_CLASS' && <MakeupFields form={form} teacherId={user?._id} />}
+          {selectedType !== 'MAKEUP_CLASS' && <>
           <Form.Item name="fromDate" label="Từ ngày" rules={[{ required: true }]}>
             <Input type="date" />
           </Form.Item>
           <Form.Item name="toDate" label="Đến ngày" rules={[{ required: true }]}>
             <Input type="date" />
           </Form.Item>
+          </>}
         </Form>
       </Modal>
     </div>

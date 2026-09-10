@@ -1,12 +1,42 @@
 const ApiError = require('../utils/ApiError');
 const { userRepo, schoolRepo } = require('../repositories');
-const { hashPassword } = require('./authService');
+const { hash: hashPassword } = require('./passwordPolicy');
 const { isGmailAddress } = require('../utils/gmail');
 const { ROLES } = require('../constants/roles');
 const { STATUS } = require('../constants/status');
 const Role = require('../models/Role');
 const roleCache = require('./rolePermissionCache');
 const { assertCanManageLevel, getActorLevel, canManageLevel } = require('./roleService');
+const { visibleRole } = require('./roleService');
+const { targetSchool, reference } = require('./writeScope');
+const Class = require('../models/Class');
+const Cluster = require('../models/Cluster');
+const User = require('../models/User');
+const { objectId } = require('./dataScope');
+const { assertWithinLimits } = require('./subscriptionService');
+
+const validateUserReferences = async (actor, target) => {
+  const role = await roleCache.getRole(target.role);
+  if (!role) throw new ApiError(403, 'Vai trò không tồn tại');
+  if (target.role === ROLES.SUPER_ADMIN) {
+    if (actor.role !== ROLES.SUPER_ADMIN) throw new ApiError(403, 'Chỉ Super Admin');
+    target.schoolId = null; target.clusterId = null;
+  } else if (target.role === ROLES.CLUSTER_ADMIN) {
+    if (!target.clusterId || !(await Cluster.exists({ _id: objectId(target.clusterId) }))) throw new ApiError(400, 'Cụm không tồn tại');
+    if (actor.role !== ROLES.SUPER_ADMIN && String(target.clusterId) !== String(actor.clusterId)) throw new ApiError(403, 'Ngoài cụm');
+    target.schoolId = null;
+  } else {
+    target.schoolId = await targetSchool(actor, target.schoolId);
+    target.clusterId = (await schoolRepo.findById(target.schoolId)).clusterId;
+  }
+  if (!visibleRole(target, role)) throw new ApiError(403, 'Vai trò không thuộc phạm vi tài khoản');
+  if (target.classId) await reference(Class, target.classId, target.schoolId);
+  if (!Array.isArray(target.parentOf || [])) throw new ApiError(400, 'parentOf phải là danh sách');
+  for (const studentId of target.parentOf || []) {
+    if (target.role !== ROLES.PARENT) throw new ApiError(400, 'Chỉ phụ huynh được liên kết con');
+    await reference(User, studentId, target.schoolId, { role: ROLES.STUDENT });
+  }
+};
 
 const buildScopeFilter = (actor) => {
   if (actor.role === ROLES.SUPER_ADMIN) return {};
@@ -40,6 +70,7 @@ const assertAssignableRole = async (actor, roleCode) => {
     .toUpperCase()
     .trim();
   const role = await Role.findOne({ code, status: STATUS.ACTIVE }).lean();
+  if (role && !visibleRole(actor, role)) throw new ApiError(403, 'Vai trò ngoài phạm vi');
   if (!role) {
     // fallback cache / static
     const cached = await roleCache.getRole(code);
@@ -80,8 +111,8 @@ const listUsers = async (actor, query = {}) => {
   }
 
   const users = await userRepo.find(filter, {
-    select: '-password',
-    populate: 'schoolId classId',
+    select: query.scope === 'directory' ? 'name email code role schoolId classId' : '-password',
+    populate: [{ path: 'schoolId', select: 'name code' }, { path: 'classId', select: 'name gradeLevel' }],
     limit: Number(query.limit) || 100,
   });
 
@@ -144,7 +175,11 @@ const createUser = async (actor, data) => {
     }
   }
 
-  const hashed = password ? await hashPassword(password) : null;
+  const target = { role: roleCode, schoolId: resolvedSchoolId, clusterId: resolvedClusterId, classId, parentOf };
+  await validateUserReferences(actor, target);
+  await assertWithinLimits(target.schoolId, target.role);
+  resolvedSchoolId = target.schoolId; resolvedClusterId = target.clusterId;
+  const hashed = password ? await hashPassword(password, { email: normalizedEmail }) : null;
   const user = await userRepo.create({
     name,
     email: normalizedEmail,
@@ -201,29 +236,31 @@ const updateUser = async (actor, id, data) => {
     await assertAssignableRole(actor, update.role);
   }
 
+  const target = { ...existing.toObject(), ...update };
+  await validateUserReferences(actor, target);
+  if (existing.role === ROLES.STUDENT && String(target.schoolId) !== String(existing.schoolId)) {
+    throw new ApiError(400, 'Chuyển trường cần quy trình bảo toàn hồ sơ riêng');
+  }
+  update.schoolId = target.schoolId;
+  update.clusterId = target.clusterId;
+  if (existing.role === ROLES.STUDENT && String(existing.classId || '') !== String(target.classId || '')) {
+    if (target.role !== ROLES.STUDENT) throw new ApiError(400, 'Không đổi vai trò đồng thời với chuyển lớp');
+    const transferred = await require('./studentTransferService').transfer(actor, existing, update, data);
+    return transferred.toSafeObject();
+  }
   const user = await userRepo.updateById(id, update);
   return user.toSafeObject();
 };
 
-const getDefaultPassword = () =>
-  (process.env.DEFAULT_PASSWORD || 'Password@123').trim() || 'Password@123';
+const getDefaultPassword = require('./passwordPolicy').temporaryPassword;
 
 const resetPassword = async (actor, id) => {
-  const existing = await userRepo.findById(id);
+  const existing = await require('../repositories/authSecurityRepository').load(id);
   if (!existing) throw new ApiError(404, 'Không tìm thấy người dùng');
-
   await assertCanManageUser(actor, existing);
-
   const plain = getDefaultPassword();
-  const hashed = await hashPassword(plain);
-  const authProvider =
-    existing.authProvider === 'google' || existing.googleId ? 'both' : 'password';
-
-  const user = await userRepo.updateById(id, { password: hashed, authProvider });
-  return {
-    user: user.toSafeObject(),
-    defaultPassword: plain,
-  };
+  const user = await require('./authSecurityService').replacePassword(existing, plain, true);
+  return { user: user.toSafeObject(), defaultPassword: plain };
 };
 
 const deleteUser = async (actor, id) => {

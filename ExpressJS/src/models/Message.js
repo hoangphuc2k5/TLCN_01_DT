@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const eventBus = require('../patterns/eventBus');
 
 const messageSchema = new mongoose.Schema(
   {
@@ -15,5 +16,6 @@ const messageSchema = new mongoose.Schema(
 
 messageSchema.index({ receiverId: 1, isRead: 1, createdAt: -1 });
 messageSchema.index({ senderId: 1, createdAt: -1 });
+messageSchema.post('save', doc => eventBus.emit('message.created', doc.toObject()));
 
 module.exports = mongoose.model('Message', messageSchema);

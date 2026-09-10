@@ -1,55 +1,31 @@
 require('dotenv').config();
 const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const { OAuth2Client } = require('google-auth-library');
+const security = require('./authSecurityService');
+const throttle = require('./authThrottle');
+const google = require('./googleIdentity');
 const ApiError = require('../utils/ApiError');
-const { assertGmailOnly, isGmailAddress } = require('../utils/gmail');
+const { isGmailAddress } = require('../utils/gmail');
 const { userRepo } = require('../repositories');
 const { listLegacyPermissionsForRole } = require('../constants/permissions');
 const { ROLE_LABELS } = require('../constants/roles');
 const { STATUS } = require('../constants/status');
 const roleCache = require('./rolePermissionCache');
+const sso = require('./ssoIdentity');
 
-const SALT_ROUNDS = 10;
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
-const buildAuthPayload = async (user) => {
-  const roleMeta = await roleCache.getRole(user.role);
-  const permissions = await listLegacyPermissionsForRole(user.role);
-  return {
-    access_token: jwt.sign(
-      {
-        _id: user._id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        schoolId: user.schoolId,
-        clusterId: user.clusterId,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRE || '1d' }
-    ),
-    user: {
-      ...user.toSafeObject(),
-      roleLabel: roleMeta?.name || ROLE_LABELS[user.role] || user.role,
-      roleLevel: roleMeta?.level ?? (await roleCache.getRoleLevel(user.role)),
-      permissions,
-      permissionEntries: roleMeta?.permissions || [],
-    },
-  };
-};
 
 const login = async (email, password) => {
   if (process.env.ALLOW_PASSWORD_LOGIN === 'false') {
     throw new ApiError(403, 'Hệ thống chỉ hỗ trợ đăng nhập bằng Gmail (Google).', 403);
   }
 
+  if (typeof email !== 'string' || typeof password !== 'string' || password.length > 1024) throw new ApiError(400, 'Thông tin đăng nhập không hợp lệ.');
   const normalized = email.toLowerCase().trim();
+  const attempt = await throttle.consume('primary', normalized);
   if (process.env.AUTH_GMAIL_ONLY !== 'false' && !isGmailAddress(normalized)) {
     // Dev seed dùng email trường — vẫn cho phép khi ALLOW_PASSWORD_LOGIN
   }
 
-  const user = await userRepo.findOne({ email: normalized });
+  const user = await userRepo.findOne({ email: normalized }).select('+password +security');
   if (!user) {
     throw new ApiError(401, 'Email/mật khẩu không hợp lệ', 1);
   }
@@ -65,7 +41,9 @@ const login = async (email, password) => {
     throw new ApiError(401, 'Email/mật khẩu không hợp lệ', 2);
   }
 
-  return buildAuthPayload(user);
+  await throttle.release(attempt);
+
+  return security.beginLogin(user);
 };
 
 /**
@@ -73,44 +51,12 @@ const login = async (email, password) => {
  * User phải được admin tạo trước với đúng email Gmail.
  */
 const loginWithGoogle = async (idToken) => {
-  if (!process.env.GOOGLE_CLIENT_ID) {
-    throw new ApiError(
-      500,
-      'Chưa cấu hình GOOGLE_CLIENT_ID. Vui lòng thêm Client ID từ Google Cloud Console.',
-      500
-    );
-  }
-  if (!idToken) {
-    throw new ApiError(400, 'Thiếu Google credential');
-  }
+  const payload = await google.verify(idToken);
+  const email = payload.email;
 
-  let ticket;
-  try {
-    ticket = await googleClient.verifyIdToken({
-      idToken,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
-  } catch {
-    throw new ApiError(401, 'Google token không hợp lệ hoặc đã hết hạn', 401);
-  }
-
-  const payload = ticket.getPayload();
-  const email = (payload.email || '').toLowerCase().trim();
-  const emailVerified = payload.email_verified;
-
-  if (!emailVerified) {
-    throw new ApiError(403, 'Email Gmail chưa được xác minh', 403);
-  }
-
-  try {
-    assertGmailOnly(email);
-  } catch (e) {
-    throw new ApiError(e.statusCode || 403, e.message, e.errorCode || 403);
-  }
-
-  let user = await userRepo.findOne({ email });
+  let user = await userRepo.findOne({ email }).select('+password +security');
   if (!user && payload.sub) {
-    user = await userRepo.findOne({ googleId: payload.sub });
+    user = await userRepo.findOne({ googleId: payload.sub }).select('+password +security');
   }
 
   if (!user) {
@@ -131,8 +77,17 @@ const loginWithGoogle = async (idToken) => {
   if (payload.picture && !user.avatar) updates.avatar = payload.picture;
   if (payload.name && user.name.startsWith('User')) updates.name = payload.name;
 
-  user = await userRepo.updateById(user._id, updates);
-  return buildAuthPayload(user);
+  user = await require('../repositories/authSecurityRepository').update(user, updates);
+  return security.beginLogin(user);
+};
+
+const loginWithSso = async assertion => {
+  const identity = sso.verifyAssertion(assertion);
+  let user = await userRepo.findOne({ $or: [{ ssoSubject: identity.sub }, { email: String(identity.email).toLowerCase() }] }).select('+password +security');
+  if (!user) throw new ApiError(404, 'Khong tim thay tai khoan doanh nghiep');
+  if (user.status !== STATUS.ACTIVE) throw new ApiError(403, 'Tai khoan da bi khoa hoac tam ngung');
+  user = await require('../repositories/authSecurityRepository').update(user, { ssoSubject: identity.sub, authProvider: user.password ? 'both' : 'sso', ...(identity.name && user.name.startsWith('User') ? { name: identity.name } : {}) });
+  return security.beginLogin(user);
 };
 
 const getAuthConfig = () => {
@@ -142,6 +97,8 @@ const getAuthConfig = () => {
     googleClientId: process.env.GOOGLE_CLIENT_ID || '',
     gmailOnly: process.env.AUTH_GMAIL_ONLY !== 'false',
     allowPasswordLogin: process.env.ALLOW_PASSWORD_LOGIN !== 'false',
+    phoneLogin: process.env.PHONE_LOGIN_ENABLED !== 'false',
+    enterpriseSso: !!process.env.ENTERPRISE_SSO_SECRET,
   };
 };
 
@@ -151,12 +108,13 @@ const getMe = async (userId) => {
     'clusterId',
     'classId',
     { path: 'parentOf', select: 'name email code classId' },
-  ]);
+  ]).select('+security');
   if (!user) throw new ApiError(404, 'Không tìm thấy người dùng');
   const roleMeta = await roleCache.getRole(user.role);
   const permissions = await listLegacyPermissionsForRole(user.role);
   return {
     ...user.toSafeObject(),
+    mustChangePassword: !!user.security?.mustChangePassword,
     roleLabel: roleMeta?.name || ROLE_LABELS[user.role] || user.role,
     roleLevel: roleMeta?.level ?? (await roleCache.getRoleLevel(user.role)),
     permissions,
@@ -175,11 +133,12 @@ const updateProfile = async (userId, data) => {
   return user.toSafeObject();
 };
 
-const hashPassword = (password) => bcrypt.hash(password, SALT_ROUNDS);
+const hashPassword = require('./passwordPolicy').hash;
 
 module.exports = {
   login,
   loginWithGoogle,
+  loginWithSso,
   getAuthConfig,
   getMe,
   updateProfile,

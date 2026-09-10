@@ -41,6 +41,9 @@ const startAttempt = asyncHandler(async (req, res) => {
 const submitAttempt = asyncHandler(async (req, res) => {
   return success(res, await examService.submitAttempt(req.user, req.params.attemptId, req.body.answers), 'Nộp bài thành công');
 });
+const saveAttemptDraft = asyncHandler(async (req, res) => {
+  return success(res, await examService.saveDraft(req.user, req.params.attemptId, req.body.answers), 'Đã lưu bản nháp');
+});
 const gradeAttempt = asyncHandler(async (req, res) => {
   return success(res, await examService.gradeEssay(req.user, req.params.attemptId, req.body.grades), 'Chấm bài thành công');
 });
@@ -126,6 +129,7 @@ const applyTemplate = asyncHandler(async (req, res) => {
     'Áp dụng mẫu thành công'
   );
 });
+const listTemplateDeployments = asyncHandler(async (req, res) => success(res, await adminExtraService.listTemplateDeployments(req.user, req.query)));
 
 module.exports = {
   listSubscriptions,
@@ -139,6 +143,7 @@ module.exports = {
   updateExam,
   startAttempt,
   submitAttempt,
+  saveAttemptDraft,
   gradeAttempt,
   listAttempts,
   listMaterials,
@@ -163,4 +168,5 @@ module.exports = {
   createTemplate,
   updateTemplate,
   applyTemplate,
+  listTemplateDeployments,
 };

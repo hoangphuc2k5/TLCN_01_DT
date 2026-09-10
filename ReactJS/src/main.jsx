@@ -1,12 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { Provider } from 'react-redux';
-import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, Navigate, Outlet, RouterProvider } from 'react-router-dom';
 import { ConfigProvider } from 'antd';
 import viVN from 'antd/locale/vi_VN';
 import App from './App.jsx';
 import store from './Redux/store.js';
-import { PrivateRoute, RoleRoute } from './components/guards/AuthGuards.jsx';
+import { PrivateRoute } from './components/guards/AuthGuards.jsx';
 import AppLayout from './components/layout/AppLayout.jsx';
 import LoginPage from './pages/login.jsx';
 import DashboardPage from './features/dashboard/DashboardPage.jsx';
@@ -17,7 +17,12 @@ import RolesPage from './features/roles/RolesPage.jsx';
 import ClassesPage from './features/classes/ClassesPage.jsx';
 import AttendancePage from './features/attendance/AttendancePage.jsx';
 import GradesPage from './features/grades/GradesPage.jsx';
+import VnpayReturnPage from './features/fees/VnpayReturnPage.jsx';
 import FeesPage from './features/fees/FeesPage.jsx';
+import AppointmentsPage from './features/appointments/AppointmentsPage.jsx';
+import RewardsPage from './features/rewards/RewardsPage.jsx';
+import AdmissionApplyPage from './features/admissions/AdmissionApplyPage.jsx';
+import AdmissionsPage from './features/admissions/AdmissionsPage.jsx';
 import AnnouncementsPage from './features/announcements/AnnouncementsPage.jsx';
 import LeavePage from './features/leave/LeavePage.jsx';
 import TimetablePage from './features/timetable/TimetablePage.jsx';
@@ -33,14 +38,27 @@ import ConductPage from './features/conduct/ConductPage.jsx';
 import TemplatesPage from './features/admin/TemplatesPage.jsx';
 import MessagesPage from './features/messages/MessagesPage.jsx';
 import CalendarPage from './features/calendar/CalendarPage.jsx';
+import JobsPage from './features/admin/JobsPage.jsx';
+import AssignmentsPage from './features/assignments/AssignmentsPage.jsx';
+import LessonPlansPage from './features/lessonPlans/LessonPlansPage.jsx';
+import ContactBookPage from './features/contactBook/ContactBookPage.jsx';
+import ClassLifePage from './features/classLife/ClassLifePage.jsx';
+import ActivitiesPage from './features/activities/ActivitiesPage.jsx';
+import StudentDocumentsPage from './features/studentDocuments/StudentDocumentsPage.jsx';
+import PayrollPage from './features/fees/PayrollPage.jsx';
+import EquipmentMaintenancePage from './features/facilities/EquipmentMaintenancePage.jsx';
+import MonitoringPage from './features/admin/MonitoringPage.jsx';
+import SchoolComparisonPage from './features/admin/SchoolComparisonPage.jsx';
 import { ROLES } from './constants/roles.js';
 import './styles/global.css';
 
 const router = createBrowserRouter([
+  { path: '/payments/vnpay-return', element: <VnpayReturnPage /> },
   {
     path: '/login',
     element: <LoginPage />,
   },
+  { path: '/admissions/apply', element: <AdmissionApplyPage /> },
   {
     path: '/',
     element: <App />,
@@ -54,7 +72,7 @@ const router = createBrowserRouter([
               { index: true, element: <Navigate to="/dashboard" replace /> },
               { path: 'dashboard', element: <DashboardPage /> },
               {
-                element: <RoleRoute roles={[ROLES.SUPER_ADMIN]} />,
+                element: <Outlet />,
                 children: [
                   { path: 'clusters', element: <ClustersPage /> },
                   { path: 'subscriptions', element: <SubscriptionsPage /> },
@@ -67,6 +85,13 @@ const router = createBrowserRouter([
               { path: 'attendance', element: <AttendancePage /> },
               { path: 'grades', element: <GradesPage /> },
               { path: 'fees', element: <FeesPage /> },
+              { path: 'payroll', element: <PayrollPage /> },
+              { path: 'equipment-maintenance', element: <EquipmentMaintenancePage /> },
+              { path: 'monitoring', element: <MonitoringPage /> },
+              { path: 'school-comparison', element: <SchoolComparisonPage /> },
+              { path: 'appointments', element: <AppointmentsPage /> },
+              { path: 'rewards', element: <RewardsPage /> },
+              { path: 'admissions', element: <AdmissionsPage /> },
               { path: 'announcements', element: <AnnouncementsPage /> },
               { path: 'messages', element: <MessagesPage /> },
               { path: 'calendar', element: <CalendarPage /> },
@@ -81,6 +106,13 @@ const router = createBrowserRouter([
               { path: 'support', element: <SupportPage /> },
               { path: 'conduct', element: <ConductPage /> },
               { path: 'templates', element: <TemplatesPage /> },
+              { path: 'jobs', element: <JobsPage /> },
+  { path: 'assignments', element: <AssignmentsPage /> },
+  { path: 'lesson-plans', element: <LessonPlansPage /> },
+  { path: 'contact-book', element: <ContactBookPage /> },
+  { path: 'class-life', element: <ClassLifePage /> },
+              { path: 'activities', element: <ActivitiesPage /> },
+              { path: 'student-documents', element: <StudentDocumentsPage /> },
             ],
           },
         ],

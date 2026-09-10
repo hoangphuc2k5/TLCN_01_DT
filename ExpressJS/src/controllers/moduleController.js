@@ -25,11 +25,12 @@ const updateUser = asyncHandler(async (req, res) => {
   return success(res, data, 'Cập nhật người dùng thành công');
 });
 const resetUserPassword = asyncHandler(async (req, res) => {
+  res.set('Cache-Control', 'no-store');
   const data = await userService.resetPassword(req.user, req.params.id);
   return success(
     res,
     data,
-    `Đã reset mật khẩu về mặc định: ${data.defaultPassword}`
+    'Đã tạo mật khẩu tạm mới; người dùng phải đổi khi đăng nhập.'
   );
 });
 const deleteUser = asyncHandler(async (req, res) => {
@@ -92,7 +93,7 @@ const createSubject = asyncHandler(async (req, res) => {
   return success(res, await academicService.createSubject(req.user, req.body), 'Tạo môn thành công', 201);
 });
 const updateSubject = asyncHandler(async (req, res) => {
-  return success(res, await academicService.updateSubject(req.params.id, req.body), 'Cập nhật môn thành công');
+  return success(res, await academicService.updateSubject(req.user, req.params.id, req.body), 'Cập nhật môn thành công');
 });
 const listAssignments = asyncHandler(async (req, res) => {
   return success(res, await academicService.listAssignments(req.user, req.query));
@@ -101,11 +102,11 @@ const createAssignment = asyncHandler(async (req, res) => {
   return success(res, await academicService.createAssignment(req.user, req.body), 'Phân công thành công', 201);
 });
 const deleteAssignment = asyncHandler(async (req, res) => {
-  await academicService.deleteAssignment(req.params.id);
+  await academicService.deleteAssignment(req.user, req.params.id);
   return success(res, true, 'Xóa phân công thành công');
 });
 const listStudentsInClass = asyncHandler(async (req, res) => {
-  return success(res, await academicService.listStudentsInClass(req.params.id));
+  return success(res, await academicService.listStudentsInClass(req.user, req.params.id));
 });
 
 // Attendance / Grades / Fees / etc.
@@ -154,6 +155,12 @@ const createLeave = asyncHandler(async (req, res) => {
 });
 const reviewLeave = asyncHandler(async (req, res) => {
   return success(res, await leaveService.reviewLeave(req.user, req.params.id, req.body), 'Duyệt đơn thành công');
+});
+const cancelMakeup = asyncHandler(async (req, res) => {
+  return success(res, await leaveService.cancelMakeup(req.user, req.params.id, req.body));
+});
+const datedSchedule = asyncHandler(async (req, res) => {
+  return success(res, await require('../services/teachingScheduleService').schedule(req.user, req.query));
 });
 const listTimetables = asyncHandler(async (req, res) => {
   return success(res, await timetableService.listTimetables(req.user, req.query));
@@ -227,6 +234,8 @@ module.exports = {
   listLeaves,
   createLeave,
   reviewLeave,
+  cancelMakeup,
+  datedSchedule,
   listTimetables,
   upsertTimetable,
   approveTimetable,

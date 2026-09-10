@@ -29,6 +29,7 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../../Redux/authSlice';
 import { ROLES, ROLE_LABELS } from '../../constants/roles';
+import { canVisit } from '../../util/permissions';
 
 const { Header, Sider, Content } = Layout;
 
@@ -87,7 +88,14 @@ const menuByRole = (role, user) => {
       { key: '/fees', icon: <DollarOutlined />, label: <Link to="/fees">Học phí</Link> },
       { key: '/exams', icon: <ExperimentOutlined />, label: <Link to="/exams">Thi online</Link> },
       { key: '/materials', icon: <BookOutlined />, label: <Link to="/materials">Học liệu</Link> },
+      { key: '/assignments', icon: <FormOutlined />, label: <Link to="/assignments">Bài tập</Link> },
+      { key: '/contact-book', icon: <FormOutlined />, label: <Link to="/contact-book">Sổ liên lạc</Link> },
+      { key: '/class-life', icon: <FormOutlined />, label: <Link to="/class-life">Sinh hoạt lớp</Link> },
+      { key: '/appointments', icon: <CalendarOutlined />, label: <Link to="/appointments">Appointments</Link> },
+      { key: '/activities', icon: <FormOutlined />, label: <Link to="/activities">CLB & thi lại</Link> },
       { key: '/conduct', icon: <SmileOutlined />, label: <Link to="/conduct">Hạnh kiểm</Link> },
+      { key: '/rewards', icon: <SmileOutlined />, label: <Link to="/rewards">Khen thuong/ky luat</Link> },
+      { key: '/admissions', icon: <TeamOutlined />, label: <Link to="/admissions">Tuyen sinh</Link> },
       { key: '/templates', icon: <FileDoneOutlined />, label: <Link to="/templates">Mẫu dùng chung</Link> },
       { key: '/support', icon: <CustomerServiceOutlined />, label: <Link to="/support">Hỗ trợ KT</Link> },
       { key: '/audit-logs', icon: <AuditOutlined />, label: <Link to="/audit-logs">Nhật ký</Link> },
@@ -98,6 +106,10 @@ const menuByRole = (role, user) => {
       { key: '/attendance', icon: <CheckSquareOutlined />, label: <Link to="/attendance">Điểm danh</Link> },
       { key: '/exams', icon: <ExperimentOutlined />, label: <Link to="/exams">Thi online</Link> },
       { key: '/materials', icon: <BookOutlined />, label: <Link to="/materials">Học liệu</Link> },
+      { key: '/assignments', icon: <FormOutlined />, label: <Link to="/assignments">Bài tập</Link> },
+      { key: '/contact-book', icon: <FormOutlined />, label: <Link to="/contact-book">Sổ liên lạc</Link> },
+      { key: '/class-life', icon: <FormOutlined />, label: <Link to="/class-life">Sinh hoạt lớp</Link> },
+      { key: '/appointments', icon: <CalendarOutlined />, label: <Link to="/appointments">Appointments</Link> },
       { key: '/facilities', icon: <ToolOutlined />, label: <Link to="/facilities">Phòng/TB</Link> },
     ],
     [ROLES.SUBJECT_TEACHER]: [
@@ -106,6 +118,10 @@ const menuByRole = (role, user) => {
       { key: '/grades', icon: <FormOutlined />, label: <Link to="/grades">Nhập điểm</Link> },
       { key: '/exams', icon: <ExperimentOutlined />, label: <Link to="/exams">Thi online</Link> },
       { key: '/materials', icon: <BookOutlined />, label: <Link to="/materials">Học liệu</Link> },
+      { key: '/assignments', icon: <FormOutlined />, label: <Link to="/assignments">Bài tập</Link> },
+      { key: '/contact-book', icon: <FormOutlined />, label: <Link to="/contact-book">Sổ liên lạc</Link> },
+      { key: '/class-life', icon: <FormOutlined />, label: <Link to="/class-life">Sinh hoạt lớp</Link> },
+      { key: '/appointments', icon: <CalendarOutlined />, label: <Link to="/appointments">Appointments</Link> },
       { key: '/facilities', icon: <ToolOutlined />, label: <Link to="/facilities">Mượn phòng/TB</Link> },
     ],
     [ROLES.HOMEROOM_TEACHER]: [
@@ -113,8 +129,14 @@ const menuByRole = (role, user) => {
       { key: '/attendance', icon: <CheckSquareOutlined />, label: <Link to="/attendance">Điểm danh</Link> },
       { key: '/grades', icon: <FormOutlined />, label: <Link to="/grades">Điểm số</Link> },
       { key: '/conduct', icon: <SmileOutlined />, label: <Link to="/conduct">Hạnh kiểm</Link> },
+      { key: '/rewards', icon: <SmileOutlined />, label: <Link to="/rewards">Khen thuong/ky luat</Link> },
+      { key: '/admissions', icon: <TeamOutlined />, label: <Link to="/admissions">Tuyen sinh</Link> },
       { key: '/exams', icon: <ExperimentOutlined />, label: <Link to="/exams">Thi online</Link> },
       { key: '/materials', icon: <BookOutlined />, label: <Link to="/materials">Học liệu</Link> },
+      { key: '/assignments', icon: <FormOutlined />, label: <Link to="/assignments">Bài tập</Link> },
+      { key: '/contact-book', icon: <FormOutlined />, label: <Link to="/contact-book">Sổ liên lạc</Link> },
+      { key: '/class-life', icon: <FormOutlined />, label: <Link to="/class-life">Sinh hoạt lớp</Link> },
+      { key: '/appointments', icon: <CalendarOutlined />, label: <Link to="/appointments">Appointments</Link> },
       { key: '/facilities', icon: <ToolOutlined />, label: <Link to="/facilities">Mượn phòng/TB</Link> },
     ],
     [ROLES.ACCOUNTANT]: [
@@ -130,8 +152,15 @@ const menuByRole = (role, user) => {
       { key: '/fees', icon: <DollarOutlined />, label: <Link to="/fees">Học phí</Link> },
       { key: '/exams', icon: <ExperimentOutlined />, label: <Link to="/exams">Thi online</Link> },
       { key: '/materials', icon: <BookOutlined />, label: <Link to="/materials">Học liệu</Link> },
+      { key: '/assignments', icon: <FormOutlined />, label: <Link to="/assignments">Bài tập</Link> },
+      { key: '/contact-book', icon: <FormOutlined />, label: <Link to="/contact-book">Sổ liên lạc</Link> },
+      { key: '/class-life', icon: <FormOutlined />, label: <Link to="/class-life">Sinh hoạt lớp</Link> },
+      { key: '/appointments', icon: <CalendarOutlined />, label: <Link to="/appointments">Appointments</Link> },
+      { key: '/activities', icon: <FormOutlined />, label: <Link to="/activities">CLB & thi lại</Link> },
       { key: '/library', icon: <BookOutlined />, label: <Link to="/library">Thư viện</Link> },
       { key: '/conduct', icon: <SmileOutlined />, label: <Link to="/conduct">Hạnh kiểm</Link> },
+      { key: '/rewards', icon: <SmileOutlined />, label: <Link to="/rewards">Khen thuong/ky luat</Link> },
+      { key: '/admissions', icon: <TeamOutlined />, label: <Link to="/admissions">Tuyen sinh</Link> },
     ],
     [ROLES.PARENT]: [
       { key: '/grades', icon: <FormOutlined />, label: <Link to="/grades">Điểm con</Link> },
@@ -139,6 +168,12 @@ const menuByRole = (role, user) => {
       { key: '/fees', icon: <DollarOutlined />, label: <Link to="/fees">Học phí</Link> },
       { key: '/exams', icon: <ExperimentOutlined />, label: <Link to="/exams">Kết quả thi</Link> },
       { key: '/conduct', icon: <SmileOutlined />, label: <Link to="/conduct">Hạnh kiểm</Link> },
+      { key: '/rewards', icon: <SmileOutlined />, label: <Link to="/rewards">Khen thuong/ky luat</Link> },
+      { key: '/admissions', icon: <TeamOutlined />, label: <Link to="/admissions">Tuyen sinh</Link> },
+      { key: '/assignments', icon: <FormOutlined />, label: <Link to="/assignments">Bài tập</Link> },
+      { key: '/contact-book', icon: <FormOutlined />, label: <Link to="/contact-book">Sổ liên lạc</Link> },
+      { key: '/class-life', icon: <FormOutlined />, label: <Link to="/class-life">Sinh hoạt lớp</Link> },
+      { key: '/appointments', icon: <CalendarOutlined />, label: <Link to="/appointments">Appointments</Link> },
       { key: '/library', icon: <BookOutlined />, label: <Link to="/library">Mượn sách</Link> },
     ],
   };
@@ -148,7 +183,16 @@ const menuByRole = (role, user) => {
     roleMenus.unshift(rolesItem);
   }
 
-  return [...roleMenus, ...common];
+  const studentDocumentsItem = { key: '/student-documents', icon: <FileTextOutlined />, label: <Link to="/student-documents">Hồ sơ học sinh</Link> };
+  const lessonPlansItem = { key: '/lesson-plans', icon: <FileDoneOutlined />, label: <Link to="/lesson-plans">Giáo án</Link> };
+  const payrollItem = { key: '/payroll', icon: <DollarOutlined />, label: <Link to="/payroll">Bảng lương</Link> };
+  const equipmentItem = { key: '/equipment-maintenance', icon: <ToolOutlined />, label: <Link to="/equipment-maintenance">Bảo trì thiết bị</Link> };
+  const monitoringItem = { key: '/monitoring', icon: <CloudServerOutlined />, label: <Link to="/monitoring">Giám sát hệ thống</Link> };
+  const comparisonItem = { key: '/school-comparison', icon: <BankOutlined />, label: <Link to="/school-comparison">Đối chiếu liên trường</Link> };
+  const catalog = [...roleMenus, lessonPlansItem, studentDocumentsItem, payrollItem, equipmentItem, monitoringItem, comparisonItem, { key: '/jobs', icon: <CloudServerOutlined />, label: <Link to="/jobs">Tác vụ nền</Link> }, ...Object.values(maps).flat(), ...common];
+  const unique = new Map();
+  for (const item of catalog) if (!unique.has(item.key)) unique.set(item.key, item);
+  return [...unique.values()].filter(item => canVisit(user, item.key));
 };
 
 const AppLayout = () => {

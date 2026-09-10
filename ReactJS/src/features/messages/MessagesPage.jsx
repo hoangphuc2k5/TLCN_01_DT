@@ -1,31 +1,49 @@
-import { useEffect, useState } from 'react';
-import { Button, Form, Input, Modal, Select, Table, Tabs, Tag, message } from 'antd';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Button, Form, Input, Modal, Select, Space, Table, Tabs, Tag, message } from 'antd';
 import dayjs from 'dayjs';
-import { getMessagesApi, getUserDirectoryApi, markMessageReadApi, sendMessageApi } from '../../api';
+import { getMessagesApi, getUserDirectoryApi, markMessageReadApi, openMessageRealtime, sendMessageApi } from '../../api';
 
 const MessagesPage = () => {
   const [inbox, setInbox] = useState([]);
   const [sent, setSent] = useState([]);
   const [users, setUsers] = useState([]);
   const [open, setOpen] = useState(false);
+  const [realtimeStatus, setRealtimeStatus] = useState('CONNECTING');
+  const cursorRef = useRef('');
   const [form] = Form.useForm();
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const [i, s] = await Promise.all([
       getMessagesApi({ box: 'inbox' }),
       getMessagesApi({ box: 'sent' }),
     ]);
     if (i?.EC === 0) setInbox(i.data || []);
     if (s?.EC === 0) setSent(s.data || []);
-  };
+    const newest = [...(i?.data || []), ...(s?.data || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+    if (newest?._id) cursorRef.current = newest._id;
+  }, []);
 
   useEffect(() => {
+    let stopRealtime; let disposed = false;
     (async () => {
       const u = await getUserDirectoryApi();
+      if (disposed) return;
       if (u?.EC === 0) setUsers(u.data || []);
-      load();
+      await load();
+      if (disposed) return;
+      stopRealtime = openMessageRealtime({
+        getCursor: () => cursorRef.current,
+        onStatus: setRealtimeStatus,
+        onEvent: event => {
+          if (event.type === 'ready' && event.cursor) cursorRef.current = event.cursor;
+          if (!['message.created', 'resync.required'].includes(event.type)) return;
+          if (event.message?._id) cursorRef.current = event.message._id;
+          load();
+        },
+      });
     })();
-  }, []);
+    return () => { disposed = true; stopRealtime?.(); };
+  }, [load]);
 
   const columnsInbox = [
     {
@@ -47,9 +65,10 @@ const MessagesPage = () => {
 
   return (
     <div>
-      <Button type="primary" style={{ marginBottom: 16 }} onClick={() => setOpen(true)}>
-        Soạn tin nhắn
-      </Button>
+      <Space style={{ marginBottom: 16 }}>
+        <Button type="primary" onClick={() => setOpen(true)}>Soạn tin nhắn</Button>
+        <Tag color={realtimeStatus === 'CONNECTED' ? 'green' : 'gold'}>{realtimeStatus === 'CONNECTED' ? 'Realtime đã kết nối' : 'Đang kết nối lại'}</Tag>
+      </Space>
       <Tabs
         items={[
           {

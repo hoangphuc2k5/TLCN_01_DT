@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Button,
   Form,
@@ -20,21 +20,18 @@ import {
   getExamApi,
   getExamsApi,
   getSubjectsApi,
+  saveAttemptDraftApi,
   startAttemptApi,
   submitAttemptApi,
   updateExamApi,
 } from '../../api';
 import { ROLES } from '../../constants/roles';
+import { can } from '../../util/permissions';
 
 const ExamsPage = () => {
   const { user } = useSelector((s) => s.auth);
-  const canManage = [
-    ROLES.SUBJECT_TEACHER,
-    ROLES.HOMEROOM_TEACHER,
-    ROLES.SCHOOL_ADMIN,
-    ROLES.ACADEMIC_AFFAIRS,
-  ].includes(user?.role);
-  const isStudent = user?.role === ROLES.STUDENT;
+  const canManage = can(user, 'exams', 'create');
+  const isStudent = user?.role === ROLES.STUDENT && can(user, 'exams', 'execute');
 
   const [exams, setExams] = useState([]);
   const [attempts, setAttempts] = useState([]);
@@ -43,7 +40,11 @@ const ExamsPage = () => {
   const [open, setOpen] = useState(false);
   const [taking, setTaking] = useState(null);
   const [attemptId, setAttemptId] = useState(null);
+  const [deadlineAt, setDeadlineAt] = useState(null);
+  const [remainingSeconds, setRemainingSeconds] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
   const [answers, setAnswers] = useState({});
+  const submitRef = useRef(null);
   const [form] = Form.useForm();
 
   const load = async () => {
@@ -67,14 +68,21 @@ const ExamsPage = () => {
     const start = await startAttemptApi(examId);
     if (start?.EC !== 0) return message.error(start?.EM);
     setAttemptId(start.data._id);
+    setDeadlineAt(start.data.expiresAt ? new Date(start.data.expiresAt).getTime() : null);
     const detail = await getExamApi(examId);
     if (detail?.EC === 0) {
-      setTaking(detail.data);
-      setAnswers({});
+      const order = (start.data.questionOrder || []).map(String);
+      const questions = order.length
+        ? [...(detail.data.questions || [])].sort((a, b) => order.indexOf(String(a._id)) - order.indexOf(String(b._id)))
+        : detail.data.questions;
+      setTaking({ ...detail.data, questions });
+      setAnswers(Object.fromEntries((start.data.answers || []).map(answer => [answer.questionId, { answerKey: answer.answerKey || '', answerText: answer.answerText || '' }])));
     }
   };
 
   const submit = async () => {
+    if (submitting || !attemptId || !taking) return;
+    setSubmitting(true);
     const payload = (taking.questions || []).map((q) => ({
       questionId: q._id,
       answerKey: answers[q._id]?.answerKey || '',
@@ -82,10 +90,49 @@ const ExamsPage = () => {
     }));
     const res = await submitAttemptApi(attemptId, payload);
     if (res?.EC === 0) {
-      message.success(`Nộp bài thành công — Điểm MCQ: ${res.data.score}/${res.data.maxScore}`);
+      message.success(res.data.score == null ? 'Nộp bài thành công — điểm chưa công bố' : `Nộp bài thành công — Điểm MCQ: ${res.data.score}/${res.data.maxScore}`);
       setTaking(null);
+      setAttemptId(null);
+      setDeadlineAt(null);
+      setRemainingSeconds(null);
       load();
     } else message.error(res?.EM);
+    setSubmitting(false);
+  };
+
+  submitRef.current = submit;
+  useEffect(() => {
+    if (!taking || !deadlineAt) return undefined;
+    const tick = () => {
+      const seconds = Math.max(0, Math.ceil((deadlineAt - Date.now()) / 1000));
+      setRemainingSeconds(seconds);
+      if (seconds === 0) submitRef.current?.();
+    };
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, [taking, deadlineAt]);
+
+  useEffect(() => {
+    if (!taking || !attemptId || !Object.keys(answers).length) return undefined;
+    const timer = window.setTimeout(async () => {
+      const payload = (taking.questions || []).map(q => ({
+        questionId: q._id,
+        answerKey: answers[q._id]?.answerKey || '',
+        answerText: answers[q._id]?.answerText || '',
+      })).filter(answer => answer.answerKey || answer.answerText);
+      if (!payload.length) return;
+      const result = await saveAttemptDraftApi(attemptId, payload);
+      if (result?.EC !== 0 && result?.EM) message.warning(result.EM);
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [answers, attemptId, taking]);
+
+  const formatRemaining = (seconds) => {
+    if (seconds == null) return '--:--';
+    const minutes = Math.floor(seconds / 60);
+    const remainder = seconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`;
   };
 
   return (
@@ -117,7 +164,7 @@ const ExamsPage = () => {
                     Làm bài
                   </Button>
                 )}
-                {canManage && r.status === 'DRAFT' && (
+                {can(user, 'exams', 'update') && r.status === 'DRAFT' && (
                   <Button
                     size="small"
                     onClick={async () => {
@@ -145,7 +192,7 @@ const ExamsPage = () => {
         columns={[
           { title: 'Đề', render: (_, r) => r.examId?.title },
           { title: 'HS', render: (_, r) => r.studentId?.name },
-          { title: 'Điểm', render: (_, r) => `${r.score}/${r.maxScore}` },
+          { title: 'Điểm', render: (_, r) => r.score == null ? 'Chưa công bố' : `${r.score}/${r.maxScore}` },
           { title: 'TT', dataIndex: 'status' },
         ]}
       />
@@ -153,11 +200,15 @@ const ExamsPage = () => {
       <Modal
         open={!!taking}
         title={taking?.title}
-        onCancel={() => setTaking(null)}
+        onCancel={() => { setTaking(null); setAttemptId(null); setDeadlineAt(null); }}
         onOk={submit}
+        confirmLoading={submitting}
         okText="Nộp bài"
         width={720}
       >
+        <div style={{ marginBottom: 16, fontWeight: 600, color: remainingSeconds != null && remainingSeconds <= 60 ? '#cf1322' : undefined }}>
+          Thời gian còn lại: {formatRemaining(remainingSeconds)}
+        </div>
         {(taking?.questions || []).map((q, idx) => (
           <div key={q._id} style={{ marginBottom: 16 }}>
             <div>
@@ -175,6 +226,7 @@ const ExamsPage = () => {
                     [q._id]: { answerKey: e.target.value },
                   }))
                 }
+                value={answers[q._id]?.answerKey}
               >
                 {(q.options || []).map((o) => (
                   <Radio key={o.key} value={o.key} style={{ display: 'block' }}>
@@ -186,6 +238,7 @@ const ExamsPage = () => {
               <Input.TextArea
                 style={{ marginTop: 8 }}
                 rows={3}
+                value={answers[q._id]?.answerText || ''}
                 onChange={(e) =>
                   setAnswers((prev) => ({
                     ...prev,

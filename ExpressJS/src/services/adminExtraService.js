@@ -5,15 +5,14 @@ const ConductRecord = require('../models/ConductRecord');
 const SharedTemplate = require('../models/SharedTemplate');
 const School = require('../models/School');
 const { ROLES } = require('../constants/roles');
+const { scopedDocument, reference, targetSchool, academicReferences } = require('./writeScope');
+const { objectId, schoolScope, personalStudentIds, teacherClassScope } = require('./dataScope');
+const User = require('../models/User');
+const TemplateDeployment = require('../models/TemplateDeployment');
 
 // Audit
 const listAuditLogs = async (actor, query = {}) => {
-  const filter = {};
-  if (actor.role === ROLES.SUPER_ADMIN) {
-    if (query.schoolId) filter.schoolId = query.schoolId;
-  } else {
-    filter.schoolId = actor.schoolId;
-  }
+  const filter = { $and: [await schoolScope(actor), query.schoolId ? { schoolId: objectId(query.schoolId) } : {}] };
   if (query.action) filter.action = query.action;
   if (query.resource) filter.resource = query.resource;
   return AuditLog.find(filter)
@@ -54,12 +53,17 @@ const createTicket = async (actor, data) => {
 };
 
 const updateTicket = async (actor, id, data) => {
-  const ticket = await SupportTicket.findById(id);
+  const scope = actor.role === ROLES.CLUSTER_ADMIN ? { clusterId: actor.clusterId } : await schoolScope(actor);
+  const ticket = await SupportTicket.findOne({ ...scope, _id: objectId(id) });
   if (!ticket) throw new ApiError(404, 'Không tìm thấy ticket');
-  if (actor.role !== ROLES.SUPER_ADMIN && String(ticket.schoolId) !== String(actor.schoolId)) {
+  if (actor.role !== ROLES.SUPER_ADMIN && actor.role !== ROLES.CLUSTER_ADMIN && String(ticket.schoolId) !== String(actor.schoolId)) {
     throw new ApiError(403, 'Ngoài phạm vi');
   }
   const allowed = ['status', 'priority', 'resolution', 'assignedTo', 'category'];
+  if (data.assignedTo && actor.role !== ROLES.SUPER_ADMIN) {
+    if (!ticket.schoolId) throw new ApiError(403, 'Chỉ Super Admin được phân công ticket cụm');
+    await reference(User, data.assignedTo, ticket.schoolId);
+  }
   for (const key of allowed) {
     if (data[key] !== undefined) ticket[key] = data[key];
   }
@@ -72,12 +76,17 @@ const updateTicket = async (actor, id, data) => {
 
 // Conduct
 const listConduct = async (actor, query = {}) => {
-  const filter = {};
-  if (actor.schoolId) filter.schoolId = actor.schoolId;
-  if (query.studentId) filter.studentId = query.studentId;
+  const filter = { $and: [await schoolScope(actor)] };
+  if (query.studentId) filter.studentId = objectId(query.studentId, 'studentId');
   if (query.semester) filter.semester = Number(query.semester);
-  if (actor.role === ROLES.STUDENT) filter.studentId = actor._id;
-  if (actor.role === ROLES.PARENT) filter.studentId = { $in: actor.parentOf || [] };
+  const personal = await personalStudentIds(actor);
+  if (personal !== null) filter.$and.push({ studentId: { $in: personal } });
+  if (actor.role === ROLES.HOMEROOM_TEACHER) {
+    const classes = await require('../models/Class').find({ schoolId: actor.schoolId, homeroomTeacherId: actor._id }).select('_id');
+    filter.$and.push({ classId: { $in: classes.map(c => c._id) } });
+  } else {
+    filter.$and.push(await teacherClassScope(actor, 'conduct'));
+  }
   return ConductRecord.find(filter)
     .populate('studentId', 'name code')
     .populate('classId', 'name')
@@ -90,8 +99,12 @@ const upsertConduct = async (actor, data) => {
   if (!data.studentId || !data.academicYearId || !data.rating) {
     throw new ApiError(400, 'Thiếu studentId/academicYearId/rating');
   }
+  const student = await scopedDocument(User, actor, data.studentId);
+  if (student.role !== ROLES.STUDENT) throw new ApiError(400, 'Cần tài khoản học sinh');
+  const cls = await academicReferences(actor, { ...data, classId: data.classId || student.classId }, { homeroomAllowed: true });
+  if (actor.role === ROLES.HOMEROOM_TEACHER && String(cls.homeroomTeacherId) !== String(actor._id)) throw new ApiError(403, 'Không phải lớp chủ nhiệm');
   const filter = {
-    schoolId: actor.schoolId,
+    schoolId: cls.schoolId,
     studentId: data.studentId,
     academicYearId: data.academicYearId,
     semester: data.semester || 1,
@@ -100,12 +113,12 @@ const upsertConduct = async (actor, data) => {
     filter,
     {
       ...filter,
-      classId: data.classId || null,
+      classId: cls._id,
       rating: data.rating,
       comment: data.comment || '',
       recordedBy: actor._id,
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
+    { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
   );
 };
 
@@ -148,19 +161,24 @@ const createTemplate = async (actor, data) => {
 const updateTemplate = async (actor, id, data) => {
   const tpl = await SharedTemplate.findById(id);
   if (!tpl) throw new ApiError(404, 'Không tìm thấy mẫu');
-  if (actor.role === ROLES.CLUSTER_ADMIN && String(tpl.clusterId) !== String(actor.clusterId)) {
+  if (actor.role !== ROLES.SUPER_ADMIN && (actor.role !== ROLES.CLUSTER_ADMIN || tpl.scope !== 'CLUSTER' || String(tpl.clusterId) !== String(actor.clusterId))) {
     throw new ApiError(403, 'Ngoài phạm vi');
   }
   ['name', 'content', 'version', 'isActive', 'type'].forEach((k) => {
     if (data[k] !== undefined) tpl[k] = data[k];
   });
   await tpl.save();
+  await TemplateDeployment.updateMany({ templateId: tpl._id }, { $set: { name: tpl.name, type: tpl.type, version: tpl.version, content: tpl.content, sourceUpdatedAt: tpl.updatedAt, syncedAt: new Date() } });
   return tpl;
 };
 
 const applyTemplateToSchool = async (actor, schoolId, templateId) => {
+  await targetSchool(actor, schoolId);
+  const template = await SharedTemplate.findById(objectId(templateId));
+  if (!template || !template.isActive) throw new ApiError(404, 'Mẫu không tồn tại hoặc đã ngưng');
   const school = await School.findById(schoolId);
   if (!school) throw new ApiError(404, 'Không tìm thấy trường');
+  if (template.scope === 'CLUSTER' && String(template.clusterId) !== String(school.clusterId)) throw new ApiError(403, 'Mẫu không thuộc cụm của trường');
   if (actor.role === ROLES.SCHOOL_ADMIN && String(school._id) !== String(actor.schoolId)) {
     throw new ApiError(403, 'Ngoài phạm vi');
   }
@@ -171,7 +189,18 @@ const applyTemplateToSchool = async (actor, schoolId, templateId) => {
   ids.add(String(templateId));
   school.appliedTemplateIds = [...ids];
   await school.save();
+  await TemplateDeployment.findOneAndUpdate(
+    { schoolId: school._id, templateId: template._id },
+    { schoolId: school._id, templateId: template._id, name: template.name, type: template.type, version: template.version, content: template.content, sourceUpdatedAt: template.updatedAt, syncedAt: new Date() },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
   return school.populate('appliedTemplateIds');
+};
+
+const listTemplateDeployments = async (actor, query = {}) => {
+  const filter = { ...(await schoolScope(actor)) };
+  if (query.templateId) filter.templateId = objectId(query.templateId, 'templateId');
+  return TemplateDeployment.find(filter).populate('schoolId', 'name code').populate('templateId', 'name type version').sort({ syncedAt: -1 }).limit(500);
 };
 
 module.exports = {
@@ -185,4 +214,5 @@ module.exports = {
   createTemplate,
   updateTemplate,
   applyTemplateToSchool,
+  listTemplateDeployments,
 };

@@ -8,6 +8,7 @@ const learningMaterialSchema = new mongoose.Schema(
     classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', default: null },
     uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     fileUrl: { type: String, default: '' },
+    fileAssetId: { type: mongoose.Schema.Types.ObjectId, ref: 'FileAsset', default: null },
     fileType: { type: String, default: 'LINK' },
     topic: { type: String, default: '' },
     description: { type: String, default: '' },
