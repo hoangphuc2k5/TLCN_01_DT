@@ -1,8 +1,36 @@
 // Local E2E only: never connects to MONGODB_URI or imports the production seed.
+const path = require('node:path');
+const useConfiguredVnpay = process.env.PHASE0_USE_VNPAY_SANDBOX === 'true';
+
+if (useConfiguredVnpay) {
+  require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+  const missingVnpayConfig = ['VNPAY_TMN_CODE', 'VNPAY_HASH_SECRET']
+    .filter(name => !process.env[name]?.trim());
+  if (missingVnpayConfig.length) {
+    throw new Error(`Sandbox fixture requires ${missingVnpayConfig.join(', ')} in ExpressJS/.env`);
+  }
+  const configuredGateway = new URL(process.env.VNPAY_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html');
+  if (configuredGateway.origin !== 'https://sandbox.vnpayment.vn'
+    || configuredGateway.pathname !== '/paymentv2/vpcpay.html'
+    || configuredGateway.username || configuredGateway.password || configuredGateway.search || configuredGateway.hash) {
+    throw new Error('Sandbox fixture only permits the HTTPS VNPay sandbox gateway');
+  }
+}
+
+const fixturePort = Number(process.env.PHASE0_PORT || 8091);
+if (!Number.isInteger(fixturePort) || fixturePort < 1024 || fixturePort > 65535) {
+  throw new Error('PHASE0_PORT must be an integer from 1024 to 65535');
+}
+
 Object.assign(process.env, {
-  VNPAY_TMN_CODE: 'TESTCODE', VNPAY_HASH_SECRET: 'isolated-vnpay-fixture-secret',
-  VNPAY_URL: 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
-  VNPAY_RETURN_URL: 'http://127.0.0.1:5175/payments/vnpay-return',
+  VNPAY_TMN_CODE: useConfiguredVnpay ? process.env.VNPAY_TMN_CODE : 'TESTCODE',
+  VNPAY_HASH_SECRET: useConfiguredVnpay ? process.env.VNPAY_HASH_SECRET : 'isolated-vnpay-fixture-secret',
+  VNPAY_URL: useConfiguredVnpay
+    ? (process.env.VNPAY_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html')
+    : 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
+  VNPAY_RETURN_URL: useConfiguredVnpay
+    ? (process.env.PHASE0_VNPAY_RETURN_URL || 'http://127.0.0.1:5177/payments/vnpay-return')
+    : 'http://127.0.0.1:5175/payments/vnpay-return',
   NODE_ENV: 'test', JWT_SECRET: 'phase0-local-fixture-secret', AUTH_MFA_ENCRYPTION_KEY: 'ab'.repeat(32),
   ALLOW_PASSWORD_LOGIN: 'true', AUTH_GMAIL_ONLY: 'false',
   GOOGLE_CLIENT_ID: '', GMAIL_USER: '', GMAIL_APP_PASSWORD: '',
@@ -12,7 +40,6 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const { MongoMemoryReplSet } = require('mongodb-memory-server');
 const fs = require('node:fs/promises');
-const path = require('node:path');
 const os = require('node:os');
 const app = require('../src/app');
 const http = require('node:http');
@@ -89,9 +116,9 @@ async function start() {
   await require('../src/models/FileAsset').init();
   await require('../src/models/Subscription').init();
   await require('../src/models/Job').init();
-  server = http.createServer(app); messageGateway = attachMessageGateway(server); server.listen(8091, '127.0.0.1');
+  server = http.createServer(app); messageGateway = attachMessageGateway(server); server.listen(fixturePort, '127.0.0.1');
   server.on('error', async error => { console.error(error.message); await stop(); process.exitCode = 1; });
-  server.on('listening', () => console.log('Isolated phase0 fixture ready on http://127.0.0.1:8091'));
+  server.on('listening', () => console.log(`Isolated phase0 fixture ready on http://127.0.0.1:${fixturePort}${useConfiguredVnpay ? ' (VNPay sandbox credentials enabled)' : ''}`));
 }
 async function stop() {
   messageGateway?.close();
