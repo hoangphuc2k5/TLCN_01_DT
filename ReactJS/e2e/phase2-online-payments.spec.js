@@ -20,8 +20,12 @@ test('student can create an online tuition checkout', async ({ page }) => {
   const payment = (await createdResponse.json()).data;
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.getByText(/VNPAY/)).toBeVisible();
+  const qr = page.getByTestId('vnpay-checkout-qr');
+  await expect(qr).toBeVisible();
+  await expect(qr.locator('svg')).toBeVisible();
   const link = page.getByRole('link', { name: 'Mở cổng thanh toán VNPay', exact: true });
   const checkout = new URL(await link.getAttribute('href'));
+  expect(await link.getAttribute('target')).toBe('_blank');
   expect(checkout.hostname).toBe('sandbox.vnpayment.vn');
   expect(checkout.searchParams.get('vnp_TmnCode')).toBe('TESTCODE');
   const payload = { vnp_Amount: String(payment.amount * 100), vnp_TmnCode: 'TESTCODE',

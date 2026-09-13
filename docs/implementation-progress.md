@@ -471,3 +471,10 @@ Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend 
 - Sau sửa DNS, kết nối Atlas thật vẫn thất bại với `ERR_SSL_TLSV1_ALERT_INTERNAL_ERROR` (TLS alert 80), tái hiện cả TLS 1.2/1.3. Chưa phục hồi backend, chưa chạy được Atlas ping. Không suy ra lỗi code VNPay từ lỗi này.
 - Bước tiếp: kiểm tra cluster đang hoạt động và Network Access cho IP public của máy chạy backend; nếu IP đã được cho phép, kiểm tra VPN/firewall/TLS interception. Sau khi sửa quyền mạng, khởi động lại backend bằng `npm run dev`, kiểm tra `/v1/api/health` trực tiếp và qua Vite.
 - Nguồn: [Atlas connection troubleshooting](https://www.mongodb.com/docs/atlas/troubleshoot-connection/), [Node DNS configuration](https://nodejs.org/api/dns.html#dnssetserversservers).
+
+## QR thanh toán VNPay — 13/09/2026
+
+- Nhánh: `feat/vnpay-checkout-qr`, tách từ `integration/phase3`.
+- Hộp thoại học phí hiển thị QR SVG được tạo cục bộ từ URL checkout VNPay đã ký; giữ link dự phòng mở checkout ở tab mới. QR đưa người trả đến trang VNPay để tiếp tục chọn phương thức thanh toán.
+- Frontend unit **11/11 đạt**, production build đạt, Playwright payment E2E **2/2 đạt** trên fixture local. Build vẫn in cảnh báo bundle chính trên 500 kB.
+- Chi tiết: [phase2-vnpay-qr.md](phase2-vnpay-qr.md).
