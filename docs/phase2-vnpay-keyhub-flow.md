@@ -1,5 +1,7 @@
 # Luồng VNPay theo KeyhubStore
 
+> Trạng thái: đã hoàn tác trên nhánh `feat/vnpay-new-sandbox-terminal` theo yêu cầu khôi phục luồng Return frontend. Tài liệu này được giữ lại để đối chiếu lịch sử triển khai.
+
 Ngày thực hiện: 13/09/2026. Nhánh tính năng: `feat/vnpay-keyhub-flow`; nhánh tích hợp: `integration/phase3`.
 
 ## Thay đổi

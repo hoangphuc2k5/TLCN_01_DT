@@ -10,8 +10,7 @@ process.env.JWT_SECRET = 'online-payment-test-secret';
 process.env.PAYMENT_MOCK_SECRET = 'online-payment-mock-secret';
 process.env.VNPAY_TMN_CODE = 'TESTCODE';
 process.env.VNPAY_HASH_SECRET = 'isolated-vnpay-secret';
-process.env.VNPAY_RETURN_URL = 'http://localhost:8080/v1/api/online-payments/vnpay/return';
-process.env.FRONTEND_URL = 'http://localhost:5173';
+process.env.VNPAY_RETURN_URL = 'http://localhost:5173/payments/vnpay-return';
 process.env.VNPAY_URL = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html';
 
 const app = require('../src/app');
@@ -29,7 +28,7 @@ const OnlinePayment = require('../src/models/OnlinePayment');
 
 // Independently encode callbacks instead of reusing the adapter under test.
 const signedVnpay = payload => {
-  const query = Object.keys(payload).filter(k => k.startsWith('vnp_') && !['vnp_SecureHash', 'vnp_SecureHashType'].includes(k)).sort()
+  const query = Object.keys(payload).filter(k => k.startsWith('vnp_') && k !== 'vnp_SecureHash').sort()
     .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(payload[k]).replace(/%20/g, '+')}`).join('&');
   return { ...payload, vnp_SecureHash: crypto.createHmac('sha512', process.env.VNPAY_HASH_SECRET).update(query).digest('hex') };
 };
@@ -110,7 +109,7 @@ test('parent can pay a child invoice but cannot access another student invoice',
 });
 
 
-test('VNPay checkout matches Keyhub signing fields and uses a trusted backend return', async () => {
+test('VNPay checkout uses signed parameters, trusted return, GMT+7 and matching expiry', async () => {
   const row = await newVnpay();
   const url = new URL(row.checkoutUrl);
   assert.equal(url.origin, 'https://sandbox.vnpayment.vn');
@@ -118,26 +117,9 @@ test('VNPay checkout matches Keyhub signing fields and uses a trusted backend re
   assert.equal(p.vnp_SecureHash, signedVnpay(p).vnp_SecureHash);
   assert.equal(p.vnp_ReturnUrl, process.env.VNPAY_RETURN_URL);
   assert.equal(p.vnp_Amount, '10000000');
-  assert.equal(p.vnp_OrderInfo, row.providerOrderId);
-  assert.equal(p.vnp_SecureHashType, 'SHA512');
-  assert.equal(p.vnp_ExpireDate, undefined);
   assert.match(p.vnp_TxnRef, /^[a-z0-9]{1,100}$/i);
+  assert.equal(p.vnp_ExpireDate, new Date(new Date(row.expiresAt).getTime() + 7 * 3600000).toISOString().replace(/\D/g, '').slice(0, 14));
   assert.equal(require('../src/services/vnpayGateway').timestamp(new Date('2026-09-09T18:30:00Z')), '20260910013000');
-});
-
-test('VNPay browser return redirects through backend to the frontend result page', async () => {
-  const row = await newVnpay();
-  const p = signedVnpay(vnpCallback(row));
-  const response = await fetch(`${origin}/v1/api/online-payments/vnpay/return?${new URLSearchParams(p)}`, {
-    headers: { Accept: 'text/html' },
-    redirect: 'manual',
-  });
-  assert.equal(response.status, 302);
-  const target = new URL(response.headers.get('location'));
-  assert.equal(target.origin, process.env.FRONTEND_URL);
-  assert.equal(target.pathname, '/payments/vnpay-return');
-  assert.equal(target.searchParams.get('vnp_TxnRef'), row.providerOrderId);
-  assert.equal(target.searchParams.get('vnp_SecureHash'), p.vnp_SecureHash);
 });
 
 test('VNPay return is read-only; signed IPN settles exactly once even concurrently', async () => {
