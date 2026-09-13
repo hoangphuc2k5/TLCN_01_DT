@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, Form, Input, InputNumber, Modal, QRCode, Select, Space, Table, Tag, message } from 'antd';
+import { Button, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, message } from 'antd';
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
 import {
@@ -35,7 +35,6 @@ const FeesPage = () => {
   const [openPay, setOpenPay] = useState(false);
   const [selected, setSelected] = useState(null);
   const [payingId, setPayingId] = useState(null);
-  const [checkout, setCheckout] = useState(null);
   const [feeForm] = Form.useForm();
   const [payForm] = Form.useForm();
 
@@ -134,8 +133,11 @@ const FeesPage = () => {
                             invoiceId: r._id,
                             provider: 'VNPAY',
                           });
-                          if (res?.EC === 0) setCheckout(res.data);
-                          else message.error(res?.EM || 'Không tạo được giao dịch');
+                          if (res?.EC === 0 && res.data?.checkoutUrl) {
+                            window.location.assign(res.data.checkoutUrl);
+                          } else {
+                            message.error(res?.EM || 'Không tạo được giao dịch');
+                          }
                         } catch { message.error('Không kết nối được cổng thanh toán'); }
                         finally { setPayingId(null); }
                       }}
@@ -225,35 +227,6 @@ const FeesPage = () => {
         </Form>
       </Modal>
 
-      <Modal
-        open={!!checkout}
-        title="Thanh toán học phí qua VNPay"
-        onCancel={() => setCheckout(null)}
-        footer={null}
-        destroyOnClose
-      >
-        <p>Số tiền: {Number(checkout?.amount || 0).toLocaleString('vi-VN')} VND</p>
-        {checkout?.checkoutUrl && (
-          <div style={{ display: 'grid', justifyItems: 'center', gap: 12, margin: '20px 0' }}>
-            <QRCode
-              data-testid="vnpay-checkout-qr"
-              type="svg"
-              value={checkout.checkoutUrl}
-              size={232}
-              errorLevel="M"
-              marginSize={4}
-              title="Quét mã QR để mở trang thanh toán VNPay"
-            />
-            <p style={{ margin: 0, textAlign: 'center' }}>
-              Quét mã bằng điện thoại để mở trang thanh toán VNPay, sau đó chọn phương thức thanh toán.
-            </p>
-            <a href={checkout.checkoutUrl} target="_blank" rel="noopener noreferrer">
-              Mở cổng thanh toán VNPay
-            </a>
-          </div>
-        )}
-        <p style={{ marginTop: 12 }}>Mã giao dịch: {checkout?.providerOrderId}</p>
-      </Modal>
     </div>
   );
 };

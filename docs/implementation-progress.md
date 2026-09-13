@@ -486,3 +486,12 @@ Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend 
 - Khởi chạy checkout qua fixture mới: API `127.0.0.1:8092`, UI `127.0.0.1:5177`. Kiểm thử khởi động, đăng nhập fixture và tạo checkout xác nhận URL dùng đúng merchant cấu hình, không in secret.
 - Backend thanh toán **11/11 đạt**. Gọi sandbox trực tiếp vẫn nhận `code=71` (terminal chưa được duyệt), nên UI có thể tạo URL thật nhưng VNPay chưa cho tiếp tục chọn phương thức.
 - Hướng dẫn: [phase2-vnpay-sandbox.md](phase2-vnpay-sandbox.md).
+
+## Điều hướng trực tiếp sang VNPay — 13/09/2026
+
+- Nhánh `feat/vnpay-direct-redirect`, tách từ `integration/phase3`.
+- Nút **Thanh toán VNPay** giờ tạo checkout rồi điều hướng cùng tab sang VNPay; bỏ hộp thoại QR và link tab mới. Nếu API lỗi hoặc thiếu checkout URL, giao diện báo lỗi và giữ người dùng ở trang học phí.
+- Playwright chặn URL sandbox, xác nhận điều hướng cùng tab và tham số merchant, đồng thời kiểm tra IPN/Return như trước; không gửi thanh toán thật.
+- Frontend unit **11/11 đạt**, production build đạt, Playwright payment E2E **2/2 đạt**. Build còn cảnh báo bundle chính trên 500 kB.
+- Terminal sandbox vẫn trả `code=71` do chưa được VNPay duyệt; cần VNPay duyệt terminal để trang cổng cho chọn phương thức và hoàn tất thanh toán.
+- Chi tiết: [phase2-vnpay-direct-redirect.md](phase2-vnpay-direct-redirect.md).
