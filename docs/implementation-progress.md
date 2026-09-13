@@ -495,3 +495,12 @@ Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend 
 - Frontend unit **11/11 đạt**, production build đạt, Playwright payment E2E **2/2 đạt**. Build còn cảnh báo bundle chính trên 500 kB.
 - Terminal sandbox vẫn trả `code=71` do chưa được VNPay duyệt; cần VNPay duyệt terminal để trang cổng cho chọn phương thức và hoàn tất thanh toán.
 - Chi tiết: [phase2-vnpay-direct-redirect.md](phase2-vnpay-direct-redirect.md).
+
+## Đồng bộ luồng VNPay theo KeyhubStore — 13/09/2026
+
+- Nhánh `feat/vnpay-keyhub-flow`, tách từ `integration/phase3`.
+- Đồng bộ cách ký PAY của KeyhubStore: order info là mã giao dịch, tham số form-encode theo thứ tự và thêm `vnp_SecureHashType=SHA512`.
+- VNPay Return đi qua backend, được xác thực rồi redirect sang trang kết quả frontend. Luồng IPN an toàn và idempotent vẫn được giữ để cập nhật hóa đơn.
+- Cấu hình local và fixture đã đổi Return URL sang endpoint backend. Secret sandbox vẫn chỉ nằm trong `.env` đã Git-ignore.
+- Backend **253/253**, frontend **11/11**, build và Playwright payment **2/2** đều đạt. Sandbox vẫn trả `code=71` với request mới đã đồng bộ.
+- Chi tiết và kết quả kiểm thử: [phase2-vnpay-keyhub-flow.md](phase2-vnpay-keyhub-flow.md).

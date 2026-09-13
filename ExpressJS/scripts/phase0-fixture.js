@@ -29,8 +29,9 @@ Object.assign(process.env, {
     ? (process.env.VNPAY_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html')
     : 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
   VNPAY_RETURN_URL: useConfiguredVnpay
-    ? (process.env.PHASE0_VNPAY_RETURN_URL || 'http://127.0.0.1:5177/payments/vnpay-return')
-    : 'http://127.0.0.1:5175/payments/vnpay-return',
+    ? (process.env.PHASE0_VNPAY_RETURN_URL || `http://127.0.0.1:${fixturePort}/v1/api/online-payments/vnpay/return`)
+    : `http://127.0.0.1:${fixturePort}/v1/api/online-payments/vnpay/return`,
+  FRONTEND_URL: useConfiguredVnpay ? 'http://127.0.0.1:5177' : 'http://127.0.0.1:5175',
   NODE_ENV: 'test', JWT_SECRET: 'phase0-local-fixture-secret', AUTH_MFA_ENCRYPTION_KEY: 'ab'.repeat(32),
   ALLOW_PASSWORD_LOGIN: 'true', AUTH_GMAIL_ONLY: 'false',
   GOOGLE_CLIENT_ID: '', GMAIL_USER: '', GMAIL_APP_PASSWORD: '',

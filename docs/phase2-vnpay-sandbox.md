@@ -22,12 +22,12 @@ Ngày kiểm tra: 09/09/2026. Nhánh tính năng: `feat/phase2-vnpay-sandbox`; n
 VNPAY_TMN_CODE=<terminal sandbox>
 VNPAY_HASH_SECRET=<secret sandbox>
 VNPAY_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
-VNPAY_RETURN_URL=http://localhost:5173/payments/vnpay-return
+VNPAY_RETURN_URL=http://localhost:8080/v1/api/online-payments/vnpay/return
 PAYMENT_DEFAULT_PROVIDER=VNPAY
 ONLINE_PAYMENT_TTL_MS=900000
 ```
 
-Khởi động lại backend sau khi đổi cấu hình. Khi dùng domain/tunnel, đổi `VNPAY_RETURN_URL` sang URL frontend tương ứng. Với proxy, `req.ip` hiện là IP kết nối trực tiếp; chỉ cấu hình trust proxy theo topology được triển khai để lấy IP khách hàng từ proxy tin cậy.
+Khởi động lại backend sau khi đổi cấu hình. Luồng trình duyệt giống KeyhubStore: VNPay trả về endpoint backend, backend xác thực chữ ký rồi chuyển trình duyệt sang `/payments/vnpay-return` trên `FRONTEND_URL`. Khi dùng domain/tunnel, đổi `VNPAY_RETURN_URL` sang endpoint backend công khai tương ứng. Với proxy, `req.ip` hiện là IP kết nối trực tiếp; chỉ cấu hình trust proxy theo topology được triển khai để lấy IP khách hàng từ proxy tin cậy.
 
 Đăng ký với VNPay một IPN URL **HTTPS công khai** dạng `https://<api-domain>/v1/api/online-payments/vnpay/ipn`. VNPay gọi trực tiếp URL này, không có JWT. Không dùng địa chỉ localhost cho IPN. Chỉ có Return URL mà chưa đăng ký IPN thì trang kết quả vẫn chờ xác nhận và hóa đơn chưa được ghi nhận.
 
