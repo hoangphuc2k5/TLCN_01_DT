@@ -2,6 +2,8 @@ const crypto = require('node:crypto');
 const net = require('node:net');
 const ApiError = require('../utils/ApiError');
 
+// VNPay signs the alphabetically sorted, form-encoded vnp_* fields. This is
+// equivalent to KeyhubStore's sortObject + qs.stringify({ encode: false }).
 const fields = payload => Object.keys(payload)
   .filter(key => key.startsWith('vnp_') && !['vnp_SecureHash', 'vnp_SecureHashType'].includes(key))
   .sort().map(key => `${encodeURIComponent(key)}=${encodeURIComponent(String(payload[key])).replace(/%20/g, '+')}`).join('&');
@@ -17,19 +19,24 @@ const returnUrl = () => {
 
 module.exports = {
   provider: 'VNPAY', fields, timestamp,
-  async createPayment({ orderId, amount, ipAddress, expiresAt }) {
+  async createPayment({ orderId, amount, ipAddress }) {
     if (!process.env.VNPAY_TMN_CODE || !process.env.VNPAY_HASH_SECRET) throw new ApiError(503, 'Chưa cấu hình VNPay');
     if (!Number.isSafeInteger(amount) || amount < 1 || amount * 100 > 999999999999) throw new ApiError(400, 'Số tiền VNPay phải là số nguyên VND hợp lệ');
     const ip = String(ipAddress || '').replace(/^::ffff:/, '');
     const payload = {
       vnp_Version: '2.1.0', vnp_Command: 'pay', vnp_TmnCode: process.env.VNPAY_TMN_CODE,
       vnp_Amount: amount * 100, vnp_CurrCode: 'VND', vnp_TxnRef: orderId,
-      vnp_OrderInfo: `Thanh toan hoc phi ${orderId}`, vnp_OrderType: 'other', vnp_Locale: 'vn',
+      vnp_OrderInfo: orderId, vnp_OrderType: 'other', vnp_Locale: 'vn',
       vnp_ReturnUrl: returnUrl(), vnp_IpAddr: net.isIP(ip) ? ip : '127.0.0.1',
-      vnp_CreateDate: timestamp(new Date()), vnp_ExpireDate: timestamp(expiresAt),
+      vnp_CreateDate: timestamp(new Date()),
     };
     const base = process.env.VNPAY_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html';
-    return { checkoutUrl: `${base}?${fields(payload)}&vnp_SecureHash=${checksum(payload)}`, payload };
+    const signedPayload = {
+      ...payload,
+      vnp_SecureHash: checksum(payload),
+      vnp_SecureHashType: 'SHA512',
+    };
+    return { checkoutUrl: `${base}?${fields(signedPayload)}&vnp_SecureHash=${signedPayload.vnp_SecureHash}&vnp_SecureHashType=SHA512`, payload };
   },
   verifyWebhook(payload, signature) {
     if (!process.env.VNPAY_HASH_SECRET || typeof signature !== 'string' || !/^[a-f0-9]{128}$/i.test(signature)) return false;
