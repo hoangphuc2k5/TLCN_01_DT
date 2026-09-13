@@ -498,9 +498,16 @@ Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend 
 
 ## Đồng bộ luồng VNPay theo KeyhubStore — 13/09/2026
 
-- Nhánh `feat/vnpay-keyhub-flow`, tách từ `integration/phase3`.
-- Đồng bộ cách ký PAY của KeyhubStore: order info là mã giao dịch, tham số form-encode theo thứ tự và thêm `vnp_SecureHashType=SHA512`.
-- VNPay Return đi qua backend, được xác thực rồi redirect sang trang kết quả frontend. Luồng IPN an toàn và idempotent vẫn được giữ để cập nhật hóa đơn.
-- Cấu hình local và fixture đã đổi Return URL sang endpoint backend. Secret sandbox vẫn chỉ nằm trong `.env` đã Git-ignore.
-- Backend **253/253**, frontend **11/11**, build và Playwright payment **2/2** đều đạt. Sandbox vẫn trả `code=71` với request mới đã đồng bộ.
-- Chi tiết và kết quả kiểm thử: [phase2-vnpay-keyhub-flow.md](phase2-vnpay-keyhub-flow.md).
+- Nhánh `feat/vnpay-keyhub-flow`, đã từng merge vào `integration/phase3` và sau đó được hoàn tác theo yêu cầu.
+- Đã thử cấu trúc ký và Return backend giống KeyhubStore nhưng terminal cũ vẫn trả `code=71`.
+- Lịch sử chi tiết: [phase2-vnpay-keyhub-flow.md](phase2-vnpay-keyhub-flow.md).
+
+## Terminal VNPay sandbox mới và khôi phục luồng cũ — 13/09/2026
+
+- Nhánh `feat/vnpay-new-sandbox-terminal`, tách từ `integration/phase3`.
+- Khôi phục cấu trúc checkout trước lần đồng bộ Keyhub: order info học phí, expiry GMT+7 và Return URL frontend.
+- Terminal/secret sandbox mới chỉ được cập nhật trong `ExpressJS/.env` đã Git-ignore; không đưa credential vào commit hoặc tài liệu.
+- IPN an toàn và idempotent tiếp tục là nguồn cập nhật hóa đơn; nút thanh toán vẫn chuyển thẳng cùng tab sang VNPay.
+- Kiểm tra sandbox thật đã vào được `PaymentMethod.html` và màn hình chọn phương thức thanh toán test; terminal mới không còn lỗi `code=71`.
+- Backend **252/252**, frontend **11/11**, build và Playwright payment **2/2** đều đạt.
+- Chi tiết và kết quả kiểm thử: [phase2-vnpay-new-sandbox-terminal.md](phase2-vnpay-new-sandbox-terminal.md).
