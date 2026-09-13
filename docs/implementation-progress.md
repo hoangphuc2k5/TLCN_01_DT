@@ -511,3 +511,11 @@ Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend 
 - Kiểm tra sandbox thật đã vào được `PaymentMethod.html` và màn hình chọn phương thức thanh toán test; terminal mới không còn lỗi `code=71`.
 - Backend **252/252**, frontend **11/11**, build và Playwright payment **2/2** đều đạt.
 - Chi tiết và kết quả kiểm thử: [phase2-vnpay-new-sandbox-terminal.md](phase2-vnpay-new-sandbox-terminal.md).
+
+## Phase 3.1 - Học phí chia theo khoản
+
+- Nhánh: `feat/fees-line-items`, đích gộp `integration/phase3`.
+- Hóa đơn hỗ trợ nhiều khoản thu; backend tự tính tổng và dùng chung cơ chế phân bổ cho thu thủ công/VNPay.
+- Giao diện lập hóa đơn nhiều khoản, xem trạng thái từng khoản; Excel xuất chi tiết từng khoản và vẫn tương thích hóa đơn cũ.
+- Kiểm thử: backend toàn bộ **253/253**, frontend unit **11/11**, production build và Playwright riêng **1/1** đều đạt. Build còn cảnh báo bundle chính lớn hơn 500 kB.
+- Chi tiết: [phase3-fee-line-items.md](phase3-fee-line-items.md).

@@ -7,6 +7,7 @@ const { FEE_STATUS } = require('../constants/status');
 const { ROLES } = require('../constants/roles');
 const { objectId, schoolScope, personalStudentIds } = require('./dataScope');
 const { getGateway } = require('./paymentGateway');
+const { allocatePayment } = require('./feeInvoiceAccounting');
 
 const roundMoney = value => Math.round(Number(value) * 100) / 100;
 
@@ -141,7 +142,7 @@ const webhook = async (providerName, payload = {}, signature) => {
       if (!invoice) throw new ApiError(404, 'Không tìm thấy hóa đơn');
       const outstanding = roundMoney(Number(invoice.amount) - Number(invoice.paidAmount || 0));
       if (outstanding < roundMoney(paid.amount)) throw new ApiError(409, 'Hóa đơn đã được thu đủ hoặc bị vượt số tiền');
-      invoice.paidAmount = roundMoney(Number(invoice.paidAmount || 0) + Number(paid.amount));
+      allocatePayment(invoice, Number(paid.amount));
       refreshInvoiceStatus(invoice);
       await invoice.save({ session });
       await Payment.create([{
