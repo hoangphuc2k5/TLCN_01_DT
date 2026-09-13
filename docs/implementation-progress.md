@@ -478,3 +478,11 @@ Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend 
 - Hộp thoại học phí hiển thị QR SVG được tạo cục bộ từ URL checkout VNPay đã ký; giữ link dự phòng mở checkout ở tab mới. QR đưa người trả đến trang VNPay để tiếp tục chọn phương thức thanh toán.
 - Frontend unit **11/11 đạt**, production build đạt, Playwright payment E2E **2/2 đạt** trên fixture local. Build vẫn in cảnh báo bundle chính trên 500 kB.
 - Chi tiết: [phase2-vnpay-qr.md](phase2-vnpay-qr.md).
+
+## Fixture UI dùng cấu hình VNPay sandbox — 13/09/2026
+
+- Nhánh: `feat/vnpay-sandbox-fixture`, tách từ `integration/phase3`.
+- Thêm `npm run fixture:vnpay-sandbox`: dùng credentials trong `.env` với MongoDB tạm và tài khoản/hóa đơn giả; gateway bị giới hạn HTTPS `sandbox.vnpayment.vn`. Fixture E2E mặc định vẫn giữ `TESTCODE` để regression không phụ thuộc tài khoản bên ngoài.
+- Khởi chạy checkout qua fixture mới: API `127.0.0.1:8092`, UI `127.0.0.1:5177`. Kiểm thử khởi động, đăng nhập fixture và tạo checkout xác nhận URL dùng đúng merchant cấu hình, không in secret.
+- Backend thanh toán **11/11 đạt**. Gọi sandbox trực tiếp vẫn nhận `code=71` (terminal chưa được duyệt), nên UI có thể tạo URL thật nhưng VNPay chưa cho tiếp tục chọn phương thức.
+- Hướng dẫn: [phase2-vnpay-sandbox.md](phase2-vnpay-sandbox.md).
