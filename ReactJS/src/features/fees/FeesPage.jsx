@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, message } from 'antd';
+import { Button, Card, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, message } from 'antd';
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
 import {
@@ -22,6 +22,16 @@ const statusColor = {
   PAID: 'green',
   OVERDUE: 'magenta',
 };
+
+const categoryOptions = [
+  { value: 'TUITION', label: 'Học phí' },
+  { value: 'OTHER', label: 'Khoản thu khác' },
+  { value: 'BOARDING', label: 'Bán trú' },
+  { value: 'TRANSPORT', label: 'Xe đưa đón' },
+  { value: 'ACTIVITY', label: 'Hoạt động' },
+];
+
+const money = value => Number(value || 0).toLocaleString('vi-VN');
 
 const FeesPage = () => {
   const { user } = useSelector((s) => s.auth);
@@ -61,7 +71,11 @@ const FeesPage = () => {
     <div>
       {(canManage || canExport(user, 'fees')) && (
         <Space style={{ marginBottom: 16 }}>
-          {canManage && <Button type="primary" onClick={() => setOpenFee(true)}>
+          {canManage && <Button type="primary" onClick={() => {
+            feeForm.resetFields();
+            feeForm.setFieldsValue({ lineItems: [{ category: 'TUITION', quantity: 1 }] });
+            setOpenFee(true);
+          }}>
             Tạo hóa đơn
           </Button>}
           {canManage && can(user, 'fees', 'update') && <ImportExcelButton type="fees" onDone={load} />}
@@ -82,10 +96,29 @@ const FeesPage = () => {
       <Table
         rowKey="_id"
         dataSource={rows}
+        expandable={{
+          rowExpandable: row => (row.lineItems || []).length > 0,
+          expandedRowRender: row => <Table
+            size="small"
+            rowKey={item => item._id || `${item.code}-${item.name}`}
+            pagination={false}
+            dataSource={row.lineItems || []}
+            columns={[
+              { title: 'Mã', dataIndex: 'code', render: value => value || '-' },
+              { title: 'Khoản thu', dataIndex: 'name' },
+              { title: 'Loại', dataIndex: 'category', render: value => categoryOptions.find(item => item.value === value)?.label || value },
+              { title: 'SL', dataIndex: 'quantity' },
+              { title: 'Đơn giá', dataIndex: 'unitAmount', render: money },
+              { title: 'Thành tiền', dataIndex: 'amount', render: money },
+              { title: 'Đã thu', dataIndex: 'paidAmount', render: money },
+              { title: 'Trạng thái', dataIndex: 'status', render: value => <Tag color={statusColor[value]}>{value}</Tag> },
+            ]}
+          />,
+        }}
         columns={[
           { title: 'Học sinh', render: (_, r) => r.studentId?.name },
           { title: 'Nội dung', dataIndex: 'title' },
-          { title: 'Loại', dataIndex: 'category' },
+          { title: 'Số mục', render: (_, r) => r.lineItems?.length || 1 },
           {
             title: 'Số tiền',
             dataIndex: 'amount',
@@ -174,13 +207,31 @@ const FeesPage = () => {
           <Form.Item name="title" label="Nội dung" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="category" label="Loại khoản thu" initialValue="TUITION">
-            <Select options={[{ value: 'TUITION', label: 'Học phí' }, { value: 'OTHER', label: 'Khoản thu khác' }, { value: 'BOARDING', label: 'Bán trú' }, { value: 'TRANSPORT', label: 'Xe đưa đón' }, { value: 'ACTIVITY', label: 'Hoạt động' }]} />
-          </Form.Item>
           <Form.Item name="description" label="Chi tiết"><Input.TextArea maxLength={1000} /></Form.Item>
-          <Form.Item name="amount" label="Số tiền" rules={[{ required: true }]}>
-            <InputNumber style={{ width: '100%' }} min={0} />
-          </Form.Item>
+          <Form.List
+            name="lineItems"
+            rules={[{ validator: async (_, items) => { if (!items?.length) throw new Error('Cần ít nhất một khoản thu'); } }]}
+          >
+            {(fields, { add, remove }, { errors }) => <Space direction="vertical" style={{ width: '100%' }}>
+              {fields.map(({ key, name, ...rest }) => <Card
+                key={key}
+                size="small"
+                title={`Khoản thu ${name + 1}`}
+                extra={<Button danger size="small" disabled={fields.length === 1} onClick={() => remove(name)}>Xóa</Button>}
+              >
+                <Space align="start" wrap>
+                  <Form.Item {...rest} name={[name, 'code']} label="Mã"><Input maxLength={50} style={{ width: 110 }} /></Form.Item>
+                  <Form.Item {...rest} name={[name, 'name']} label="Tên khoản" rules={[{ required: true, whitespace: true }]}><Input maxLength={200} style={{ width: 220 }} /></Form.Item>
+                  <Form.Item {...rest} name={[name, 'category']} label="Loại" rules={[{ required: true }]}><Select options={categoryOptions} style={{ width: 150 }} /></Form.Item>
+                  <Form.Item {...rest} name={[name, 'quantity']} label="Số lượng" rules={[{ required: true }]}><InputNumber min={0.01} style={{ width: 100 }} /></Form.Item>
+                  <Form.Item {...rest} name={[name, 'unitAmount']} label="Đơn giá" rules={[{ required: true }]}><InputNumber min={1} step={1000} style={{ width: 160 }} /></Form.Item>
+                </Space>
+                <Form.Item {...rest} name={[name, 'description']} label="Mô tả"><Input maxLength={500} /></Form.Item>
+              </Card>)}
+              <Button type="dashed" onClick={() => add({ category: 'TUITION', quantity: 1 })}>Thêm khoản thu</Button>
+              <Form.ErrorList errors={errors} />
+            </Space>}
+          </Form.List>
           <Form.Item name="dueDate" label="Hạn thanh toán" rules={[{ required: true }]}>
             <Input type="date" />
           </Form.Item>
