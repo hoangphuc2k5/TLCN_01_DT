@@ -519,3 +519,11 @@ Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend 
 - Giao diện lập hóa đơn nhiều khoản, xem trạng thái từng khoản; Excel xuất chi tiết từng khoản và vẫn tương thích hóa đơn cũ.
 - Kiểm thử: backend toàn bộ **253/253**, frontend unit **11/11**, production build và Playwright riêng **1/1** đều đạt. Build còn cảnh báo bundle chính lớn hơn 500 kB.
 - Chi tiết: [phase3-fee-line-items.md](phase3-fee-line-items.md).
+
+## Phase 3.2 - Theo dõi người tải học liệu
+
+- Nhánh: `feat/material-download-audit`, đích gộp `integration/phase3`.
+- Ghi lượt tải file thành công theo người dùng/thời điểm/IP/thiết bị; tách lượt lỗi và không tính thao tác xem metadata.
+- Người đăng hoặc quản trị xem tổng lượt, số người tải duy nhất và danh sách chi tiết ngay tại trang Học liệu.
+- Quyền trường/lớp/chủ sở hữu và xóa cascade được kiểm thử; chi tiết: [phase3-material-download-audit.md](phase3-material-download-audit.md).
+- Kiểm thử: backend toàn bộ **254/254**, frontend unit **11/11**, production build và Playwright file **1/1** đều đạt. Build còn cảnh báo bundle chính lớn hơn 500 kB.

@@ -28,6 +28,7 @@ router.post('/materials/upload', authorizePermissionAction('create', PERMISSIONS
 router.get('/files/usage', authorizeRead('materials'), files.usage);
 router.get('/files/:id', authorizeRead('materials', { personal: true }), files.metadata);
 router.get('/files/:id/download', authorizeRead('materials', { personal: true }), files.download);
+router.get('/materials/:id/downloads', authorizePermissionAction('update', PERMISSIONS.MANAGE_MATERIALS), files.materialDownloads);
 router.post('/student-documents/upload', authorizePermissionAction('create', PERMISSIONS.MANAGE_DOCUMENTS), require('../middleware/fileUpload').upload, audit('CREATE', 'StudentDocument'), studentDocuments.upload);
 router.get('/student-documents', authorizeRead('student_documents', { personal: true }), studentDocuments.list);
 router.get('/student-documents/:id/download', authorizeRead('student_documents', { personal: true }), studentDocuments.download);
