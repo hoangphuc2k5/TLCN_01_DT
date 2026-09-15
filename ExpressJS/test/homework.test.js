@@ -95,6 +95,29 @@ test('students submit once per assignment, can replace an ungraded submission be
   const parentList = await request('GET', '/homeworks', actors.parent); assert.equal(parentList.status, 200); assert.equal(parentList.data[0].submission.status, 'SUBMITTED');
   const submissions = await request('GET', `/homeworks/${assignment.data._id}/submissions`, actors.parent); assert.equal(submissions.status, 200); assert.equal(submissions.data[0].studentId._id, String(actors.student._id)); assert.equal(submissions.data[0].answerText, 'Revised answer');
 });
+test('file submissions remain incomplete until a file is stored and cannot be graded early', async () => {
+  const assignment = await create(); await publish(assignment.data._id);
+  assert.equal((await request('POST', `/homeworks/${assignment.data._id}/submissions`, actors.student, { submissionMode: 'WEB', answerText: '' })).status, 400);
+  const pending = await request('POST', `/homeworks/${assignment.data._id}/submissions`, actors.student, { submissionMode: 'FILE', answerText: '' });
+  assert.equal(pending.status, 201, pending.EM);
+  assert.equal(pending.data.status, 'UPLOADING');
+  assert.equal(pending.data.submissionMode, 'FILE');
+  assert.equal((await request('GET', `/homeworks/${assignment.data._id}/submissions`, actors.teacher)).data.length, 0);
+
+  const bytes = Buffer.from('%PDF-1.4\nFile-only homework\n%%EOF');
+  const uploadedResponse = await uploadAttachment(assignment.data._id, actors.student, bytes);
+  assert.equal(uploadedResponse.status, 201, await uploadedResponse.clone().text());
+  const asset = (await uploadedResponse.json()).data;
+  const teacherList = await request('GET', `/homeworks/${assignment.data._id}/submissions`, actors.teacher);
+  assert.equal(teacherList.data.length, 1);
+  assert.equal(teacherList.data[0].status, 'SUBMITTED');
+  assert.equal(teacherList.data[0].submissionMode, 'FILE');
+  assert.equal(teacherList.data[0].attachmentIds[0]._id, asset._id);
+  const studentList = await request('GET', '/homeworks', actors.student);
+  assert.equal(studentList.data[0].submission.status, 'SUBMITTED');
+  assert.equal(studentList.data[0].submission.submissionMode, 'FILE');
+  assert.equal((await request('DELETE', `/homework-submission-files/${asset._id}`, actors.student)).status, 409);
+});
 test('teacher grades submitted work once, score is bounded and student sees feedback', async () => {
   const assignment = await create(); await publish(assignment.data._id);
   await request('POST', `/homeworks/${assignment.data._id}/submissions`, actors.student, { answerText: 'Answer' });
@@ -145,6 +168,7 @@ test('student uploads a private attachment and teacher/parent can download it be
   assert.equal((await fetch(`${origin}/v1/api/homework-submission-files/${asset._id}/download`, { headers: { Authorization: `Bearer ${jwt.sign({ _id: actors.foreignStudent._id }, process.env.JWT_SECRET)}` } })).status, 404);
   const submissions = await request('GET', `/homeworks/${assignment.data._id}/submissions`, actors.teacher);
   assert.equal(submissions.data[0].attachmentIds[0].originalName, 'bai-lam.pdf');
+  assert.equal(submissions.data[0].submissionMode, 'MIXED');
   await request('PATCH', `/assignment-submissions/${submissions.data[0]._id}/grade`, actors.teacher, { score: 8 });
   assert.equal((await request('DELETE', `/homework-submission-files/${asset._id}`, actors.student)).status, 409);
 });

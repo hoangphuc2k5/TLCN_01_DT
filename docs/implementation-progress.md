@@ -527,3 +527,12 @@ Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend 
 - Người đăng hoặc quản trị xem tổng lượt, số người tải duy nhất và danh sách chi tiết ngay tại trang Học liệu.
 - Quyền trường/lớp/chủ sở hữu và xóa cascade được kiểm thử; chi tiết: [phase3-material-download-audit.md](phase3-material-download-audit.md).
 - Kiểm thử: backend toàn bộ **254/254**, frontend unit **11/11**, production build và Playwright file **1/1** đều đạt. Build còn cảnh báo bundle chính lớn hơn 500 kB.
+
+## Phase 3.3 - Nộp bài trực tuyến/file và yêu cầu thi lại/học lại
+
+- Nhánh: `feat/assignment-submission-modes`, đích gộp `integration/phase3`.
+- Học sinh chọn làm trực tuyến hoặc nộp file; bài file chỉ được chuyển sang đã nộp sau khi kho file ghi thành công, bài tải dở không xuất hiện để giáo viên chấm.
+- Lưu hình thức `WEB`/`FILE`/`MIXED`, bảo vệ file cuối của bài chỉ nộp file và giữ chặn sửa bài đã chấm.
+- Chuyển yêu cầu thi lại/học lại vào trang Bài tập, tách riêng hai loại yêu cầu và chống trùng theo từng loại. Trang Hoạt động chỉ còn CLB/môn tự chọn.
+- Kiểm thử: backend toàn bộ **255/255**, frontend unit **11/11**, production build, Playwright bài tập/thi lại **2/2**, CLB **1/1** và toàn bộ E2E **46/46** đều đạt. Build còn cảnh báo bundle chính lớn hơn 500 kB.
+- Chi tiết: [phase3-assignment-submission-modes.md](phase3-assignment-submission-modes.md).
