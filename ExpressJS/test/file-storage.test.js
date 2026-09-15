@@ -119,9 +119,7 @@ test('records completed material downloads and lets only the owner or manager in
     assert.equal(response.status, 200);
     assert.deepEqual(Buffer.from(await response.arrayBuffer()), pdf);
   }
-  for (let attempt = 0; attempt < 20 && await MaterialDownload.countDocuments({ materialId: material._id, status: 'COMPLETED' }) < 3; attempt += 1) {
-    await new Promise(resolve => setTimeout(resolve, 10));
-  }
+  assert.equal(await MaterialDownload.countDocuments({ materialId: material._id, status: 'COMPLETED' }), 3);
 
   const response = await request(`/materials/${material._id}/downloads`, actors.teacher);
   assert.equal(response.status, 200, await response.clone().text());
