@@ -1,4 +1,5 @@
 const { pipeline } = require('node:stream/promises');
+const { Transform } = require('node:stream');
 const asyncHandler = require('../utils/asyncHandler');
 const { success } = require('../utils/response');
 const files = require('../services/fileService');
@@ -17,14 +18,27 @@ exports.download = asyncHandler(async (req, res) => {
   res.set({ 'Content-Type': 'application/octet-stream', 'Content-Length': String(asset.sizeBytes),
     'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff',
     'Content-Disposition': `attachment; filename="download"; filename*=UTF-8''${encodeURIComponent(asset.originalName).replace(/'/g, '%27')}` });
+  let finalChunk = null;
+  const auditBarrier = new Transform({
+    transform(chunk, encoding, callback) {
+      if (finalChunk) this.push(finalChunk);
+      finalChunk = chunk;
+      callback();
+    },
+    flush(callback) {
+      materialDownloads.complete(event._id).then(() => {
+        if (finalChunk) this.push(finalChunk);
+        callback();
+      }, callback);
+    },
+  });
   try {
-    await pipeline(stream, res);
+    // Finalize the audit before ending the HTTP body so a following report request sees the new event.
+    await pipeline(stream, auditBarrier, res);
   } catch (error) {
     await materialDownloads.fail(event._id).catch(() => {});
     throw error;
   }
-  // The response has already finished; a transient audit update must not attempt a second HTTP response.
-  await materialDownloads.complete(event._id).catch(error => console.error('Material download audit finalization failed:', error.message));
 });
 exports.materialDownloads = asyncHandler(async (req, res) => success(res, await materialDownloads.list(req.user, req.params.id)));
 
