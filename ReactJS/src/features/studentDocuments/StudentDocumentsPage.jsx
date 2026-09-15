@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button, Card, Form, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
+import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
 import {
   downloadCertificateApi,
   downloadStudentDocumentApi,
+  downloadTranscriptSnapshotApi,
+  getTranscriptHistoryApi,
   getStudentDocumentsApi,
   getUserDirectoryApi,
   uploadStudentDocumentApi,
@@ -18,6 +21,7 @@ const StudentDocumentsPage = () => {
   const { user } = useSelector((s) => s.auth);
   const canManage = can(user, 'student_documents', 'create');
   const [rows, setRows] = useState([]); const [students, setStudents] = useState([]);
+  const [history, setHistory] = useState([]);
   const [open, setOpen] = useState(false); const [file, setFile] = useState(null); const [saving, setSaving] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(''); const [form] = Form.useForm();
   const load = async () => { const result = await getStudentDocumentsApi(); if (result?.EC === 0) setRows(result.data || []); };
@@ -31,7 +35,17 @@ const StudentDocumentsPage = () => {
     return [...map.values()];
   }, [rows, user]);
   const certificateStudentId = selectedStudent || (user?.role === 'STUDENT' ? user._id : personalStudents[0]?._id || personalStudents[0]);
-  const certButtons = id => id && <Space><Button size="small" onClick={() => downloadCertificateApi(id, 'pdf').catch(e => message.error(e.message))}>PDF</Button><Button size="small" onClick={() => downloadCertificateApi(id, 'docx').catch(e => message.error(e.message))}>Word (.docx)</Button></Space>;
+  const loadHistory = async id => {
+    if (!id) return setHistory([]);
+    const result = await getTranscriptHistoryApi(id);
+    if (result?.EC === 0) setHistory(result.data || []);
+  };
+  useEffect(() => { loadHistory(certificateStudentId); }, [certificateStudentId]);
+  const exportCurrent = async (id, format) => {
+    try { await downloadCertificateApi(id, format); await loadHistory(id); }
+    catch (error) { message.error(error.message); }
+  };
+  const certButtons = id => id && <Space><Button size="small" onClick={() => exportCurrent(id, 'pdf')}>PDF</Button><Button size="small" onClick={() => exportCurrent(id, 'docx')}>Word (.docx)</Button></Space>;
 
   return <Space direction="vertical" style={{ width: '100%' }}>
     <Card title="Student documents" extra={canManage && <Button type="primary" onClick={() => setOpen(true)}>Upload document</Button>}>
@@ -46,6 +60,14 @@ const StudentDocumentsPage = () => {
         !canManage && personalStudents.length > 1 ? { title: 'Transcript', render: (_, row) => certButtons(row.studentId?._id || row.studentId) } : {},
       ].filter(column => column.title)} />
     </Card>
+    {certificateStudentId && <Card title="Lịch sử học bạ">
+      <Table rowKey="_id" dataSource={history} locale={{ emptyText: 'Chưa có phiên bản học bạ đã lưu' }} columns={[
+        { title: 'Phiên bản', dataIndex: 'version', render: value => `Phiên bản ${value}` },
+        { title: 'Ngày lưu', dataIndex: 'createdAt', render: value => dayjs(value).format('DD/MM/YYYY HH:mm') },
+        { title: 'Người tạo', render: (_, row) => row.createdBy?.name || '-' },
+        { title: 'Tải bản đã lưu', render: (_, row) => <Space><Button size="small" onClick={() => downloadTranscriptSnapshotApi(certificateStudentId, row._id, row.version, 'pdf').catch(error => message.error(error.message))}>PDF v{row.version}</Button><Button size="small" onClick={() => downloadTranscriptSnapshotApi(certificateStudentId, row._id, row.version, 'docx').catch(error => message.error(error.message))}>Word v{row.version}</Button></Space> },
+      ]} />
+    </Card>}
     <Modal open={open} title="Upload student document" confirmLoading={saving} onCancel={() => !saving && setOpen(false)} onOk={() => form.submit()}>
       <Form form={form} layout="vertical" onFinish={async values => {
         if (!file) return message.error('Choose a file'); setSaving(true);

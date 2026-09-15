@@ -167,12 +167,13 @@ const createDocx = async transcript => {
   return Packer.toBuffer(document);
 };
 
-const createCertificate = async (actor, studentId, format = 'pdf') => {
+const renderCertificate = async (transcript, format = 'pdf') => {
   const normalized = String(format).toLowerCase();
   if (!['pdf', 'doc', 'docx'].includes(normalized)) throw new ApiError(400, 'Định dạng chỉ hỗ trợ PDF hoặc DOCX');
-  const transcript = await getTranscript(actor, studentId);
   if (normalized === 'pdf') return { buffer: await createPdf(transcript), mimeType: 'application/pdf', extension: 'pdf', transcript };
   return { buffer: await createDocx(transcript), mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', extension: 'docx', transcript };
 };
 
-module.exports = { createCertificate, getTranscript, createPdf, createDocx, linesFor };
+const createCertificate = async (actor, studentId, format = 'pdf') => renderCertificate(await getTranscript(actor, studentId), format);
+
+module.exports = { createCertificate, renderCertificate, getTranscript, assertStudentAccess, createPdf, createDocx, linesFor };

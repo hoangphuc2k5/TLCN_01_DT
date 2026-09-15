@@ -32,6 +32,8 @@ router.get('/materials/:id/downloads', authorizePermissionAction('update', PERMI
 router.post('/student-documents/upload', authorizePermissionAction('create', PERMISSIONS.MANAGE_DOCUMENTS), require('../middleware/fileUpload').upload, audit('CREATE', 'StudentDocument'), studentDocuments.upload);
 router.get('/student-documents', authorizeRead('student_documents', { personal: true }), studentDocuments.list);
 router.get('/student-documents/:id/download', authorizeRead('student_documents', { personal: true }), studentDocuments.download);
+router.get('/students/:studentId/transcript-history', authorizeRead('student_documents', { personal: true }), studentDocuments.history);
+router.get('/students/:studentId/transcript-history/:snapshotId/:format', authorizeRead('student_documents', { personal: true }), audit('EXPORT', 'StudentTranscriptSnapshot'), studentDocuments.historicalCertificate);
 router.get('/students/:studentId/certificate/:format', authorizeRead('student_documents', { personal: true }), audit('EXPORT', 'StudentTranscript'), studentDocuments.certificate);
 
 router.get('/health', (req, res) => res.json({ EC: 0, EM: 'OK', data: { status: 'up' } }));
