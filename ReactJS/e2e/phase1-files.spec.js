@@ -27,6 +27,12 @@ test('teacher uploads a private file, downloads exact bytes and deletes it', asy
   const download = await saved;
   expect(download.suggestedFilename()).toBe('lesson.pdf');
   expect(await readFile(await download.path())).toEqual(bytes);
+  await row.getByRole('button', { name: 'Lượt tải', exact: true }).click();
+  const history = page.getByRole('dialog', { name: /Lượt tải/ });
+  await expect(history.getByText('Tổng lượt:')).toContainText('1');
+  await expect(history.getByRole('cell', { name: 'teacher 0', exact: true })).toBeVisible();
+  await history.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(history).toHaveCount(0);
   await row.getByRole('button', { name: 'Xóa', exact: true }).click();
   const removed = page.waitForResponse(r => r.url().includes('/materials/') && r.request().method() === 'DELETE');
   await page.getByRole('button', { name: 'Đồng ý', exact: true }).click();

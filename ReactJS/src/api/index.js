@@ -277,6 +277,7 @@ export const cancelJobApi = id => axios.post(`/v1/api/jobs/${id}/cancel`);
 export const createMaterialApi = (data) => axios.post('/v1/api/materials', data);
 export const deleteMaterialApi = (id) => axios.delete(`/v1/api/materials/${id}`);
 export const getFileUsageApi = () => axios.get('/v1/api/files/usage');
+export const getMaterialDownloadsApi = id => axios.get(`/v1/api/materials/${id}/downloads`);
 export const uploadMaterialApi = (data, file) => {
   const form = new FormData();
   for (const [key, value] of Object.entries(data)) if (value !== undefined && value !== null) form.append(key, String(value));

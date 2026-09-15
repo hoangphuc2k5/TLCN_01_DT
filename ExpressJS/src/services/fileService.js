@@ -47,6 +47,7 @@ const purgeAsset = async asset => {
       { $inc: { storageUsedBytes: -current.sizeBytes } }, { session });
     if (released.modifiedCount !== 1) throw new ApiError(409, 'Bộ đếm dung lượng cần được kiểm tra');
     await Material.deleteMany({ fileAssetId: current._id, schoolId: current.schoolId }).session(session);
+    await require('../models/MaterialDownload').deleteMany({ fileAssetId: current._id, schoolId: current.schoolId }).session(session);
     await HomeworkSubmission.updateMany({ schoolId: current.schoolId, attachmentIds: current._id }, { $pull: { attachmentIds: current._id } }, { session });
     await FileAsset.deleteOne({ _id: current._id }).session(session);
   });
