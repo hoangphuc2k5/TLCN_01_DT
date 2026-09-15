@@ -305,6 +305,11 @@ const downloadPrivateFile = async (path, fallbackName) => {
 };
 export const downloadStudentDocumentApi = (id, name = 'student-document') => downloadPrivateFile(`/student-documents/${id}/download`, name);
 export const downloadCertificateApi = (studentId, format) => downloadPrivateFile(`/students/${studentId}/certificate/${format}`, `student-transcript.${format === 'pdf' ? 'pdf' : 'docx'}`);
+export const getTranscriptHistoryApi = studentId => axios.get(`/v1/api/students/${studentId}/transcript-history`);
+export const downloadTranscriptSnapshotApi = (studentId, snapshotId, version, format) => downloadPrivateFile(
+  `/students/${studentId}/transcript-history/${snapshotId}/${format}`,
+  `student-transcript-v${version}.${format === 'pdf' ? 'pdf' : 'docx'}`,
+);
 export const downloadFileAssetApi = async id => {
   const meta = await axios.get(`/v1/api/files/${id}`);
   if (meta?.EC !== 0) throw new Error(meta?.EM || 'Không tải được thông tin file');

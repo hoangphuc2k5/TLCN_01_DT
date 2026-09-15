@@ -536,3 +536,11 @@ Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend 
 - Chuyển yêu cầu thi lại/học lại vào trang Bài tập, tách riêng hai loại yêu cầu và chống trùng theo từng loại. Trang Hoạt động chỉ còn CLB/môn tự chọn.
 - Kiểm thử: backend toàn bộ **255/255**, frontend unit **11/11**, production build, Playwright bài tập/thi lại **2/2**, CLB **1/1** và toàn bộ E2E **46/46** đều đạt. Build còn cảnh báo bundle chính lớn hơn 500 kB.
 - Chi tiết: [phase3-assignment-submission-modes.md](phase3-assignment-submission-modes.md).
+
+## Phase 3.4 - Lịch sử học bạ điện tử
+
+- Nhánh: `feat/transcript-history`, đích gộp `integration/phase3`.
+- Khi xuất học bạ, hệ thống lưu snapshot bất biến có số phiên bản và hash; cùng dữ liệu không sinh bản trùng, dữ liệu điểm/hạnh kiểm/hồ sơ thay đổi mới tăng phiên bản.
+- Có API/UI xem lịch sử và tải lại đúng PDF/DOCX của phiên bản cũ; danh sách không làm lộ nội dung snapshot/hash và giữ phạm vi bản thân/con em/trường.
+- Kiểm thử: backend toàn bộ **255/255**, frontend unit **11/11**, production build và Playwright học bạ **1/1** đều đạt. Build còn cảnh báo bundle chính lớn hơn 500 kB.
+- Chi tiết: [phase3-transcript-history.md](phase3-transcript-history.md).

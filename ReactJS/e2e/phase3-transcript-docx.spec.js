@@ -17,4 +17,8 @@ test('student downloads a real DOCX transcript', async ({ page }) => {
   expect(download.suggestedFilename()).toMatch(/-transcript\.docx$/);
   const bytes = await fs.readFile(await download.path());
   expect(bytes.subarray(0, 4)).toEqual(Buffer.from('504b0304', 'hex'));
+  await expect(page.getByText('Phiên bản 1', { exact: true })).toBeVisible();
+  const historical = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Word v1', exact: true }).click();
+  expect((await historical).suggestedFilename()).toMatch(/-transcript-v1\.docx$/);
 });
