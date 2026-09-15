@@ -66,7 +66,7 @@ const listHomeworks = async (actor, query = {}) => {
   if (![ROLES.STUDENT, ROLES.PARENT].includes(actor.role)) return rows;
   const ids = await personalStudentIds(actor);
   const submissions = await HomeworkSubmission.find({ homeworkId: { $in: rows.map(r => r._id) }, studentId: { $in: ids } })
-    .select('homeworkId studentId status score feedback submittedAt late attachmentIds')
+    .select('homeworkId studentId status submissionMode score feedback submittedAt late attachmentIds')
     .populate('attachmentIds', 'originalName mimeType sizeBytes status').lean();
   const byHomework = new Map(submissions.map(s => [String(s.homeworkId), s]));
   return rows.map(row => ({ ...row.toObject(), submission: byHomework.get(String(row._id)) || null }));
@@ -123,10 +123,16 @@ const submitHomework = async (actor, id, data) => {
   const row = await getHomework(actor, id);
   const now = new Date();
   assertSubmissionOpen(row, now);
-  if (typeof data.answerText !== 'string' || !data.answerText.trim()) throw new ApiError(400, 'Cần nội dung bài làm');
+  const submissionMode = data.submissionMode || 'WEB';
+  if (!['WEB', 'FILE'].includes(submissionMode)) throw new ApiError(400, 'Hình thức nộp bài không hợp lệ');
+  const answerText = typeof data.answerText === 'string' ? data.answerText.trim() : '';
+  if (submissionMode === 'WEB' && !answerText) throw new ApiError(400, 'Cần nội dung bài làm');
   const previous = await HomeworkSubmission.findOne({ homeworkId: row._id, studentId: actor._id });
   if (previous?.status === 'GRADED') throw new ApiError(409, 'Bài đã được chấm, không thể nộp lại');
-  const payload = { homeworkId: row._id, schoolId: row.schoolId, studentId: actor._id, answerText: data.answerText.trim(), submittedAt: now, late: now > row.dueAt, status: 'SUBMITTED', score: null, feedback: '', gradedBy: null, gradedAt: null };
+  const hasAttachments = (previous?.attachmentIds || []).length > 0;
+  const storedMode = submissionMode === 'FILE' ? 'FILE' : hasAttachments ? 'MIXED' : 'WEB';
+  const payload = { homeworkId: row._id, schoolId: row.schoolId, studentId: actor._id, answerText, submissionMode: storedMode,
+    submittedAt: now, late: now > row.dueAt, status: submissionMode === 'FILE' ? 'UPLOADING' : 'SUBMITTED', score: null, feedback: '', gradedBy: null, gradedAt: null };
   try { return await HomeworkSubmission.findOneAndUpdate({ homeworkId: row._id, studentId: actor._id }, payload, { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }); }
   catch (error) { if (error.code === 11000) throw new ApiError(409, 'Bài nộp đã được tạo đồng thời'); throw error; }
 };
@@ -138,7 +144,7 @@ const listSubmissions = async (actor, id) => {
     return HomeworkSubmission.find({ homeworkId: row._id, studentId: { $in: ids } }).populate('studentId', 'name code').populate('attachmentIds', 'originalName mimeType sizeBytes status').sort({ submittedAt: -1 });
   }
   assertOwner(actor, row);
-  return HomeworkSubmission.find({ homeworkId: row._id }).populate('studentId', 'name code').populate('gradedBy', 'name').populate('attachmentIds', 'originalName mimeType sizeBytes status').sort({ submittedAt: 1 }).limit(500);
+  return HomeworkSubmission.find({ homeworkId: row._id, status: { $ne: 'UPLOADING' } }).populate('studentId', 'name code').populate('gradedBy', 'name').populate('attachmentIds', 'originalName mimeType sizeBytes status').sort({ submittedAt: 1 }).limit(500);
 };
 const gradeSubmission = async (actor, id, data) => {
   const submission = await HomeworkSubmission.findById(objectId(id));

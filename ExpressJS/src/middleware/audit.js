@@ -14,6 +14,7 @@ const audit = (action, resource) => async (req, res, next) => {
         path: req.originalUrl,
         bodyKeys: Object.keys(req.body || {}),
         ...(req.params.format ? { format: req.params.format } : {}),
+        ...(res.locals?.transcriptVersion ? { transcriptVersion: res.locals.transcriptVersion } : {}),
       },
       ip: req.ip,
     }).catch(() => {});

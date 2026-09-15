@@ -552,6 +552,21 @@ test('exam lifecycle stores deadline and per-attempt question order', async () =
   assert.deepEqual(new Set(data.questionOrder.map(String)), new Set(exam.questions.map(q => String(q._id))));
   assert.ok(new Date(data.expiresAt).getTime() > Date.now());
 });
+test('exam drafts are validated, resumable and persisted without grading', async () => {
+  const exam = await makeExam({ maxAttempts: 1 });
+  const started = await write(`/exams/${exam._id}/attempts`, students[0], {}, 'POST');
+  assert.equal(started.status, 201);
+  const attempt = (await started.json()).data;
+  const answer = { questionId: exam.questions[0]._id, answerKey: 'A' };
+  const draft = await write(`/exam-attempts/${attempt._id}/draft`, students[0], { answers: [answer] }, 'PATCH');
+  assert.equal(draft.status, 200);
+  assert.equal((await Attempt.findById(attempt._id)).answers[0].answerKey, 'A');
+  assert.equal((await Attempt.findById(attempt._id)).score, 0);
+  const resumed = await write(`/exams/${exam._id}/attempts`, students[0], {}, 'POST');
+  assert.equal(resumed.status, 201);
+  assert.equal(String((await resumed.json()).data._id), String(attempt._id));
+  assert.equal((await write(`/exam-attempts/${attempt._id}/draft`, students[0], { answers: [answer, answer] }, 'PATCH')).status, 400);
+});
 test('expired submission is finalized as an automatic timeout and cannot be submitted twice', async () => {
   const exam = await makeExam({ durationMinutes: 1, maxAttempts: 1 });
   const started = await write(`/exams/${exam._id}/attempts`, students[0], {}, 'POST');
@@ -565,6 +580,7 @@ test('expired submission is finalized as an automatic timeout and cannot be subm
   assert.equal(saved.status, 'SUBMITTED');
   assert.equal(saved.autoSubmitted, true);
   assert.equal(saved.submissionReason, 'TIMEOUT');
+  assert.equal(saved.score, 0);
   assert.equal((await write(`/exam-attempts/${attempt._id}/submit`, students[0], { answers: [answer] }, 'POST')).status, 400);
 });
 test('listing attempts also closes an abandoned expired attempt', async () => {

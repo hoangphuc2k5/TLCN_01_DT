@@ -4,7 +4,8 @@ const submissionSchema = new mongoose.Schema({
   homeworkId: { type: mongoose.Schema.Types.ObjectId, ref: 'Homework', required: true },
   schoolId: { type: mongoose.Schema.Types.ObjectId, ref: 'School', required: true },
   studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  answerText: { type: String, required: true, trim: true, maxlength: 20000 },
+  answerText: { type: String, default: '', trim: true, maxlength: 20000 },
+  submissionMode: { type: String, enum: ['WEB', 'FILE', 'MIXED'], default: 'WEB' },
   attachmentIds: {
     type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'FileAsset' }],
     default: [],
@@ -12,7 +13,7 @@ const submissionSchema = new mongoose.Schema({
   },
   submittedAt: { type: Date, required: true, default: Date.now },
   late: { type: Boolean, default: false },
-  status: { type: String, enum: ['SUBMITTED', 'GRADED'], default: 'SUBMITTED' },
+  status: { type: String, enum: ['UPLOADING', 'SUBMITTED', 'GRADED'], default: 'SUBMITTED' },
   score: { type: Number, min: 0, default: null },
   feedback: { type: String, default: '', maxlength: 10000 },
   gradedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },

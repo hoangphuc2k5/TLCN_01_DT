@@ -13,17 +13,29 @@ test('student can create an online tuition checkout', async ({ page }) => {
   await login(page, 'student0');
   await page.goto('/fees');
   await expect(page.getByText('QA Tuition student 0', { exact: true })).toBeVisible();
-  const response = page.waitForResponse(r => r.url().includes('/v1/api/online-payments') && r.request().method() === 'POST');
+  let resolvePaymentResponse;
+  const paymentResponse = new Promise(resolve => { resolvePaymentResponse = resolve; });
+  await page.route('**/v1/api/online-payments', async route => {
+    const response = await route.fetch();
+    const body = await response.json();
+    resolvePaymentResponse({ status: response.status(), body });
+    await route.fulfill({ response });
+  });
+  await page.route('https://sandbox.vnpayment.vn/**', route => route.fulfill({
+    status: 200,
+    contentType: 'text/html',
+    body: '<!doctype html><title>VNPay sandbox mock</title><main data-testid="mock-vnpay-checkout">VNPay sandbox mock</main>',
+  }));
+  const vnpayNavigation = page.waitForURL(url => url.hostname === 'sandbox.vnpayment.vn');
   await page.getByRole('button', { name: 'Thanh toán VNPay', exact: true }).first().click();
-  const createdResponse = await response;
-  expect(createdResponse.status()).toBe(201);
-  const payment = (await createdResponse.json()).data;
-  await expect(page.getByRole('dialog')).toBeVisible();
-  await expect(page.getByText(/VNPAY/)).toBeVisible();
-  const link = page.getByRole('link', { name: 'Mở cổng thanh toán VNPay', exact: true });
-  const checkout = new URL(await link.getAttribute('href'));
+  const createdResponse = await paymentResponse;
+  expect(createdResponse.status).toBe(201);
+  const payment = createdResponse.body.data;
+  await vnpayNavigation;
+  const checkout = new URL(page.url());
   expect(checkout.hostname).toBe('sandbox.vnpayment.vn');
   expect(checkout.searchParams.get('vnp_TmnCode')).toBe('TESTCODE');
+  await expect(page.getByTestId('mock-vnpay-checkout')).toBeVisible();
   const payload = { vnp_Amount: String(payment.amount * 100), vnp_TmnCode: 'TESTCODE',
     vnp_TxnRef: payment.providerOrderId, vnp_ResponseCode: '00', vnp_TransactionStatus: '00', vnp_TransactionNo: '123456789' };
   const encoded = Object.keys(payload).sort().map(k => `${k}=${encodeURIComponent(payload[k])}`).join('&');

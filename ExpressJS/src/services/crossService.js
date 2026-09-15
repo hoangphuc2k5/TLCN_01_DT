@@ -157,15 +157,39 @@ const exportGradesExcel = async (actor, query = {}) => {
 const exportFeesExcel = async (actor, query = {}) => {
   const { filter } = await buildExportScope(actor, 'fees', query);
   const fees = await FeeInvoice.find(filter).populate('studentId', 'name code').limit(1000);
-  const rows = fees.map((f) => ({
-    HocSinh: f.studentId?.name,
-    MaHS: f.studentId?.code,
-    NoiDung: f.title,
-    SoTien: f.amount,
-    DaThu: f.paidAmount,
-    TrangThai: f.status,
-    Han: f.dueDate,
-  }));
+  const rows = fees.flatMap((f) => {
+    const common = {
+      HocSinh: f.studentId?.name,
+      MaHS: f.studentId?.code,
+      HoaDon: f.title,
+      TongHoaDon: f.amount,
+      TongDaThu: f.paidAmount,
+      TrangThaiHoaDon: f.status,
+      Han: f.dueDate,
+    };
+    if (!f.lineItems?.length) {
+      return [{
+        ...common,
+        MaKhoan: '',
+        KhoanThu: f.title,
+        Loai: f.category,
+        SoLuong: 1,
+        DonGia: f.amount,
+        ThanhTien: f.amount,
+        DaThuTheoKhoan: f.paidAmount,
+      }];
+    }
+    return f.lineItems.map(item => ({
+      ...common,
+      MaKhoan: item.code,
+      KhoanThu: item.name,
+      Loai: item.category,
+      SoLuong: item.quantity,
+      DonGia: item.unitAmount,
+      ThanhTien: item.amount,
+      DaThuTheoKhoan: item.paidAmount,
+    }));
+  });
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.json_to_sheet(rows);
   XLSX.utils.book_append_sheet(wb, ws, 'HocPhi');

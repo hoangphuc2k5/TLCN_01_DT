@@ -7,7 +7,7 @@ Trong Quản lý người dùng, chọn **Chuyển lớp** tại học sinh, ch�
 - Lớp đích phải hoạt động, thuộc cùng trường và còn chỗ. Không đổi vai trò cùng lúc với chuyển lớp. Không cho chuyển trường qua cập nhật tài khoản học sinh.
 - Bảng điểm của năm học lớp đích và học kỳ đã chọn được bàn giao, giữ nguyên ID và điểm; lưu snapshot lớp/điểm/trung bình trước chuyển.
 - Các học kỳ/năm khác giữ lớp cũ. Giáo viên cũ được sửa dữ liệu lịch sử nếu còn phân công lớp/môn; giáo viên mới sửa bảng điểm được bàn giao theo phân công của mình.
-- Lịch sử lớp lưu tên lớp/năm học, người thực hiện, thời điểm và lý do. API học bạ trả lịch sử lớp cùng snapshot điểm. Bản in PDF/DOCX chưa trình bày lịch sử này.
+- Lịch sử lớp lưu tên lớp/năm học, người thực hiện, thời điểm và lý do. API học bạ trả lịch sử lớp cùng snapshot điểm. Bản in PDF/DOCX trình bày lịch sử và snapshot điểm trước chuyển.
 
 ## Điều kiện vận hành
 
