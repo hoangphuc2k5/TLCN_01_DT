@@ -1,17 +1,41 @@
 import { useEffect, useState } from 'react';
-import { Button, Card, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, message } from 'antd';
+import { Button, Card, Form, Input, InputNumber, Modal, Table, message } from 'antd';
 import { useSelector } from 'react-redux';
-import { getClubsApi, createClubApi, registerClubApi, getClubRegistrationsApi, getRetakeRequestsApi, createRetakeRequestApi, reviewRetakeRequestApi, getSubjectsApi, getAcademicYearsApi } from '../../api';
+import { createClubApi, getClubRegistrationsApi, getClubsApi, registerClubApi } from '../../api';
 import { can } from '../../util/permissions';
 
 export default function ActivitiesPage() {
-  const { user } = useSelector(s => s.auth); const manage = can(user, 'clubs', 'create'); const student = user?.role === 'STUDENT'; const review = can(user, 'retakes', 'execute');
-  const [clubs, setClubs] = useState([]); const [registrations, setRegistrations] = useState([]); const [retakes, setRetakes] = useState([]); const [subjects, setSubjects] = useState([]); const [years, setYears] = useState([]); const [clubOpen, setClubOpen] = useState(false); const [retakeOpen, setRetakeOpen] = useState(false); const [clubForm] = Form.useForm(); const [retakeForm] = Form.useForm();
-  const load = async () => { const [c, r, t] = await Promise.all([getClubsApi(), getClubRegistrationsApi(), getRetakeRequestsApi()]); if (c?.EC === 0) setClubs(c.data || []); if (r?.EC === 0) setRegistrations(r.data || []); if (t?.EC === 0) setRetakes(t.data || []); };
-  useEffect(() => { (async () => { const [s, y] = await Promise.all([getSubjectsApi(), getAcademicYearsApi()]); setSubjects(s?.data || []); setYears(y?.data || []); await load(); })(); }, []);
-  const joined = new Set(registrations.filter(x => x.status === 'REGISTERED').map(x => x.clubId?._id));
-  return <Space direction="vertical" style={{ width: '100%' }}><Card title="Cau lac bo" extra={manage && <Button type="primary" onClick={() => setClubOpen(true)}>Tao CLB</Button>}><Table rowKey="_id" dataSource={clubs} columns={[{ title: 'Ten', dataIndex: 'name' }, { title: 'Mo ta', dataIndex: 'description' }, { title: 'Suc chua', dataIndex: 'capacity' }, { title: 'Trang thai', dataIndex: 'status' }, { title: 'Dang ky', render: (_, r) => student && r.status === 'OPEN' && !joined.has(r._id) && <Button size="small" onClick={async () => { const x = await registerClubApi(r._id); if (x?.EC === 0) load(); else message.error(x?.EM); }}>Dang ky</Button> }]} /></Card><Card title="Yeu cau thi lai / hoc lai" extra={student && <Button type="primary" onClick={() => setRetakeOpen(true)}>Tao yeu cau</Button>}><Table rowKey="_id" dataSource={retakes} columns={[{ title: 'Hoc sinh', render: (_, r) => r.studentId?.name }, { title: 'Mon', render: (_, r) => r.subjectId?.name }, { title: 'Ly do', dataIndex: 'reason' }, { title: 'Trang thai', dataIndex: 'status', render: x => <Tag>{x}</Tag> }, { title: 'Xu ly', render: (_, r) => review && r.status === 'REQUESTED' && <Space><Button size="small" onClick={async () => { await reviewRetakeRequestApi(r._id, { status: 'APPROVED' }); load(); }}>Duyet</Button><Button size="small" danger onClick={async () => { await reviewRetakeRequestApi(r._id, { status: 'REJECTED' }); load(); }}>Tu choi</Button></Space> }]} /></Card>
-    <Modal open={clubOpen} title="Tao CLB" onCancel={() => setClubOpen(false)} onOk={() => clubForm.submit()}><Form form={clubForm} layout="vertical" onFinish={async v => { const x = await createClubApi(v); if (x?.EC === 0) { setClubOpen(false); load(); } else message.error(x?.EM); }}><Form.Item name="name" label="Ten" rules={[{ required: true }]}><Input /></Form.Item><Form.Item name="description" label="Mo ta"><Input.TextArea /></Form.Item><Form.Item name="capacity" label="Suc chua" initialValue={50}><InputNumber min={1} /></Form.Item></Form></Modal>
-    <Modal open={retakeOpen} title="Yeu cau thi lai" onCancel={() => setRetakeOpen(false)} onOk={() => retakeForm.submit()}><Form form={retakeForm} layout="vertical" onFinish={async v => { const x = await createRetakeRequestApi(v); if (x?.EC === 0) { setRetakeOpen(false); load(); } else message.error(x?.EM); }}><Form.Item name="subjectId" label="Mon" rules={[{ required: true }]}><Select options={subjects.map(x => ({ value: x._id, label: x.name }))} /></Form.Item><Form.Item name="academicYearId" label="Nam hoc" rules={[{ required: true }]}><Select options={years.map(x => ({ value: x._id, label: x.name }))} /></Form.Item><Form.Item name="reason" label="Ly do" rules={[{ required: true }]}><Input.TextArea /></Form.Item></Form></Modal>
-  </Space>;
+  const { user } = useSelector(state => state.auth);
+  const manage = can(user, 'clubs', 'create');
+  const student = user?.role === 'STUDENT';
+  const [clubs, setClubs] = useState([]);
+  const [registrations, setRegistrations] = useState([]);
+  const [clubOpen, setClubOpen] = useState(false);
+  const [clubForm] = Form.useForm();
+
+  const load = async () => {
+    const [clubsResult, registrationsResult] = await Promise.all([getClubsApi(), getClubRegistrationsApi()]);
+    if (clubsResult?.EC === 0) setClubs(clubsResult.data || []);
+    if (registrationsResult?.EC === 0) setRegistrations(registrationsResult.data || []);
+  };
+
+  useEffect(() => { load(); }, []);
+  const joined = new Set(registrations.filter(item => item.status === 'REGISTERED').map(item => item.clubId?._id));
+
+  return <Card title="Câu lạc bộ / môn tự chọn" extra={manage && <Button type="primary" onClick={() => setClubOpen(true)}>Tạo CLB</Button>}>
+    <Table rowKey="_id" dataSource={clubs} columns={[
+      { title: 'Tên', dataIndex: 'name' },
+      { title: 'Mô tả', dataIndex: 'description' },
+      { title: 'Sức chứa', dataIndex: 'capacity' },
+      { title: 'Trạng thái', dataIndex: 'status' },
+      { title: 'Đăng ký', render: (_, row) => student && row.status === 'OPEN' && !joined.has(row._id) && <Button size="small" onClick={async () => { const result = await registerClubApi(row._id); if (result?.EC === 0) load(); else message.error(result?.EM); }}>Đăng ký</Button> },
+    ]} />
+    <Modal open={clubOpen} title="Tạo CLB" onCancel={() => setClubOpen(false)} onOk={() => clubForm.submit()}>
+      <Form form={clubForm} layout="vertical" onFinish={async values => { const result = await createClubApi(values); if (result?.EC === 0) { setClubOpen(false); clubForm.resetFields(); load(); } else message.error(result?.EM); }}>
+        <Form.Item name="name" label="Tên" rules={[{ required: true }]}><Input /></Form.Item>
+        <Form.Item name="description" label="Mô tả"><Input.TextArea /></Form.Item>
+        <Form.Item name="capacity" label="Sức chứa" initialValue={50}><InputNumber min={1} /></Form.Item>
+      </Form>
+    </Modal>
+  </Card>;
 }

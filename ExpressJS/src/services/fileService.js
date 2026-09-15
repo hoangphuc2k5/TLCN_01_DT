@@ -160,8 +160,8 @@ const uploadHomeworkAttachment = async (actor, homeworkId, file) => {
     bucket: settings.bucket, key: `${homework.schoolId}/${randomUUID()}` });
   await transaction(async session => {
     const submission = await HomeworkSubmission.findOne({ homeworkId: homework._id, studentId: actor._id }).session(session);
-    if (!submission) throw new ApiError(409, 'Cần nộp nội dung bài làm trước khi thêm file');
-    if (submission.status !== 'SUBMITTED') throw new ApiError(409, 'Bài đã được chấm, không thể đổi file');
+    if (!submission) throw new ApiError(409, 'Cần chọn hình thức nộp bài trước khi thêm file');
+    if (!['UPLOADING', 'SUBMITTED'].includes(submission.status)) throw new ApiError(409, 'Bài đã được chấm, không thể đổi file');
     if (submission.attachmentIds.length >= 5) throw new ApiError(409, 'Bài nộp có tối đa 5 file');
     const quota = await quotaBytes(homework.schoolId, session);
     const reserved = await School.updateOne({ _id: homework.schoolId, $expr: { $lte: [{ $add: [{ $ifNull: ['$storageUsedBytes', 0] }, asset.sizeBytes] }, quota] } },
@@ -173,8 +173,17 @@ const uploadHomeworkAttachment = async (actor, homeworkId, file) => {
   });
   try {
     await storage.adapter(asset.driver).put({ ...asset.toObject(), buffer: file.buffer });
-    const ready = await FileAsset.updateOne({ _id: asset._id, status: 'UPLOADING' }, { status: 'READY' });
-    if (ready.matchedCount !== 1) throw new Error('Upload state changed');
+    await transaction(async session => {
+      const ready = await FileAsset.updateOne({ _id: asset._id, status: 'UPLOADING' }, { status: 'READY' }, { session });
+      if (ready.matchedCount !== 1) throw new Error('Upload state changed');
+      const submission = await HomeworkSubmission.findOne({ homeworkId: homework._id, studentId: actor._id, attachmentIds: asset._id }).session(session);
+      if (!submission) throw new Error('Submission state changed');
+      if (submission.status !== 'GRADED') {
+        submission.status = 'SUBMITTED';
+        submission.submissionMode = submission.answerText ? 'MIXED' : 'FILE';
+        await submission.save({ session });
+      }
+    });
   } catch {
     try { await FileAsset.updateOne({ _id: asset._id }, { status: 'DELETING' }); await purgeAsset(asset); } catch { /* reservation stays for recovery */ }
     throw new ApiError(503, 'Không lưu được file bài làm');
@@ -199,6 +208,7 @@ const deleteHomeworkAttachment = async (actor, id) => {
   const asset = await accessibleHomeworkAttachment(actor, id);
   const submission = await HomeworkSubmission.findOne({ studentId: actor._id, attachmentIds: asset._id });
   if (!submission || submission.status !== 'SUBMITTED') throw new ApiError(409, 'Bài đã được chấm, không thể đổi file');
+  if (submission.attachmentIds.length === 1 && !submission.answerText) throw new ApiError(409, 'Bài nộp bằng file phải giữ lại ít nhất một file');
   const homework = await require('./homeworkService').getHomework(actor, submission.homeworkId);
   require('./homeworkService').assertSubmissionOpen(homework);
   await deleteAsset(asset._id);
