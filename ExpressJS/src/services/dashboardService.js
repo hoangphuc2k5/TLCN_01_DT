@@ -3,12 +3,14 @@ const { notificationRepo } = require('../repositories');
 const ApiError = require('../utils/ApiError');
 const cache = require('./rolePermissionCache');
 const { ROLES } = require('../constants/roles');
+const { buildDashboardAnalytics } = require('./dashboardAnalyticsService');
 
 const statResources = {
   schools: 'schools', users: 'users', clusters: 'clusters', systemAnnouncements: 'announcements',
   students: 'users', teachers: 'users', classes: 'classes', pendingLeave: 'leave',
   unpaid: 'fees', paid: 'fees', overdue: 'fees', invoices: 'fees',
   attendanceSessions: 'attendance', gradeSheets: 'grades', subjects: 'grades', grades: 'grades',
+  assignments: 'assignments',
   children: 'own_data', books: 'library', loans: 'library', facilities: 'facilities',
 };
 
@@ -29,6 +31,9 @@ const getDashboard = async (user) => {
   for (const [key, resource] of Object.entries({ grades: 'grades', invoices: 'fees', schools: 'schools' })) {
     if (!permissions.get(resource)) delete dashboard[key];
   }
+  dashboard.analytics = await buildDashboardAnalytics(user, Object.fromEntries(
+    ['attendance', 'fees', 'grades', 'assignments'].map(resource => [resource, permissions.get(resource)])
+  ));
   return dashboard;
 };
 

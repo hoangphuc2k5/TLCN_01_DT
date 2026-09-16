@@ -544,3 +544,9 @@ Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend 
 - Có API/UI xem lịch sử và tải lại đúng PDF/DOCX của phiên bản cũ; danh sách không làm lộ nội dung snapshot/hash và giữ phạm vi bản thân/con em/trường.
 - Kiểm thử: backend toàn bộ **255/255**, frontend unit **11/11**, production build và Playwright học bạ **1/1** đều đạt. Build còn cảnh báo bundle chính lớn hơn 500 kB.
 - Chi tiết: [phase3-transcript-history.md](phase3-transcript-history.md).
+
+## Phase 3.5 - Thống kê dashboard
+
+- Nhánh: `feat/dashboard-analytics`, đích gộp `integration/phase3`.
+- Dashboard có thống kê chuyên cần, học phí, học tập và bài tập theo đúng scope trường/cụm/lớp/con em và quyền đọc thực tế.
+- Backend test phạm vi, frontend unit, build và E2E dashboard được chạy trước khi gộp. Chi tiết: [phase3-dashboard-analytics.md](phase3-dashboard-analytics.md).
