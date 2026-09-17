@@ -28,9 +28,12 @@ router.post('/materials/upload', authorizePermissionAction('create', PERMISSIONS
 router.get('/files/usage', authorizeRead('materials'), files.usage);
 router.get('/files/:id', authorizeRead('materials', { personal: true }), files.metadata);
 router.get('/files/:id/download', authorizeRead('materials', { personal: true }), files.download);
+router.get('/materials/:id/downloads', authorizePermissionAction('update', PERMISSIONS.MANAGE_MATERIALS), files.materialDownloads);
 router.post('/student-documents/upload', authorizePermissionAction('create', PERMISSIONS.MANAGE_DOCUMENTS), require('../middleware/fileUpload').upload, audit('CREATE', 'StudentDocument'), studentDocuments.upload);
 router.get('/student-documents', authorizeRead('student_documents', { personal: true }), studentDocuments.list);
 router.get('/student-documents/:id/download', authorizeRead('student_documents', { personal: true }), studentDocuments.download);
+router.get('/students/:studentId/transcript-history', authorizeRead('student_documents', { personal: true }), studentDocuments.history);
+router.get('/students/:studentId/transcript-history/:snapshotId/:format', authorizeRead('student_documents', { personal: true }), audit('EXPORT', 'StudentTranscriptSnapshot'), studentDocuments.historicalCertificate);
 router.get('/students/:studentId/certificate/:format', authorizeRead('student_documents', { personal: true }), audit('EXPORT', 'StudentTranscript'), studentDocuments.certificate);
 
 router.get('/health', (req, res) => res.json({ EC: 0, EM: 'OK', data: { status: 'up' } }));
@@ -203,6 +206,7 @@ router.post('/exams', authorizePermissionAction('create', PERMISSIONS.MANAGE_EXA
 router.put('/exams/:id', authorizePermissionAction('update', PERMISSIONS.MANAGE_EXAMS), audit('UPDATE', 'Exam'), a.updateExam);
 router.post('/exams/:id/attempts', authorizePermissionAction('execute', PERMISSIONS.TAKE_EXAMS), a.startAttempt);
 router.post('/exam-attempts/:attemptId/submit', authorizePermissionAction('execute', PERMISSIONS.TAKE_EXAMS), a.submitAttempt);
+router.patch('/exam-attempts/:attemptId/draft', authorizePermissionAction('execute', PERMISSIONS.TAKE_EXAMS), a.saveAttemptDraft);
 router.post('/exam-attempts/:attemptId/grade', authorizePermissionAction('update', PERMISSIONS.MANAGE_EXAMS), a.gradeAttempt);
 router.get('/exam-attempts', authorizeRead('exams', { personal: true }), a.listAttempts);
 

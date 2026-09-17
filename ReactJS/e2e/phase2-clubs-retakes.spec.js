@@ -13,6 +13,6 @@ test('student registers an open club', async ({ page }) => {
   await page.goto('/activities');
   await expect(page.getByText('QA Science Club 0', { exact: true })).toBeVisible();
   const saved = page.waitForResponse(r => r.url().includes('/v1/api/clubs/') && r.url().endsWith('/register') && r.request().method() === 'POST');
-  await page.getByRole('button', { name: 'Dang ky', exact: true }).click();
+  await page.getByRole('button', { name: 'Đăng ký', exact: true }).click();
   expect((await saved).status()).toBe(201);
 });

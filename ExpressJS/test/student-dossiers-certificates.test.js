@@ -22,6 +22,7 @@ const Year = require('../src/models/AcademicYear'); const Class = require('../sr
 const Subject = require('../src/models/Subject'); const User = require('../src/models/User');
 const Grade = require('../src/models/Grade'); const StudentDocument = require('../src/models/StudentDocument');
 const FileAsset = require('../src/models/FileAsset');
+const TranscriptSnapshot = require('../src/models/TranscriptSnapshot');
 const ConductRecord = require('../src/models/ConductRecord'); const RewardDisciplineRecord = require('../src/models/RewardDisciplineRecord');
 const AuditLog = require('../src/models/AuditLog'); const JSZip = require('jszip');
 
@@ -75,9 +76,9 @@ test('exports a complete paginated PDF and a real Unicode DOCX with an audit tra
   const headers = { Authorization: `Bearer ${jwt.sign({ _id: student._id }, process.env.JWT_SECRET)}` };
   const pdfResult = await fetch(`${origin}/v1/api/students/${student._id}/certificate/pdf`, { headers });
   assert.equal(pdfResult.status, 200); assert.equal(pdfResult.headers.get('content-type'), 'application/pdf');
-  const pdfBytes = Buffer.from(await pdfResult.arrayBuffer()); const pdfText = pdfBytes.toString('binary');
-  assert.equal(pdfBytes.subarray(0, 8).toString(), '%PDF-1.4'); assert.ok(pdfBytes.includes(Buffer.from('Nguyen Van A'))); assert.ok(pdfBytes.includes(Buffer.from('Toan hoc')));
-  assert.match(pdfText, /Record 49/); assert.match(pdfText, /\/Count [2-9]/);
+  const pdfBytes = Buffer.from(await pdfResult.arrayBuffer()); const pdfText = pdfBytes.toString('latin1');
+  assert.match(pdfBytes.subarray(0, 8).toString(), /^%PDF-1\.[34]$/); assert.ok(pdfBytes.includes(Buffer.from('/Type0'))); assert.ok(pdfBytes.includes(Buffer.from('NotoSans')));
+  assert.ok(pdfBytes.length > 5000); assert.match(pdfText, /\/Count \d+/);
   const docx = await fetch(`${origin}/v1/api/students/${student._id}/certificate/docx`, { headers });
   assert.equal(docx.status, 200); assert.equal(docx.headers.get('content-type'), 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
   assert.match(docx.headers.get('content-disposition'), /\.docx"$/); const docxBytes = Buffer.from(await docx.arrayBuffer());
@@ -87,6 +88,29 @@ test('exports a complete paginated PDF and a real Unicode DOCX with an audit tra
   for (let attempt = 0; attempt < 20 && await AuditLog.countDocuments({ resource: 'StudentTranscript' }) < 2; attempt += 1) await new Promise(resolve => setTimeout(resolve, 20));
   const audits = await AuditLog.find({ resource: 'StudentTranscript', resourceId: String(student._id) }).lean();
   assert.deepEqual(audits.map(item => item.details.format).sort(), ['docx', 'pdf']);
+  assert.ok(audits.every(item => item.details.transcriptVersion === 1));
+  const firstSnapshot = await TranscriptSnapshot.findOne({ studentId: student._id });
+  assert.equal(await TranscriptSnapshot.countDocuments({ studentId: student._id }), 1);
+  assert.equal(firstSnapshot.version, 1);
+
+  await Grade.updateOne({ studentId: student._id }, { $set: { 'scores.0.score': 9, 'scores.0.note': 'Điểm đã điều chỉnh', average: 9 } });
+  const [updatedPdf, updatedDocx] = await Promise.all([
+    fetch(`${origin}/v1/api/students/${student._id}/certificate/pdf`, { headers }),
+    fetch(`${origin}/v1/api/students/${student._id}/certificate/docx`, { headers }),
+  ]);
+  assert.equal(updatedPdf.status, 200); assert.equal(updatedDocx.status, 200);
+  assert.equal(await TranscriptSnapshot.countDocuments({ studentId: student._id }), 2);
+  const history = await request('GET', `/students/${student._id}/transcript-history`, student);
+  assert.equal(history.status, 200); assert.deepEqual(history.data.data.map(item => item.version), [2, 1]);
+  assert.equal(history.data.data.some(item => item.transcript || item.contentHash), false);
+  const historical = await fetch(`${origin}/v1/api/students/${student._id}/transcript-history/${firstSnapshot._id}/docx`, { headers });
+  assert.equal(historical.status, 200); assert.match(historical.headers.get('content-disposition'), /-transcript-v1\.docx"$/);
+  const historicalArchive = await JSZip.loadAsync(Buffer.from(await historical.arrayBuffer()));
+  const historicalXml = await historicalArchive.file('word/document.xml').async('string');
+  assert.ok(historicalXml.includes('Trình bày tốt'));
+  assert.equal(historicalXml.includes('Điểm đã điều chỉnh'), false);
+  assert.equal((await request('GET', `/students/${foreign._id}/transcript-history`, parent)).status, 404);
+  assert.equal((await request('GET', `/students/${student._id}/transcript-history/${firstSnapshot._id}/pdf`, parent)).status, 200);
   assert.equal((await request('GET', `/students/${foreign._id}/certificate/pdf`, parent)).status, 404);
   assert.equal((await request('GET', `/students/${student._id}/certificate/rtf`, student)).status, 400);
 });

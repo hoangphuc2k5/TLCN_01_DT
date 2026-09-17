@@ -8,6 +8,7 @@ const { schoolScope, objectId } = require('./dataScope');
 const User = require('../models/User');
 const AcademicYear = require('../models/AcademicYear');
 const Notification = require('../models/Notification');
+const { normalizeLineItems, totalOf, allocatePayment, withLineItemStatus, money } = require('./feeInvoiceAccounting');
 
 const refreshStatus = (invoice) => {
   if (invoice.paidAmount <= 0) {
@@ -27,13 +28,17 @@ const listInvoices = async (actor, query = {}) => {
     if (!Object.values(FEE_STATUS).includes(query.status)) throw new ApiError(400, 'Invalid fee status');
     filter.$and.push({ status: query.status });
   }
-  return feeRepo.find(filter, { populate: 'studentId academicYearId', limit: 200 });
+  const rows = await feeRepo.find(filter, { populate: 'studentId academicYearId', limit: 200 });
+  return rows.map(withLineItemStatus);
 };
 
 const createInvoice = async (actor, data) => {
-  if (!data.studentId || !data.academicYearId || !data.title || data.amount == null || !data.dueDate) {
+  const lineItems = normalizeLineItems(data.lineItems);
+  if (!data.studentId || !data.academicYearId || !data.title || (!lineItems.length && data.amount == null) || !data.dueDate) {
     throw new ApiError(400, 'Thiếu thông tin hóa đơn');
   }
+  const amount = lineItems.length ? totalOf(lineItems) : money(data.amount);
+  if (!Number.isFinite(amount) || amount <= 0) throw new ApiError(400, 'Tổng tiền hóa đơn phải lớn hơn 0');
   const schoolId = await targetSchool(actor, data.schoolId);
   await reference(User, data.studentId, schoolId, { role: ROLES.STUDENT });
   await reference(AcademicYear, data.academicYearId, schoolId);
@@ -42,16 +47,17 @@ const createInvoice = async (actor, data) => {
     studentId: data.studentId,
     academicYearId: data.academicYearId,
     title: data.title,
-    category: data.category || 'TUITION',
+    category: data.category || lineItems[0]?.category || 'TUITION',
     description: data.description || '',
-    amount: data.amount,
+    lineItems,
+    amount,
     dueDate: data.dueDate,
     note: data.note || '',
     reminderEnabled: data.reminderEnabled !== false,
     paidAmount: 0,
     status: FEE_STATUS.UNPAID,
   });
-  return refreshStatus(invoice);
+  return withLineItemStatus(refreshStatus(invoice));
 };
 
 const listDebtors = async (actor, query = {}) => {
@@ -59,7 +65,7 @@ const listDebtors = async (actor, query = {}) => {
   filter.$and.push({ $expr: { $gt: [{ $subtract: ['$amount', '$paidAmount'] }, 0] } });
   const rows = await feeRepo.find(filter, { populate: 'studentId academicYearId', limit: 300 });
   return rows.filter(row => new Date(row.dueDate) < new Date() || row.status !== FEE_STATUS.PAID)
-    .map(row => ({ ...row.toObject(), outstanding: Math.max(0, Number(row.amount) - Number(row.paidAmount || 0)) }));
+    .map(row => ({ ...withLineItemStatus(row), outstanding: Math.max(0, Number(row.amount) - Number(row.paidAmount || 0)) }));
 };
 
 const runDebtReminders = async (actor, { asOf = new Date(), minDaysOverdue = 0 } = {}) => {
@@ -103,7 +109,7 @@ const recordPayment = async (actor, data) => {
     return await mongoose.connection.transaction(async session => {
       const current = await FeeInvoice.findById(invoice._id).session(session);
       if (!current || Number(current.amount) - Number(current.paidAmount || 0) < amount) throw new ApiError(409, 'Payment exceeds outstanding amount');
-      current.paidAmount = Math.round((Number(current.paidAmount || 0) + amount) * 100) / 100;
+      allocatePayment(current, amount);
       refreshStatus(current);
       await current.save({ session });
       const [payment] = await Payment.create([{

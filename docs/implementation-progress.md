@@ -8,7 +8,14 @@
 - UI quản lý người dùng có thao tác Chuyển lớp, chọn lớp đích/học kỳ/lý do và xem lịch sử. API học bạ trả thêm lịch sử lớp/điểm.
 - Backend toàn bộ **251/251**; bộ chuyển lớp riêng **6/6** (bao gồm quyền giáo viên cũ/mới, ghi điểm đồng thời chuyển lớp, thêm điểm đồng thời). Frontend **11/11**, build đạt; Playwright chuyển lớp **1/1** qua UI/API/DB local thật, kiểm tra lịch sử sau reload. Không chạy lại toàn bộ Playwright.
 - Sửa fixture chuyển lớp chờ tạo index trước teardown; chạy lại **6/6** sạch. Một số fixture cũ trong bộ toàn bộ còn log ECONNRESET lúc teardown nhưng không fail assertion.
-- Cần tiếp tục: bổ sung lịch sử vào bản in học bạ và sửa PDF tiếng Việt; các mục mô tả còn thiếu chưa được coi là hoàn tất. Chi tiết luồng hiện tại: [student-class-transfers.md](student-class-transfers.md).
+- Đã bổ sung lịch sử và snapshot điểm trước chuyển vào bản in PDF/DOCX bằng Noto Sans Unicode; PDF tự phân trang. Đã render kiểm tra trực quan với dữ liệu tiếng Việt và 30 bản ghi.
+- Các mục mô tả còn thiếu khác chưa được coi là hoàn tất. Chi tiết luồng hiện tại: [student-class-transfers.md](student-class-transfers.md).
+
+## Vòng đời thi: bản nháp và resume — 10/09/2026
+
+- Bổ sung API lưu bản nháp có kiểm tra câu hỏi/phạm vi, tự khôi phục lượt `IN_PROGRESS` còn hạn khi học sinh mở lại đề, và chốt request đến muộn bằng dữ liệu đã lưu trước hạn.
+- React debounce lưu câu trả lời và khôi phục đáp án khi resume; không cho payload gửi sau hạn thay thế bản nháp hợp lệ.
+- Kiểm thử backend phase exam: **88/88**; frontend policy **11/11**, build đạt. E2E toàn bộ được CI kiểm tra sau khi merge.
 
 ## Hoàn thiện báo cáo liên trường — 10/09/2026
 
@@ -464,3 +471,82 @@ Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend 
 - Sau sửa DNS, kết nối Atlas thật vẫn thất bại với `ERR_SSL_TLSV1_ALERT_INTERNAL_ERROR` (TLS alert 80), tái hiện cả TLS 1.2/1.3. Chưa phục hồi backend, chưa chạy được Atlas ping. Không suy ra lỗi code VNPay từ lỗi này.
 - Bước tiếp: kiểm tra cluster đang hoạt động và Network Access cho IP public của máy chạy backend; nếu IP đã được cho phép, kiểm tra VPN/firewall/TLS interception. Sau khi sửa quyền mạng, khởi động lại backend bằng `npm run dev`, kiểm tra `/v1/api/health` trực tiếp và qua Vite.
 - Nguồn: [Atlas connection troubleshooting](https://www.mongodb.com/docs/atlas/troubleshoot-connection/), [Node DNS configuration](https://nodejs.org/api/dns.html#dnssetserversservers).
+
+## QR thanh toán VNPay — 13/09/2026
+
+- Nhánh: `feat/vnpay-checkout-qr`, tách từ `integration/phase3`.
+- Hộp thoại học phí hiển thị QR SVG được tạo cục bộ từ URL checkout VNPay đã ký; giữ link dự phòng mở checkout ở tab mới. QR đưa người trả đến trang VNPay để tiếp tục chọn phương thức thanh toán.
+- Frontend unit **11/11 đạt**, production build đạt, Playwright payment E2E **2/2 đạt** trên fixture local. Build vẫn in cảnh báo bundle chính trên 500 kB.
+- Chi tiết: [phase2-vnpay-qr.md](phase2-vnpay-qr.md).
+
+## Fixture UI dùng cấu hình VNPay sandbox — 13/09/2026
+
+- Nhánh: `feat/vnpay-sandbox-fixture`, tách từ `integration/phase3`.
+- Thêm `npm run fixture:vnpay-sandbox`: dùng credentials trong `.env` với MongoDB tạm và tài khoản/hóa đơn giả; gateway bị giới hạn HTTPS `sandbox.vnpayment.vn`. Fixture E2E mặc định vẫn giữ `TESTCODE` để regression không phụ thuộc tài khoản bên ngoài.
+- Khởi chạy checkout qua fixture mới: API `127.0.0.1:8092`, UI `127.0.0.1:5177`. Kiểm thử khởi động, đăng nhập fixture và tạo checkout xác nhận URL dùng đúng merchant cấu hình, không in secret.
+- Backend thanh toán **11/11 đạt**. Gọi sandbox trực tiếp vẫn nhận `code=71` (terminal chưa được duyệt), nên UI có thể tạo URL thật nhưng VNPay chưa cho tiếp tục chọn phương thức.
+- Hướng dẫn: [phase2-vnpay-sandbox.md](phase2-vnpay-sandbox.md).
+
+## Điều hướng trực tiếp sang VNPay — 13/09/2026
+
+- Nhánh `feat/vnpay-direct-redirect`, tách từ `integration/phase3`.
+- Nút **Thanh toán VNPay** giờ tạo checkout rồi điều hướng cùng tab sang VNPay; bỏ hộp thoại QR và link tab mới. Nếu API lỗi hoặc thiếu checkout URL, giao diện báo lỗi và giữ người dùng ở trang học phí.
+- Playwright chặn URL sandbox, xác nhận điều hướng cùng tab và tham số merchant, đồng thời kiểm tra IPN/Return như trước; không gửi thanh toán thật.
+- Frontend unit **11/11 đạt**, production build đạt, Playwright payment E2E **2/2 đạt**. Build còn cảnh báo bundle chính trên 500 kB.
+- Terminal sandbox vẫn trả `code=71` do chưa được VNPay duyệt; cần VNPay duyệt terminal để trang cổng cho chọn phương thức và hoàn tất thanh toán.
+- Chi tiết: [phase2-vnpay-direct-redirect.md](phase2-vnpay-direct-redirect.md).
+
+## Đồng bộ luồng VNPay theo KeyhubStore — 13/09/2026
+
+- Nhánh `feat/vnpay-keyhub-flow`, đã từng merge vào `integration/phase3` và sau đó được hoàn tác theo yêu cầu.
+- Đã thử cấu trúc ký và Return backend giống KeyhubStore nhưng terminal cũ vẫn trả `code=71`.
+- Lịch sử chi tiết: [phase2-vnpay-keyhub-flow.md](phase2-vnpay-keyhub-flow.md).
+
+## Terminal VNPay sandbox mới và khôi phục luồng cũ — 13/09/2026
+
+- Nhánh `feat/vnpay-new-sandbox-terminal`, tách từ `integration/phase3`.
+- Khôi phục cấu trúc checkout trước lần đồng bộ Keyhub: order info học phí, expiry GMT+7 và Return URL frontend.
+- Terminal/secret sandbox mới chỉ được cập nhật trong `ExpressJS/.env` đã Git-ignore; không đưa credential vào commit hoặc tài liệu.
+- IPN an toàn và idempotent tiếp tục là nguồn cập nhật hóa đơn; nút thanh toán vẫn chuyển thẳng cùng tab sang VNPay.
+- Kiểm tra sandbox thật đã vào được `PaymentMethod.html` và màn hình chọn phương thức thanh toán test; terminal mới không còn lỗi `code=71`.
+- Backend **252/252**, frontend **11/11**, build và Playwright payment **2/2** đều đạt.
+- Chi tiết và kết quả kiểm thử: [phase2-vnpay-new-sandbox-terminal.md](phase2-vnpay-new-sandbox-terminal.md).
+
+## Phase 3.1 - Học phí chia theo khoản
+
+- Nhánh: `feat/fees-line-items`, đích gộp `integration/phase3`.
+- Hóa đơn hỗ trợ nhiều khoản thu; backend tự tính tổng và dùng chung cơ chế phân bổ cho thu thủ công/VNPay.
+- Giao diện lập hóa đơn nhiều khoản, xem trạng thái từng khoản; Excel xuất chi tiết từng khoản và vẫn tương thích hóa đơn cũ.
+- Kiểm thử: backend toàn bộ **253/253**, frontend unit **11/11**, production build và Playwright riêng **1/1** đều đạt. Build còn cảnh báo bundle chính lớn hơn 500 kB.
+- Chi tiết: [phase3-fee-line-items.md](phase3-fee-line-items.md).
+
+## Phase 3.2 - Theo dõi người tải học liệu
+
+- Nhánh: `feat/material-download-audit`, đích gộp `integration/phase3`.
+- Ghi lượt tải file thành công theo người dùng/thời điểm/IP/thiết bị; tách lượt lỗi và không tính thao tác xem metadata.
+- Người đăng hoặc quản trị xem tổng lượt, số người tải duy nhất và danh sách chi tiết ngay tại trang Học liệu.
+- Quyền trường/lớp/chủ sở hữu và xóa cascade được kiểm thử; chi tiết: [phase3-material-download-audit.md](phase3-material-download-audit.md).
+- Kiểm thử: backend toàn bộ **254/254**, frontend unit **11/11**, production build và Playwright file **1/1** đều đạt. Build còn cảnh báo bundle chính lớn hơn 500 kB.
+
+## Phase 3.3 - Nộp bài trực tuyến/file và yêu cầu thi lại/học lại
+
+- Nhánh: `feat/assignment-submission-modes`, đích gộp `integration/phase3`.
+- Học sinh chọn làm trực tuyến hoặc nộp file; bài file chỉ được chuyển sang đã nộp sau khi kho file ghi thành công, bài tải dở không xuất hiện để giáo viên chấm.
+- Lưu hình thức `WEB`/`FILE`/`MIXED`, bảo vệ file cuối của bài chỉ nộp file và giữ chặn sửa bài đã chấm.
+- Chuyển yêu cầu thi lại/học lại vào trang Bài tập, tách riêng hai loại yêu cầu và chống trùng theo từng loại. Trang Hoạt động chỉ còn CLB/môn tự chọn.
+- Kiểm thử: backend toàn bộ **255/255**, frontend unit **11/11**, production build, Playwright bài tập/thi lại **2/2**, CLB **1/1** và toàn bộ E2E **46/46** đều đạt. Build còn cảnh báo bundle chính lớn hơn 500 kB.
+- Chi tiết: [phase3-assignment-submission-modes.md](phase3-assignment-submission-modes.md).
+
+## Phase 3.4 - Lịch sử học bạ điện tử
+
+- Nhánh: `feat/transcript-history`, đích gộp `integration/phase3`.
+- Khi xuất học bạ, hệ thống lưu snapshot bất biến có số phiên bản và hash; cùng dữ liệu không sinh bản trùng, dữ liệu điểm/hạnh kiểm/hồ sơ thay đổi mới tăng phiên bản.
+- Có API/UI xem lịch sử và tải lại đúng PDF/DOCX của phiên bản cũ; danh sách không làm lộ nội dung snapshot/hash và giữ phạm vi bản thân/con em/trường.
+- Kiểm thử: backend toàn bộ **255/255**, frontend unit **11/11**, production build và Playwright học bạ **1/1** đều đạt. Build còn cảnh báo bundle chính lớn hơn 500 kB.
+- Chi tiết: [phase3-transcript-history.md](phase3-transcript-history.md).
+
+## Phase 3.5 - Thống kê dashboard
+
+- Nhánh: `feat/dashboard-analytics`, đích gộp `integration/phase3`.
+- Dashboard có thống kê chuyên cần, học phí, học tập và bài tập theo đúng scope trường/cụm/lớp/con em và quyền đọc thực tế.
+- Backend test phạm vi, frontend unit, build và E2E dashboard được chạy trước khi gộp. Chi tiết: [phase3-dashboard-analytics.md](phase3-dashboard-analytics.md).

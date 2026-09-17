@@ -30,6 +30,8 @@ const Message = require('../src/models/Message');
 const Book = require('../src/models/LibraryBook');
 const Loan = require('../src/models/BookLoan');
 const Material = require('../src/models/LearningMaterial');
+const Homework = require('../src/models/Homework');
+const HomeworkSubmission = require('../src/models/HomeworkSubmission');
 const Facility = require('../src/models/FacilityRequest');
 const Template = require('../src/models/SharedTemplate');
 const Exam = require('../src/models/Exam');
@@ -315,6 +317,26 @@ test('audit: teacher dashboard uses current class/subject/year scope', async () 
   const attendance = await Attendance.countDocuments({ schoolId: schools[0]._id, classId: classes[0]._id, teacherId: actors.teacher._id });
   assert.equal(data.stats.find(s => s.key === 'gradeSheets').value, grades);
   assert.equal(data.stats.find(s => s.key === 'attendanceSessions').value, attendance);
+  assert.equal(data.analytics.grades.sheetCount, grades);
+  assert.equal(data.analytics.attendance.total, 2);
+});
+
+test('audit: dashboard analytics keep fee and homework rows inside the actor scope', async () => {
+  const own = await Homework.create({ schoolId: schools[0]._id, classId: classes[0]._id, subjectId: subjects[0]._id, academicYearId: year._id, teacherId: actors.teacher._id, title: 'Scoped homework', availableFrom: new Date('2026-01-01'), dueAt: new Date('2026-12-01'), status: 'PUBLISHED' });
+  const foreign = await Homework.create({ schoolId: schools[1]._id, classId: classes[2]._id, subjectId: subjects[0]._id, academicYearId: year._id, teacherId: actors.teacher._id, title: 'Foreign homework', availableFrom: new Date('2026-01-01'), dueAt: new Date('2026-12-01'), status: 'PUBLISHED' });
+  await HomeworkSubmission.create([
+    { homeworkId: own._id, schoolId: schools[0]._id, studentId: students[0]._id, answerText: 'Own answer', status: 'SUBMITTED' },
+    { homeworkId: own._id, schoolId: schools[0]._id, studentId: students[1]._id, answerText: 'Graded answer', status: 'GRADED', score: 8, gradedBy: actors.teacher._id, gradedAt: new Date() },
+    { homeworkId: foreign._id, schoolId: schools[1]._id, studentId: students[3]._id, answerText: 'Foreign answer', status: 'SUBMITTED' },
+  ]);
+  const parentActor = await User.create({ name: 'Analytics parent', email: 'analytics-parent@test.invalid', role: 'PARENT', schoolId: schools[0]._id, parentOf: [students[0]._id, students[3]._id] });
+  const parent = (await (await read('/dashboard', parentActor)).json()).data;
+  assert.equal(parent.analytics.fees.invoiceCount, 1);
+  assert.equal(parent.analytics.grades.sheetCount, parent.grades.length);
+  assert.equal(parent.analytics.attendance.total, 1);
+  assert.deepEqual(parent.analytics.assignments, { assignments: 1, submitted: 1, graded: 0, pendingUploads: 0 });
+  const teacher = (await (await read('/dashboard', actors.teacher)).json()).data;
+  assert.deepEqual(teacher.analytics.assignments, { assignments: 1, submitted: 2, graded: 1, pendingUploads: 0 });
 });
 
 test('audit: dashboard honors revoked personal and teacher read permissions', async () => {
@@ -329,6 +351,7 @@ test('audit: dashboard honors revoked personal and teacher read permissions', as
       const data = (await response.json()).data;
       assert.ok(!data.grades?.length && !data.invoices?.length);
       assert.ok(!data.stats.some(s => ['children', 'grades', 'invoices', 'gradeSheets', 'attendanceSessions'].includes(s.key)));
+      assert.deepEqual(data.analytics, {});
     } finally {
       await Role.updateOne({ _id: role._id }, { permissions: original });
       await cache.reload();
@@ -552,6 +575,21 @@ test('exam lifecycle stores deadline and per-attempt question order', async () =
   assert.deepEqual(new Set(data.questionOrder.map(String)), new Set(exam.questions.map(q => String(q._id))));
   assert.ok(new Date(data.expiresAt).getTime() > Date.now());
 });
+test('exam drafts are validated, resumable and persisted without grading', async () => {
+  const exam = await makeExam({ maxAttempts: 1 });
+  const started = await write(`/exams/${exam._id}/attempts`, students[0], {}, 'POST');
+  assert.equal(started.status, 201);
+  const attempt = (await started.json()).data;
+  const answer = { questionId: exam.questions[0]._id, answerKey: 'A' };
+  const draft = await write(`/exam-attempts/${attempt._id}/draft`, students[0], { answers: [answer] }, 'PATCH');
+  assert.equal(draft.status, 200);
+  assert.equal((await Attempt.findById(attempt._id)).answers[0].answerKey, 'A');
+  assert.equal((await Attempt.findById(attempt._id)).score, 0);
+  const resumed = await write(`/exams/${exam._id}/attempts`, students[0], {}, 'POST');
+  assert.equal(resumed.status, 201);
+  assert.equal(String((await resumed.json()).data._id), String(attempt._id));
+  assert.equal((await write(`/exam-attempts/${attempt._id}/draft`, students[0], { answers: [answer, answer] }, 'PATCH')).status, 400);
+});
 test('expired submission is finalized as an automatic timeout and cannot be submitted twice', async () => {
   const exam = await makeExam({ durationMinutes: 1, maxAttempts: 1 });
   const started = await write(`/exams/${exam._id}/attempts`, students[0], {}, 'POST');
@@ -565,6 +603,7 @@ test('expired submission is finalized as an automatic timeout and cannot be subm
   assert.equal(saved.status, 'SUBMITTED');
   assert.equal(saved.autoSubmitted, true);
   assert.equal(saved.submissionReason, 'TIMEOUT');
+  assert.equal(saved.score, 0);
   assert.equal((await write(`/exam-attempts/${attempt._id}/submit`, students[0], { answers: [answer] }, 'POST')).status, 400);
 });
 test('listing attempts also closes an abandoned expired attempt', async () => {

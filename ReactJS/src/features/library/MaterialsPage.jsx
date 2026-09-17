@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Button, Form, Input, Modal, Popconfirm, Select, Table, Radio, Switch, Typography, message } from 'antd';
+import { Button, Form, Input, Modal, Popconfirm, Select, Space, Table, Radio, Switch, Typography, message } from 'antd';
+import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
 import {
   createMaterialApi,
@@ -10,12 +11,19 @@ import {
   uploadMaterialApi,
   downloadFileAssetApi,
   getFileUsageApi,
+  getMaterialDownloadsApi,
 } from '../../api';
 import { can } from '../../util/permissions';
+import { ROLES } from '../../constants/roles';
 
 const MaterialsPage = () => {
   const { user } = useSelector((s) => s.auth);
   const canManage = can(user, 'materials', 'create');
+  const canViewDownloads = can(user, 'materials', 'update');
+  const canViewDownloadHistory = row => canViewDownloads && row.fileAssetId && (
+    (row.uploadedBy?._id || row.uploadedBy) === user?._id
+    || [ROLES.SUPER_ADMIN, ROLES.CLUSTER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.ACADEMIC_AFFAIRS].includes(user?.role)
+  );
   const [rows, setRows] = useState([]);
   const [classes, setClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -24,6 +32,7 @@ const MaterialsPage = () => {
   const [file, setFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [usage, setUsage] = useState(null);
+  const [downloads, setDownloads] = useState({ open: false, loading: false, data: null });
   const [form] = Form.useForm();
 
   const load = async () => {
@@ -75,6 +84,29 @@ const MaterialsPage = () => {
               ),
           },
           { title: 'Người đăng', render: (_, r) => r.uploadedBy?.name },
+          canViewDownloads
+            ? {
+                title: 'Theo dõi',
+                render: (_, r) => canViewDownloadHistory(r) && (
+                  <Button size="small" onClick={async () => {
+                    setDownloads({ open: true, loading: true, data: null });
+                    try {
+                      const res = await getMaterialDownloadsApi(r._id);
+                      if (res?.EC === 0) setDownloads({ open: true, loading: false, data: res.data });
+                      else {
+                        message.error(res?.EM || 'Không tải được lịch sử');
+                        setDownloads({ open: false, loading: false, data: null });
+                      }
+                    } catch (error) {
+                      message.error(error.message || 'Không tải được lịch sử');
+                      setDownloads({ open: false, loading: false, data: null });
+                    }
+                  }}>
+                    Lượt tải
+                  </Button>
+                ),
+              }
+            : {},
           can(user, 'materials', 'delete')
             ? {
                 title: 'Xóa',
@@ -98,6 +130,32 @@ const MaterialsPage = () => {
             : {},
         ].filter((c) => c.title)}
       />
+      <Modal
+        open={downloads.open}
+        width={900}
+        footer={null}
+        title={`Lượt tải — ${downloads.data?.material?.title || ''}`}
+        onCancel={() => setDownloads({ open: false, loading: false, data: null })}
+      >
+        <Space size="large" style={{ marginBottom: 16 }}>
+          <Typography.Text>Tổng lượt: <strong>{downloads.data?.totalDownloads || 0}</strong></Typography.Text>
+          <Typography.Text>Người tải: <strong>{downloads.data?.uniqueDownloaders || 0}</strong></Typography.Text>
+        </Space>
+        <Table
+          loading={downloads.loading}
+          rowKey="_id"
+          size="small"
+          pagination={{ pageSize: 10 }}
+          dataSource={downloads.data?.downloads || []}
+          columns={[
+            { title: 'Người tải', render: (_, row) => row.userId?.name || 'Tài khoản đã xóa' },
+            { title: 'Mã', render: (_, row) => row.userId?.code || '—' },
+            { title: 'Vai trò', render: (_, row) => row.userId?.role || '—' },
+            { title: 'Thời điểm', dataIndex: 'completedAt', render: value => value ? dayjs(value).format('DD/MM/YYYY HH:mm:ss') : '—' },
+            { title: 'Dung lượng', dataIndex: 'sizeBytes', render: value => `${(Number(value || 0) / 1024).toFixed(1)} KB` },
+          ]}
+        />
+      </Modal>
       <Modal open={open} title="Thêm học liệu" confirmLoading={saving} cancelButtonProps={{ disabled: saving }} closable={!saving} maskClosable={!saving} onCancel={() => setOpen(false)} onOk={() => form.submit()}>
         <Form
           form={form}

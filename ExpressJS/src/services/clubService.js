@@ -9,6 +9,22 @@ const cancelRegistration = async (actor, id) => { if (actor.role !== ROLES.STUDE
 const listRegistrations = async actor => { const ids = await personalStudentIds(actor); const filter = ids ? { schoolId: (await schoolScope(actor)).schoolId, studentId: { $in: ids } } : await schoolScope(actor); return ClubRegistration.find(filter).populate('clubId', 'name capacity').populate('studentId', 'name code').sort({ createdAt: -1 }); };
 const retakeScope = async actor => { const filter = await schoolScope(actor); const ids = await personalStudentIds(actor); return ids ? { ...filter, studentId: { $in: ids } } : filter; };
 const listRetakes = async actor => RetakeRequest.find(await retakeScope(actor)).populate('studentId', 'name code classId').populate('subjectId', 'name code').populate('academicYearId', 'name').sort({ createdAt: -1 });
-const createRetake = async (actor, data) => { if (actor.role !== ROLES.STUDENT) throw new ApiError(403, 'Chi hoc sinh duoc tao yeu cau'); const student = await User.findById(actor._id).select('schoolId classId role'); if (!student?.classId) throw new ApiError(400, 'Hoc sinh chua co lop'); const cls = await require('../models/Class').findOne({ _id: student.classId, schoolId: student.schoolId }); if (!cls) throw new ApiError(403, 'Lop khong thuoc truong'); const yearId = objectId(data.academicYearId || cls.academicYearId); if (String(yearId) !== String(cls.academicYearId)) throw new ApiError(400, 'Nam hoc khong thuoc lop'); await reference(Subject, objectId(data.subjectId, 'subjectId'), student.schoolId); if (!data.reason?.trim()) throw new ApiError(400, 'Can neu ly do'); const existing = await RetakeRequest.findOne({ studentId: actor._id, subjectId: data.subjectId, academicYearId: yearId, status: { $in: ['REQUESTED', 'APPROVED'] } }); if (existing) throw new ApiError(409, 'Da co yeu cau dang xu ly'); return RetakeRequest.create({ schoolId: student.schoolId, studentId: actor._id, subjectId: data.subjectId, academicYearId: yearId, reason: data.reason.trim() }); };
+const createRetake = async (actor, data) => {
+  if (actor.role !== ROLES.STUDENT) throw new ApiError(403, 'Chi hoc sinh duoc tao yeu cau');
+  const requestType = data.requestType || 'RETAKE_EXAM';
+  if (!['RETAKE_EXAM', 'REPEAT_COURSE'].includes(requestType)) throw new ApiError(400, 'Loai yeu cau khong hop le');
+  const student = await User.findById(actor._id).select('schoolId classId role');
+  if (!student?.classId) throw new ApiError(400, 'Hoc sinh chua co lop');
+  const cls = await require('../models/Class').findOne({ _id: student.classId, schoolId: student.schoolId });
+  if (!cls) throw new ApiError(403, 'Lop khong thuoc truong');
+  const yearId = objectId(data.academicYearId || cls.academicYearId);
+  if (String(yearId) !== String(cls.academicYearId)) throw new ApiError(400, 'Nam hoc khong thuoc lop');
+  const subjectId = objectId(data.subjectId, 'subjectId');
+  await reference(Subject, subjectId, student.schoolId);
+  if (!data.reason?.trim()) throw new ApiError(400, 'Can neu ly do');
+  const existing = await RetakeRequest.findOne({ studentId: actor._id, subjectId, academicYearId: yearId, requestType, status: { $in: ['REQUESTED', 'APPROVED'] } });
+  if (existing) throw new ApiError(409, 'Da co yeu cau dang xu ly');
+  return RetakeRequest.create({ schoolId: student.schoolId, studentId: actor._id, subjectId, academicYearId: yearId, requestType, reason: data.reason.trim() });
+};
 const reviewRetake = async (actor, id, data) => { if (!managers.includes(actor.role)) throw new ApiError(403, 'Khong co quyen duyet yeu cau'); const row = await RetakeRequest.findOne({ _id: objectId(id), ...(await schoolScope(actor)) }); if (!row) throw new ApiError(404, 'Khong tim thay yeu cau'); if (row.status !== 'REQUESTED') throw new ApiError(409, 'Yeu cau da duoc xu ly'); if (!['APPROVED', 'REJECTED'].includes(data.status)) throw new ApiError(400, 'Trang thai khong hop le'); row.status = data.status; row.reviewedBy = actor._id; row.reviewedAt = new Date(); row.reviewNote = String(data.reviewNote || '').trim(); return row.save(); };
 module.exports = { listClubs, createClub, register, cancelRegistration, listRegistrations, listRetakes, createRetake, reviewRetake };

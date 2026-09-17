@@ -226,7 +226,9 @@ export const createExamApi = (data) => axios.post('/v1/api/exams', data);
 export const updateExamApi = (id, data) => axios.put(`/v1/api/exams/${id}`, data);
 export const startAttemptApi = (examId) => axios.post(`/v1/api/exams/${examId}/attempts`);
 export const submitAttemptApi = (attemptId, answers) =>
-  axios.post(`/v1/api/exam-attempts/${attemptId}/submit`, { answers });
+    axios.post(`/v1/api/exam-attempts/${attemptId}/submit`, { answers });
+  export const saveAttemptDraftApi = (attemptId, answers) =>
+    axios.patch(`/v1/api/exam-attempts/${attemptId}/draft`, { answers });
 export const gradeAttemptApi = (attemptId, grades) =>
   axios.post(`/v1/api/exam-attempts/${attemptId}/grade`, { grades });
 export const getAttemptsApi = (params) => axios.get('/v1/api/exam-attempts', { params });
@@ -275,6 +277,7 @@ export const cancelJobApi = id => axios.post(`/v1/api/jobs/${id}/cancel`);
 export const createMaterialApi = (data) => axios.post('/v1/api/materials', data);
 export const deleteMaterialApi = (id) => axios.delete(`/v1/api/materials/${id}`);
 export const getFileUsageApi = () => axios.get('/v1/api/files/usage');
+export const getMaterialDownloadsApi = id => axios.get(`/v1/api/materials/${id}/downloads`);
 export const uploadMaterialApi = (data, file) => {
   const form = new FormData();
   for (const [key, value] of Object.entries(data)) if (value !== undefined && value !== null) form.append(key, String(value));
@@ -302,6 +305,11 @@ const downloadPrivateFile = async (path, fallbackName) => {
 };
 export const downloadStudentDocumentApi = (id, name = 'student-document') => downloadPrivateFile(`/student-documents/${id}/download`, name);
 export const downloadCertificateApi = (studentId, format) => downloadPrivateFile(`/students/${studentId}/certificate/${format}`, `student-transcript.${format === 'pdf' ? 'pdf' : 'docx'}`);
+export const getTranscriptHistoryApi = studentId => axios.get(`/v1/api/students/${studentId}/transcript-history`);
+export const downloadTranscriptSnapshotApi = (studentId, snapshotId, version, format) => downloadPrivateFile(
+  `/students/${studentId}/transcript-history/${snapshotId}/${format}`,
+  `student-transcript-v${version}.${format === 'pdf' ? 'pdf' : 'docx'}`,
+);
 export const downloadFileAssetApi = async id => {
   const meta = await axios.get(`/v1/api/files/${id}`);
   if (meta?.EC !== 0) throw new Error(meta?.EM || 'Không tải được thông tin file');

@@ -87,6 +87,7 @@ test('parent dashboard excludes stale foreign child and receives class notice', 
   expect(data.stats.find(s => s.key === 'children').value).toBe(1);
   expect(data.grades.every(g => g.studentId.name === 'student 0')).toBe(true);
   await expect(page.locator('.ant-statistic').filter({ hasText: 'Con em' }).locator('.ant-statistic-content-value')).toHaveText('1');
+  for (const title of ['Thống kê chuyên cần', 'Thống kê học phí', 'Thống kê học tập', 'Thống kê bài tập']) await expect(page.getByText(title, { exact: true })).toBeVisible();
   await openPage(page, '/announcements');
   await expect(page.getByRole('cell', { name: 'QA Parent Notice 0', exact: true })).toBeVisible();
   await expect(page.getByRole('cell', { name: 'QA Parent Notice 1', exact: true })).toHaveCount(0);

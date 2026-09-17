@@ -37,6 +37,26 @@ Khởi động lại backend sau khi đổi cấu hình. Khi dùng domain/tunnel
 
 Vì vậy chưa thể xác nhận giao dịch ngân hàng/OTP/IPN thật thành công. Cần duyệt terminal và đăng ký IPN HTTPS, sau đó kiểm thử lại cả thanh toán thành công, hủy, quay về trước IPN và đối soát. Test tự động dùng terminal/secret giả độc lập, không gọi VNPay hoặc Atlas.
 
+Kiểm tra lại ngày 13/09/2026 bằng checkout sandbox mới 10.000 VND vẫn chuyển tới `Payment/Error.html?code=71`. Không xác nhận thanh toán và không ghi vào hóa đơn; kết luận terminal chưa được duyệt vẫn còn đúng.
+
+## Chạy giao diện local bằng terminal sandbox thật
+
+Fixture E2E mặc định luôn dùng `TESTCODE`; mã này chỉ kiểm tra giao diện và không thể thanh toán trên VNPay. Để tạo checkout URL bằng thông tin sandbox trong `.env` nhưng vẫn dùng MongoDB tạm và dữ liệu học sinh giả, chạy hai terminal:
+
+```powershell
+# Terminal 1
+cd ExpressJS
+npm run fixture:vnpay-sandbox
+
+# Terminal 2
+cd ReactJS
+$env:API_PROXY_TARGET = "http://127.0.0.1:8092"
+$env:VITE_GOOGLE_CLIENT_ID = ""
+npm run dev -- --host 127.0.0.1 --port 5177 --strictPort
+```
+
+Mở `http://127.0.0.1:5177/login`, đăng nhập bằng `student0@test.invalid` / `Phase0@Test123`, vào Học phí và tạo checkout. Cấu hình chỉ đọc `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET`, và `VNPAY_URL` từ `.env`; secret không được in log. Fixture từ chối URL gateway ngoài HTTPS `sandbox.vnpayment.vn` và return URL mặc định về cổng 5177. Phương thức này không dùng Atlas hoặc dữ liệu thật. Nếu sandbox vẫn trả mã 71 thì VNPay chưa duyệt terminal, cần họ kích hoạt trước khi thử bước ngân hàng.
+
 Nguồn giao thức: [Hướng dẫn PAY chính thức của VNPay](https://sandbox.vnpayment.vn/apis/docs/thanh-toan-pay/pay.html).
 
 ## Kiểm thử

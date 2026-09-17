@@ -18,6 +18,7 @@ const Subject = require('../src/models/Subject');
 const Assignment = require('../src/models/TeacherAssignment');
 const FileAsset = require('../src/models/FileAsset');
 const Material = require('../src/models/LearningMaterial');
+const MaterialDownload = require('../src/models/MaterialDownload');
 const Subscription = require('../src/models/Subscription');
 const storage = require('../src/services/fileStorage');
 const { ROLE_PERMISSIONS } = require('../src/constants/permissions');
@@ -105,6 +106,37 @@ test('download and metadata enforce tenant, class, parent linkage and active vie
   }
   assert.equal((await request(`/materials/${material._id}`, actors.foreign, { method: 'DELETE' })).status, 404);
   await remove(material);
+});
+
+test('records completed material downloads and lets only the owner or manager inspect them', async () => {
+  const material = await create({ classId: classes[0]._id });
+  const assetId = material.fileAssetId;
+  assert.equal((await request(`/files/${assetId}`)).status, 200);
+  assert.equal(await MaterialDownload.countDocuments({ materialId: material._id }), 0);
+
+  for (const actor of [actors.student, actors.parent, actors.student]) {
+    const response = await request(`/files/${assetId}/download`, actor, { headers: { 'User-Agent': 'download-audit-test' } });
+    assert.equal(response.status, 200);
+    assert.deepEqual(Buffer.from(await response.arrayBuffer()), pdf);
+  }
+  assert.equal(await MaterialDownload.countDocuments({ materialId: material._id, status: 'COMPLETED' }), 3);
+
+  const response = await request(`/materials/${material._id}/downloads`, actors.teacher);
+  assert.equal(response.status, 200, await response.clone().text());
+  const report = (await response.json()).data;
+  assert.equal(report.totalDownloads, 3);
+  assert.equal(report.uniqueDownloaders, 2);
+  assert.deepEqual(new Set(report.downloads.map(item => item.userId.name)), new Set(['student', 'parent']));
+  assert.ok(report.downloads.every(item => item.status === 'COMPLETED' && item.completedAt && item.userAgent === 'download-audit-test'));
+
+  assert.equal((await request(`/materials/${material._id}/downloads`, actors.student)).status, 403);
+  assert.equal((await request(`/materials/${material._id}/downloads`, actors.peer)).status, 403);
+  assert.equal((await request(`/materials/${material._id}/downloads`, actors.foreign)).status, 404);
+  assert.equal((await request(`/files/${assetId}/download`, actors.outsider)).status, 404);
+  assert.equal(await MaterialDownload.countDocuments({ materialId: material._id }), 3);
+
+  await remove(material);
+  assert.equal(await MaterialDownload.countDocuments({ materialId: material._id }), 0);
 });
 
 test('Vietnamese filenames and UTF-8 text round trip correctly', async () => {
