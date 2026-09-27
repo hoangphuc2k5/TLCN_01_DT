@@ -14,16 +14,24 @@ const { getAppName } = require('./utils/appName');
 const app = express();
 
 const appName = getAppName();
+const allowedOrigins = new Set(
+  [process.env.FRONTEND_URL, process.env.CORS_ALLOWED_ORIGINS]
+    .filter(Boolean)
+    .flatMap(value => value.split(','))
+    .map(value => value.trim().replace(/\/$/, ''))
+    .filter(Boolean)
+);
 
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
-    contentSecurityPolicy: false,
   })
 );
 app.use(
   cors({
-    origin: true,
+    origin(origin, callback) {
+      callback(null, !origin || allowedOrigins.has(origin));
+    },
     credentials: true,
   })
 );

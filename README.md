@@ -49,7 +49,7 @@ code/
 ### 1. Yêu cầu
 
 - Node.js 18+
-- MongoDB local **hoặc** MongoDB Atlas
+- MongoDB local cấu hình **replica set** hoặc MongoDB Atlas. Các nghiệp vụ dùng transaction (ví dụ cập nhật điểm) không hoạt động đầy đủ trên MongoDB standalone.
 
 ### 2. Backend
 
@@ -79,6 +79,8 @@ GOOGLE_CLIENT_ID=
 GMAIL_USER=
 GMAIL_APP_PASSWORD=
 FRONTEND_URL=http://localhost:5173
+# Chỉ khi có thêm frontend chạy ở origin khác:
+CORS_ALLOWED_ORIGINS=
 ```
 
 Seed dữ liệu demo (xoá data cũ trong DB đang trỏ tới, tạo lại cụm/trường/user + **10 Role hệ thống**):
@@ -95,6 +97,8 @@ npm run dev
 
 - API: `http://localhost:8080`
 - Health: `GET /v1/api/health`
+
+API chỉ gửi CORS headers cho `FRONTEND_URL` và các origin khai báo trong `CORS_ALLOWED_ORIGINS` (phân tách bằng dấu phẩy, gồm giao thức và cổng, không có path). Reverse proxy cùng origin không cần thêm CORS origin. Với môi trường production, đặt `FRONTEND_URL` theo domain giao diện thực tế.
 
 Khi server khởi động, hệ thống đảm bảo các Role hệ thống tồn tại (không ghi đè permissions đã chỉnh tay, trừ khi chạy `npm run seed` với force).
 
@@ -201,7 +205,7 @@ Hệ thống hỗ trợ **hai kênh** (cấu hình bằng biến môi trường)
 | `ALLOW_PASSWORD_LOGIN=false` | Chỉ Google Sign-In |
 | `AUTH_GMAIL_ONLY=true` | Google chỉ nhận `@gmail.com` / `@googlemail.com` |
 
-Không dùng SĐT / SMS / Zalo để xác thực.
+Ngoài hai kênh trên, code có adapter SSO doanh nghiệp và đăng nhập OTP qua điện thoại (tùy cấu hình). SMS/Zalo/push cần gateway tương ứng; xem [SSO, OTP và thông báo realtime](docs/phase2-sso-phone-realtime.md). Test local không thay thế xác minh với nhà cung cấp thật.
 
 ### Google OAuth (tuỳ chọn)
 
@@ -321,6 +325,23 @@ sequenceDiagram
 
 - **Không commit** `.env` (đã có trong `.gitignore`). Dùng `.env.example` làm mẫu.
 - Đổi `JWT_SECRET` khi deploy; không đưa URI Atlas / Google secret lên Git.
-- Menu UI vẫn gắn theo mã role hệ thống; API enforce theo permission DB (role tùy chỉnh dùng được API nếu được cấp quyền).
-- Chưa làm: payment gateway thật, backup/restore, chat realtime (Socket), SSO ngoài Google.
-- Sau khi pull code mới liên quan seed/role: chạy lại `npm run seed` trong `ExpressJS` (cẩn thận — xoá data demo trong DB hiện tại).
+- Menu UI được lọc theo quyền qua `canVisit`; API kiểm tra permission DB và phạm vi dữ liệu. Role tùy chỉnh được kiểm thử riêng.
+- Đã có [tích hợp VNPay sandbox](docs/phase2-vnpay-new-sandbox-terminal.md), [CLI backup/restore](docs/phase1-backup-restore.md), [tin nhắn WebSocket](docs/phase3-realtime-messaging.md) và adapter SSO doanh nghiệp. Việc có code/test local không đồng nghĩa đã xác minh vận hành production; WebSocket hiện dùng event bus trong một tiến trình.
+- Chỉ chạy `npm run seed` trong `ExpressJS` khi chủ động tạo lại dữ liệu demo trên database riêng: lệnh xoá dữ liệu hiện có. Không cần seed lại database để chạy regression tự động.
+
+## Kiểm thử và sẵn sàng demo
+
+Chạy từ các thư mục tương ứng:
+
+```powershell
+cd ExpressJS
+npm test
+cd ../ReactJS
+npm test
+npm run build
+npm run test:e2e
+```
+
+Backend test và Playwright dùng MongoDB tạm. E2E tự khởi động API ở cổng `8091`, Vite ở `5175`; hai cổng phải trống. Các bài kiểm thử VNPay dùng gateway giả lập và IPN có chữ ký fixture, không thực hiện thanh toán thật.
+
+Kết quả regression, phạm vi năm luồng demo và các mục còn cần xác minh được ghi tại [checklist sẵn sàng demo](docs/demo-readiness-2026-09-27.md).

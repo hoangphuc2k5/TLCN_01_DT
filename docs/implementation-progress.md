@@ -550,3 +550,17 @@ Ghi chú môi trường: npm ghi nhận 7 cảnh báo vulnerability ở backend 
 - Nhánh: `feat/dashboard-analytics`, đích gộp `integration/phase3`.
 - Dashboard có thống kê chuyên cần, học phí, học tập và bài tập theo đúng scope trường/cụm/lớp/con em và quyền đọc thực tế.
 - Backend test phạm vi, frontend unit, build và E2E dashboard được chạy trước khi gộp. Chi tiết: [phase3-dashboard-analytics.md](phase3-dashboard-analytics.md).
+
+## Regression và checklist demo — 27/09/2026
+
+- Kiểm thử lại commit `cfc61d28734d447af1897848870db5688a776720` trên `integration/phase3`, Windows / Node.js 24.15.0: backend **256/256**, frontend unit **11/11**, Playwright **46/46**, production build đều đạt.
+- Bộ kiểm thử dùng MongoDB tạm; không seed database ứng dụng, không thực hiện thanh toán thật và không deploy. Đây là kết quả local, chưa xác minh CI Linux/Node.js 22 hoặc UAT dịch vụ bên ngoài trong lượt này.
+- Build còn cảnh báo bundle chính **1.651,12 kB**, gzip **513,52 kB**. Không có test thất bại cần sửa.
+- Cập nhật README về các tích hợp đã có, quyền menu, yêu cầu MongoDB replica set và cách chạy regression.
+- Thêm [checklist sẵn sàng demo](demo-readiness-2026-09-27.md): đối chiếu năm luồng, đường dẫn log, các bước UI còn cần kiểm tra và backlog trước staging.
+
+## Sửa CORS và thông báo lỗi production — 27/09/2026
+
+- Giới hạn CORS theo `FRONTEND_URL`/`CORS_ALLOWED_ORIGINS`, bật CSP mặc định của Helmet, và ẩn chi tiết lỗi 5xx ở production. Giữ thông báo lỗi 4xx để giao diện có thể hướng dẫn người dùng.
+- Thêm test âm tại `ExpressJS/test/http-boundary.test.js`; cập nhật `.env.example` và README với cấu hình origin, yêu cầu MongoDB replica set.
+- Backend chạy riêng **258/258** và Playwright **46/46** đều đạt. Lượt backend chạy đồng thời E2E có một tiến trình backup CLI thoát bất thường trên Windows; backup suite chạy riêng **20/20** và backend chạy riêng đạt toàn bộ. Xem [checklist demo](demo-readiness-2026-09-27.md) để biết phạm vi xác minh và log.
