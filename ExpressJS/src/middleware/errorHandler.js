@@ -25,6 +25,11 @@ const errorHandler = (err, req, res, next) => {
     errorCode = 409;
   }
 
+  if (process.env.NODE_ENV === 'production' && statusCode >= 500) {
+    message = 'Internal Server Error';
+    errorCode = 1;
+  }
+
   if (process.env.NODE_ENV !== 'production') {
     console.error('[Error]', err);
   }
