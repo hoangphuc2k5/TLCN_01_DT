@@ -17,7 +17,7 @@ Thumbs.db
 # Build
 dist/
 build/
-.codegraph/
+.trae/
 
 # Local browser test artifacts
 ReactJS/test-results/
