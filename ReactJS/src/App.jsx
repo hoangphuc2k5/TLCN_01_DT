@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Spin } from 'antd';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchAccountThunk, fetchAppConfigThunk } from './Redux/authSlice';
+import { fetchAccountThunk, fetchAppConfigThunk } from './store/auth.slice';
 
 function App() {
   const dispatch = useDispatch();

@@ -1,5 +1,5 @@
 import { useSelector } from 'react-redux';
-import { can } from '../../util/permissions';
+import { can } from '../../utils/permissions';
 import { useEffect, useState } from 'react';
 import { Button, Form, Input, InputNumber, Modal, Select, Table, Tabs, Tag, message } from 'antd';
 import dayjs from 'dayjs';
@@ -10,7 +10,7 @@ import {
   getSubscriptionsApi,
   markSubInvoicePaidApi,
   upsertSubscriptionApi,
-} from '../../api';
+} from '../../services/api.service';
 
 const SubscriptionsPage = () => {
   const { user } = useSelector(s => s.auth);

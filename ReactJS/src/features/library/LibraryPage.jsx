@@ -9,9 +9,9 @@ import {
   getLoansApi,
   getUserDirectoryApi,
   returnBookApi,
-} from '../../api';
+} from '../../services/api.service';
 import { ROLES } from '../../constants/roles';
-import { can } from '../../util/permissions';
+import { can } from '../../utils/permissions';
 
 const LibraryPage = () => {
   const { user } = useSelector((s) => s.auth);

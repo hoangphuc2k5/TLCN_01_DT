@@ -1,35 +1,35 @@
 require('dotenv').config();
 const app = require('./app');
 const http = require('node:http');
-const { attachMessageGateway } = require('./realtime/messageGateway');
-const connection = require('./config/database');
-const registerEventListeners = require('./patterns/registerListeners');
-const { getAppName } = require('./utils/appName');
+const { attachMessageGateway } = require('./config/realtime/realtime.config');
+const connection = require("./config/database/database.config");
+const container = require("./config/container");
+const logger = require("./config/logger/logger.config");
+const registerEventListeners = require("./config/events/register-listeners.config");
+const { getAppName } = require("./utils/common/app-name.util");
 const port = process.env.PORT || 8080;
 const appName = getAppName();
 
 (async () => {
   try {
     await connection();
-    await require('./models/FileAsset').init();
-    await require('./models/Job').init();
-    await require('./models/AuthAttempt').init();
+    await container.repositories.system.initializeModels(['file-asset', 'job', 'auth-attempt']);
     registerEventListeners();
-    const roleCache = require('./services/rolePermissionCache');
-    const { seedSystemRoles } = require('./services/roleService');
+    const roleCache = container.services["role-permission-cache"];
+    const { seedSystemRoles } = container.services["role"];
     try {
       await seedSystemRoles();
     } catch (e) {
-      console.warn('seedSystemRoles warning:', e.message);
+      logger.warn('seedSystemRoles warning:', e.message);
       await roleCache.reload();
     }
     const server = http.createServer(app);
     attachMessageGateway(server);
     server.listen(port, () => {
-      console.log(`${appName} API listening on port ${port}`);
+      logger.log(`${appName} API listening on port ${port}`);
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    logger.error('Failed to start server:', error);
     process.exit(1);
   }
 })();

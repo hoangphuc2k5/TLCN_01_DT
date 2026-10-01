@@ -6,8 +6,8 @@ import {
   createTemplateApi,
   getSchoolsApi,
   getTemplatesApi,
-} from '../../api';
-import { can } from '../../util/permissions';
+} from '../../services/api.service';
+import { can } from '../../utils/permissions';
 import { ROLES } from '../../constants/roles';
 
 const TemplatesPage = () => {

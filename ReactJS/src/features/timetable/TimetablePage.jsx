@@ -10,9 +10,9 @@ import {
   getTimetablesApi,
   getUserDirectoryApi,
   upsertTimetableApi,
-} from '../../api';
+} from '../../services/api.service';
 import { ROLES } from '../../constants/roles';
-import { can } from '../../util/permissions';
+import { can } from '../../utils/permissions';
 
 const dayLabels = { 1: 'T2', 2: 'T3', 3: 'T4', 4: 'T5', 5: 'T6', 6: 'T7', 7: 'CN' };
 

@@ -24,9 +24,9 @@ import {
   startAttemptApi,
   submitAttemptApi,
   updateExamApi,
-} from '../../api';
+} from '../../services/api.service';
 import { ROLES } from '../../constants/roles';
-import { can } from '../../util/permissions';
+import { can } from '../../utils/permissions';
 
 const ExamsPage = () => {
   const { user } = useSelector((s) => s.auth);

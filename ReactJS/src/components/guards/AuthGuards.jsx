@@ -1,6 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { canVisit } from '../../util/permissions';
+import { canVisit } from '../../utils/permissions';
 
 export const PrivateRoute = () => {
   const { isAuthenticated, appLoading, user } = useSelector((s) => s.auth);

@@ -3,8 +3,8 @@ require('dotenv').config();
 const path = require('node:path');
 const { parseArgs } = require('node:util');
 const { MongoClient } = require('mongoose').mongo;
-const service = require('../src/backup/backupService');
-const { BackupError, requireThat, encryptionKey, databaseName } = require('../src/backup/safety');
+const service = require('../src/config/container').services.backup;
+const { BackupError, requireThat, encryptionKey, databaseName } = require('../src/utils/common/backup-safety.util');
 
 const HELP = `Usage (run from ExpressJS):
   npm run backup -- create --file <absolute.edubak> --maintenance
@@ -18,7 +18,7 @@ Restore: RESTORE_DB_URL, RESTORE_JWT_SECRET (new, >=32 characters),
          RESTORE_MFA_ENCRYPTION_KEY (same as source, if MFA exists).
 All commands: BACKUP_ENCRYPTION_KEY (64 hex), BACKUP_STAGING_ROOT (optional).
 No URI, password or encryption key is accepted on the command line.
-See docs/phase1-backup-restore.md before operating on a real environment.`;
+See ../docs/deployment/phase1-backup-restore.md before operating on a real environment.`;
 
 async function main(args = process.argv.slice(2)) {
   const { values, positionals } = parseArgs({ args, allowPositionals: true, strict: true, options: {

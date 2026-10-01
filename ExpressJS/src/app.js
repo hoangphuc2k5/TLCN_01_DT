@@ -4,12 +4,12 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 
-const apiRoutes = require('./routes/api');
-const authenticate = require('./middleware/auth');
-const tenantContext = require('./middleware/tenant');
-const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
+const apiRoutes = require("./routes/common/api.routes");
+const authenticate = require("./middleware/common/auth.middleware");
+const tenantContext = require("./middleware/common/tenant.middleware");
+const { notFoundHandler, errorHandler } = require("./middleware/common/error-handler.middleware");
 
-const { getAppName } = require('./utils/appName');
+const { getAppName } = require("./utils/common/app-name.util");
 
 const app = express();
 

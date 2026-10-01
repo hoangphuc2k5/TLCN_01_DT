@@ -22,10 +22,10 @@ import {
   resetUserPasswordApi,
   updateUserApi,
   getClassesApi,
-} from '../../api';
+} from '../../services/api.service';
 import ImportExcelButton from '../../components/ImportExcelButton';
 import { ROLE_LABELS, canManageLevel } from '../../constants/roles';
-import { can } from '../../util/permissions';
+import { can } from '../../utils/permissions';
 import RolesPage from '../roles/RolesPage';
 
 const UsersPage = () => {

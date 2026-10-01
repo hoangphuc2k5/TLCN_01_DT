@@ -7,7 +7,7 @@ import {
   getClustersApi,
   getSchoolsApi,
   updateSchoolApi,
-} from '../../api';
+} from '../../services/api.service';
 import { ROLES } from '../../constants/roles';
 
 const SchoolsPage = () => {

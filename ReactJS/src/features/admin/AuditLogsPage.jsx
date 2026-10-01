@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Table } from 'antd';
 import dayjs from 'dayjs';
-import { getAuditLogsApi } from '../../api';
+import { getAuditLogsApi } from '../../services/api.service';
 
 const AuditLogsPage = () => {
   const [rows, setRows] = useState([]);

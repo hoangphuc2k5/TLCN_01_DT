@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button, Result, Spin } from 'antd';
 import { Link } from 'react-router-dom';
-import { verifyVnpayReturnApi } from '../../api';
+import { verifyVnpayReturnApi } from '../../services/api.service';
 
 export default function VnpayReturnPage() {
   const [result, setResult] = useState(null);

@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { Button, Form, Input, Modal, Popconfirm, Space, Table, Tag, message } from 'antd';
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
-import { createAnnouncementApi, deleteAnnouncementApi, getAnnouncementsApi } from '../../api';
-import { can, sameId } from '../../util/permissions';
+import { createAnnouncementApi, deleteAnnouncementApi, getAnnouncementsApi } from '../../services/api.service';
+import { can, sameId } from '../../utils/permissions';
 import { ROLES } from '../../constants/roles';
 
 const AnnouncementsPage = () => {

@@ -21,9 +21,9 @@ import {
   getPermissionCatalogApi,
   getRolesApi,
   updateRoleApi,
-} from '../../api';
+} from '../../services/api.service';
 import { canManageLevel, PEER_MANAGE_ROLES, ROLES } from '../../constants/roles';
-import { can, ownsRole } from '../../util/permissions';
+import { can, ownsRole } from '../../utils/permissions';
 
 const ACTION_LABELS = {
   view: 'Xem',

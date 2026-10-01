@@ -1,17 +1,17 @@
 require('dotenv').config();
-const mongoose = require('mongoose');
-const connect = require('../src/config/database');
-const { run } = require('../src/jobs/worker');
+const connect = require("../src/config/database/database.config");
+const container = require('../src/config/container');
+const logger = require('../src/config/logger/logger.config');
+const { run } = container.services['job-worker'];
 const controller = new AbortController();
 for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => controller.abort());
 (async () => {
-  require('../src/config/jobs')();
+  require("../src/config/jobs/jobs.config")();
   await connect();
-  await require('../src/models/Job').init();
-  await require('../src/models/Notification').init();
-  console.log('Job worker ready');
+  await container.repositories.system.initializeModels(['job', 'notification']);
+  logger.log('Job worker ready');
   await run({ signal: controller.signal });
-})().catch(error => { console.error('[jobs]', error.name); process.exitCode = 1; }).finally(async () => {
-  require('../src/services/mailService').closeTransporter();
-  await mongoose.disconnect();
+})().catch(error => { logger.error('[jobs]', error.name); process.exitCode = 1; }).finally(async () => {
+  container.services.mail.closeTransporter();
+  await connect.disconnect();
 });

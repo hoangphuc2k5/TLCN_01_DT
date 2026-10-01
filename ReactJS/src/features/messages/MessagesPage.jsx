@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button, Form, Input, Modal, Select, Space, Table, Tabs, Tag, message } from 'antd';
 import dayjs from 'dayjs';
-import { getMessagesApi, getUserDirectoryApi, markMessageReadApi, openMessageRealtime, sendMessageApi } from '../../api';
+import { getMessagesApi, getUserDirectoryApi, markMessageReadApi, openMessageRealtime, sendMessageApi } from '../../services/api.service';
 
 const MessagesPage = () => {
   const [inbox, setInbox] = useState([]);

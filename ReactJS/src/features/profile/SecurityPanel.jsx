@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Button, Card, Form, Input, QRCode, Space, Typography } from 'antd';
 import { useDispatch } from 'react-redux';
-import { getSecurityApi, securityActionApi } from '../../api';
-import { logout } from '../../Redux/authSlice';
+import { getSecurityApi, securityActionApi } from '../../services/api.service';
+import { logout } from '../../store/auth.slice';
 
 function GoogleProof({ clientId, onCredential }) {
   const target = useRef(null);

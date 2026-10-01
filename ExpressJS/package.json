@@ -8,8 +8,8 @@
     "start": "node ./src/server.js",
     "worker": "node scripts/job-worker.js",
     "backup": "node scripts/backup.js",
-    "seed": "node ./src/seed/seedDemo.js",
-    "fixture:vnpay-sandbox": "node scripts/phase0-vnpay-sandbox.js",
+    "seed": "node ./src/config/seed/seed.config.js",
+    "fixture:vnpay-sandbox": "node scripts/vnpay-sandbox-fixture.js",
     "test": "node --test --test-concurrency=1"
   },
   "keywords": [
@@ -44,5 +44,9 @@
   "devDependencies": {
     "mongodb-memory-server": "^10.1.4",
     "nodemon": "^3.1.4"
+  },
+  "allowScripts": {
+    "bcrypt@5.1.1": true,
+    "mongodb-memory-server@10.1.4": true
   }
 }

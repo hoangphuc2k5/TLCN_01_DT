@@ -3,9 +3,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { Button, Form, Input, Modal, Select, Space, Table, Tag, message } from 'antd';
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
-import { createLeaveApi, getLeavesApi, reviewLeaveApi, cancelMakeupApi } from '../../api';
+import { createLeaveApi, getLeavesApi, reviewLeaveApi, cancelMakeupApi } from '../../services/api.service';
 import { ROLES } from '../../constants/roles';
-import { can } from '../../util/permissions';
+import { can } from '../../utils/permissions';
 
 const TYPE_LABELS = {
   STUDENT_ABSENCE: 'Xin nghỉ học',

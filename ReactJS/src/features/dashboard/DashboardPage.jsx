@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Card, Col, Row, Statistic, Typography, Spin, Alert, List, Progress, Space, Tag } from 'antd';
-import { getDashboardApi } from '../../api';
+import { getDashboardApi } from '../../services/api.service';
 
 const DashboardPage = () => {
   const [data, setData] = useState(null);

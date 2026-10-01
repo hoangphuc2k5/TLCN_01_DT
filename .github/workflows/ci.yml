@@ -18,7 +18,8 @@ permissions:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Never interrupt a main release halfway through uploading its two images.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   backend:
@@ -30,9 +31,9 @@ jobs:
         working-directory: ExpressJS
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
@@ -51,9 +52,9 @@ jobs:
         working-directory: ReactJS
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
@@ -63,7 +64,18 @@ jobs:
       - name: Run frontend policy tests
         run: npm test
       - name: Build production bundle
+        env:
+          VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
+          VITE_ALLOW_PASSWORD_LOGIN: ${{ vars.VITE_ALLOW_PASSWORD_LOGIN || 'false' }}
         run: npm run build
+      - name: Upload production bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: web-dist-${{ github.sha }}
+          overwrite: true
+          path: ReactJS/dist
+          retention-days: 7
+          if-no-files-found: error
 
   e2e:
     name: Playwright E2E (local fixture)
@@ -74,13 +86,15 @@ jobs:
         working-directory: ReactJS
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: ReactJS/package-lock.json
+          cache-dependency-path: |
+            ReactJS/package-lock.json
+            ExpressJS/package-lock.json
       - name: Install frontend dependencies
         run: npm ci
       - name: Install backend fixture dependencies
@@ -92,10 +106,121 @@ jobs:
         run: npm run test:e2e
       - name: Upload Playwright report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: playwright-report
+          overwrite: true
           path: |
             ReactJS/playwright-report
             ReactJS/test-results
           if-no-files-found: ignore
+          retention-days: 7
+
+  images:
+    name: Container build (${{ matrix.image }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: api
+            context: ExpressJS
+          - image: web
+            context: ReactJS
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - name: Build image without registry credentials
+        env:
+          IMAGE: ${{ matrix.image }}
+          CONTEXT: ${{ matrix.context }}
+          VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
+          VITE_ALLOW_PASSWORD_LOGIN: ${{ vars.VITE_ALLOW_PASSWORD_LOGIN || 'false' }}
+        run: |
+          docker build --tag "local/$IMAGE:$GITHUB_SHA" \
+            --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --build-arg "VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID" \
+            --build-arg "VITE_ALLOW_PASSWORD_LOGIN=$VITE_ALLOW_PASSWORD_LOGIN" "$CONTEXT"
+      - name: Check production image
+        env:
+          IMAGE: ${{ matrix.image }}
+        run: |
+          if [ "$IMAGE" = api ]; then
+            docker run --rm "local/api:$GITHUB_SHA" node -e "const b = require('bcrypt'); if (!b.compareSync('smoke', b.hashSync('smoke', 4))) process.exit(1)"
+          else
+            docker run --rm --add-host api:127.0.0.1 "local/web:$GITHUB_SHA" nginx -t
+            docker run --rm "local/web:$GITHUB_SHA" sh -c 'test -s /usr/share/nginx/html/index.html'
+          fi
+      - name: Export tested image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          IMAGE: ${{ matrix.image }}
+        run: docker save "local/$IMAGE:$GITHUB_SHA" --output "$IMAGE.tar"
+      - name: Upload tested image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: image-${{ matrix.image }}-${{ github.sha }}
+          overwrite: true
+          path: ${{ matrix.image }}.tar
+          retention-days: 1
+          compression-level: 0
+          if-no-files-found: error
+
+  publish:
+    name: Publish GHCR images
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [backend, frontend, e2e, images]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    concurrency:
+      group: ghcr-main
+      cancel-in-progress: false
+    steps:
+      - name: Download tested images from this run
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: image-*-${{ github.sha }}
+          merge-multiple: true
+          path: images
+      - name: Login to GHCR
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+      - name: Publish commit images then advance latest for current main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          repository="${GITHUB_REPOSITORY,,}"
+          for image in api web; do
+            docker load --input "images/$image.tar"
+            target="ghcr.io/$repository-$image"
+            if docker manifest inspect "$target:sha-$GITHUB_SHA" >/dev/null 2>&1; then
+              echo "Commit image already exists: $target:sha-$GITHUB_SHA"
+            else
+              docker tag "local/$image:$GITHUB_SHA" "$target:sha-$GITHUB_SHA"
+              docker push "$target:sha-$GITHUB_SHA"
+            fi
+          done
+          # Concurrency is not FIFO: an old run/re-run must not regress latest.
+          main_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)"
+          if [ "$main_sha" != "$GITHUB_SHA" ]; then
+            echo "Main has advanced; commit tags published, latest left unchanged."
+            exit 0
+          fi
+          for image in api web; do
+            target="ghcr.io/$repository-$image"
+            docker pull "$target:sha-$GITHUB_SHA"
+            docker tag "$target:sha-$GITHUB_SHA" "$target:latest"
+            docker push "$target:latest"
+          done
+      - name: Logout of GHCR
+        if: always()
+        run: docker logout ghcr.io

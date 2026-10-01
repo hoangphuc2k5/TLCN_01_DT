@@ -21,9 +21,9 @@ import {
   getClassesApi,
   getSubjectsApi,
   getUserDirectoryApi,
-} from '../../api';
+} from '../../services/api.service';
 import { useSelector } from 'react-redux';
-import { can } from '../../util/permissions';
+import { can } from '../../utils/permissions';
 import { ROLES } from '../../constants/roles';
 
 const ClassesPage = () => {

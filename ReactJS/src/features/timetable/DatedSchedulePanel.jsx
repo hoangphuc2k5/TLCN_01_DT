@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button, Card, Input, Space, Table, Tag, message } from 'antd';
 import dayjs from 'dayjs';
-import { getDatedScheduleApi } from '../../api';
+import { getDatedScheduleApi } from '../../services/api.service';
 const kinds = { REGULAR: ['Theo TKB', 'blue'], CANCELLED: ['Nghỉ dạy', 'red'], MAKEUP: ['Dạy bù', 'green'] };
 export default function DatedSchedulePanel() {
   const [fromDate, setFrom] = useState(dayjs().format('YYYY-MM-DD'));

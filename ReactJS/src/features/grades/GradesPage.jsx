@@ -9,9 +9,9 @@ import {
   getSubjectsApi,
   upsertGradeApi,
   downloadExport,
-} from '../../api';
+} from '../../services/api.service';
 import ImportExcelButton from '../../components/ImportExcelButton';
-import { can, canExport } from '../../util/permissions';
+import { can, canExport } from '../../utils/permissions';
 
 const GradesPage = () => {
   const { user } = useSelector((s) => s.auth);

@@ -9,9 +9,9 @@ import {
   getSubjectsApi,
   recordAttendanceApi,
   downloadExport,
-} from '../../api';
+} from '../../services/api.service';
 import ImportExcelButton from '../../components/ImportExcelButton';
-import { can, canExport } from '../../util/permissions';
+import { can, canExport } from '../../utils/permissions';
 
 const statusOptions = [
   { value: 'PRESENT', label: 'Có mặt' },

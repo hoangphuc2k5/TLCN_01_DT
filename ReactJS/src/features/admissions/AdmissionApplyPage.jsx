@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Alert, Button, Card, Form, Input, InputNumber, Space, Typography, message } from 'antd';
-import { createAdmissionApi, getAdmissionStatusApi } from '../../api';
+import { createAdmissionApi, getAdmissionStatusApi } from '../../services/api.service';
 
 const AdmissionApplyPage = () => {
   const [result, setResult] = useState(null); const [status, setStatus] = useState(null); const [form] = Form.useForm();

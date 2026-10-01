@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Button, Form, Input, Modal, Popconfirm, Select, Space, Table, Tag, message } from 'antd';
 import dayjs from 'dayjs';
-import { createCalendarApi, deleteCalendarApi, downloadExport, getCalendarApi } from '../../api';
+import { createCalendarApi, deleteCalendarApi, downloadExport, getCalendarApi } from '../../services/api.service';
 import { useSelector } from 'react-redux';
-import { can, canExport } from '../../util/permissions';
+import { can, canExport } from '../../utils/permissions';
 import { ROLES } from '../../constants/roles';
 
 const CalendarPage = () => {

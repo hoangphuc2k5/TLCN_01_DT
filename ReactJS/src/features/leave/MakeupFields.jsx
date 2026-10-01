@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Alert, Form, Input, InputNumber, Select, message } from 'antd';
-import { getDatedScheduleApi } from '../../api';
+import { getDatedScheduleApi } from '../../services/api.service';
 
 export default function MakeupFields({ form, teacherId }) {
   const originalDate = Form.useWatch(['makeup', 'originalDate'], form);

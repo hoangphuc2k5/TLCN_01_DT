@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Button, Card, Form, Input, InputNumber, Modal, Table, message } from 'antd';
 import { useSelector } from 'react-redux';
-import { createClubApi, getClubRegistrationsApi, getClubsApi, registerClubApi } from '../../api';
-import { can } from '../../util/permissions';
+import { createClubApi, getClubRegistrationsApi, getClubsApi, registerClubApi } from '../../services/api.service';
+import { can } from '../../utils/permissions';
 
 export default function ActivitiesPage() {
   const { user } = useSelector(state => state.auth);

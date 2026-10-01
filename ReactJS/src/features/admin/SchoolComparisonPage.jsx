@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button, Card, Input, DatePicker, Alert, Select, Space, Table, message } from 'antd';
-import { compareSchoolsApi, exportSchoolComparisonApi, getSchoolsApi } from '../../api';
+import { compareSchoolsApi, exportSchoolComparisonApi, getSchoolsApi } from '../../services/api.service';
 const SchoolComparisonPage = () => {
   const detailLabels = { gradeSheets: 'Số bảng điểm', billedAmount: 'Phải thu (VND)', paidAmount: 'Đã thu (VND)', attendanceRecords: 'Lượt điểm danh', presentCount: 'Có mặt', absentCount: 'Vắng', lateCount: 'Đi muộn' };
   const [filters, setFilters] = useState({}); const [busy, setBusy] = useState(false);

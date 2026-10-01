@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Button, Card, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, message } from 'antd';
 import { useSelector } from 'react-redux';
-import { createPayrollApi, getPayrollApi, getUserDirectoryApi, updatePayrollStatusApi } from '../../api';
-import { can } from '../../util/permissions';
+import { createPayrollApi, getPayrollApi, getUserDirectoryApi, updatePayrollStatusApi } from '../../services/api.service';
+import { can } from '../../utils/permissions';
 
 const PayrollPage = () => {
   const { user } = useSelector(s => s.auth); const manage = can(user, 'fees', 'create'); const execute = can(user, 'fees', 'execute');

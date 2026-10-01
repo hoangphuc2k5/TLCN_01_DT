@@ -1,7 +1,7 @@
 import { useSelector } from 'react-redux';
 import { useEffect, useState } from 'react';
 import { Button, Form, Input, Modal, Select, Space, Table, message, Popconfirm } from 'antd';
-import { createClusterApi, deleteClusterApi, getClustersApi, updateClusterApi } from '../../api';
+import { createClusterApi, deleteClusterApi, getClustersApi, updateClusterApi } from '../../services/api.service';
 
 const ClustersPage = () => {
   const { user } = useSelector(s => s.auth);

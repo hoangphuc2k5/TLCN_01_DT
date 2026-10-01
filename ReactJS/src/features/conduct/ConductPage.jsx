@@ -7,8 +7,8 @@ import {
   getClassesApi,
   getConductApi,
   upsertConductApi,
-} from '../../api';
-import { can } from '../../util/permissions';
+} from '../../services/api.service';
+import { can } from '../../utils/permissions';
 
 const ratingLabel = {
   TOT: 'Tốt',

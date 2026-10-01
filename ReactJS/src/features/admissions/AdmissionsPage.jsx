@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button, Input, Space, Table, Tag, message } from 'antd';
-import { getAdmissionsApi, reviewAdmissionApi } from '../../api';
+import { getAdmissionsApi, reviewAdmissionApi } from '../../services/api.service';
 
 const AdmissionsPage = () => {
   const [rows, setRows] = useState([]); const load = async () => { const r = await getAdmissionsApi(); if (r?.EC === 0) setRows(r.data || []); };

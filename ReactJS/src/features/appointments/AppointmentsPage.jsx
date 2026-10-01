@@ -9,9 +9,9 @@ import {
   getUserDirectoryApi,
   reviewAppointmentApi,
   submitSurveyApi,
-} from '../../api';
+} from '../../services/api.service';
 import { ROLES } from '../../constants/roles';
-import { can } from '../../util/permissions';
+import { can } from '../../utils/permissions';
 
 const statusColor = { REQUESTED: 'gold', CONFIRMED: 'green', DECLINED: 'red', CANCELLED: 'default', COMPLETED: 'blue' };
 

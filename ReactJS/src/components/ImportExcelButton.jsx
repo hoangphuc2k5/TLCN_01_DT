@@ -1,7 +1,7 @@
 import { Button, Modal, Space, Table, Typography, Upload, message } from 'antd';
 import { DownloadOutlined, UploadOutlined } from '@ant-design/icons';
 import { useState } from 'react';
-import { downloadImportTemplateApi, importExcelApi } from '../api';
+import { downloadImportTemplateApi, importExcelApi } from '../services/api.service';
 
 /**
  * Nút tải mẫu + upload Excel import

@@ -7,9 +7,9 @@ import {
   getAcademicYearsApi, getClassesApi, getHomeworkSubmissionsApi, getHomeworksApi,
   getRetakeRequestsApi, getSubjectsApi, gradeHomeworkApi, publishHomeworkApi,
   reviewRetakeRequestApi, submitHomeworkApi, uploadHomeworkAttachmentApi,
-} from '../../api';
+} from '../../services/api.service';
 import { ROLES } from '../../constants/roles';
-import { can } from '../../util/permissions';
+import { can } from '../../utils/permissions';
 
 const teacherRoles = [ROLES.SUBJECT_TEACHER, ROLES.HOMEROOM_TEACHER];
 const formatDate = value => value ? dayjs(value).format('DD/MM/YYYY HH:mm') : '-';

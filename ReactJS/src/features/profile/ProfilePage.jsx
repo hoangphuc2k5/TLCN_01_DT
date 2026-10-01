@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { Button, Form, Input, Select, message, Descriptions, Card } from 'antd';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateProfileApi } from '../../api';
-import { fetchAccountThunk } from '../../Redux/authSlice';
+import { updateProfileApi } from '../../services/api.service';
+import { fetchAccountThunk } from '../../store/auth.slice';
 import { ROLE_LABELS } from '../../constants/roles';
 import SecurityPanel from './SecurityPanel';
 

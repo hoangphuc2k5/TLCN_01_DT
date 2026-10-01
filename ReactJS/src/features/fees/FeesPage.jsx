@@ -11,10 +11,10 @@ import {
   recordPaymentApi,
   runFeeRemindersApi,
   downloadExport,
-} from '../../api';
+} from '../../services/api.service';
 import ImportExcelButton from '../../components/ImportExcelButton';
 import { ROLES } from '../../constants/roles';
-import { can, canExport } from '../../util/permissions';
+import { can, canExport } from '../../utils/permissions';
 
 const statusColor = {
   UNPAID: 'red',

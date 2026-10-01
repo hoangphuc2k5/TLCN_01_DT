@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Button, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, message } from 'antd';
 import { useSelector } from 'react-redux';
-import { createRewardApi, getAcademicYearsApi, getClassStudentsApi, getClassesApi, getRewardsApi, reviewRewardApi } from '../../api';
-import { can } from '../../util/permissions';
+import { createRewardApi, getAcademicYearsApi, getClassStudentsApi, getClassesApi, getRewardsApi, reviewRewardApi } from '../../services/api.service';
+import { can } from '../../utils/permissions';
 
 const RewardsPage = () => {
   const { user } = useSelector(s => s.auth);

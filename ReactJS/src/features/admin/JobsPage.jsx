@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { Button, DatePicker, Form, Modal, Popconfirm, Select, Space, Table, Tag, Typography, message } from 'antd';
 import { useSelector } from 'react-redux';
 import dayjs from 'dayjs';
-import { getJobsApi, retryJobApi, cancelJobApi } from '../../api';
-import { can } from '../../util/permissions';
+import { getJobsApi, retryJobApi, cancelJobApi } from '../../services/api.service';
+import { can } from '../../utils/permissions';
 
 const states = { QUEUED: 'Chờ chạy', RUNNING: 'Đang chạy', SUCCEEDED: 'Hoàn thành', FAILED: 'Thất bại', CANCELLED: 'Đã hủy', SKIPPED: 'Bỏ qua' };
 const errors = { SMTP_UNCONFIGURED: 'Chưa cấu hình email', SMTP_SEND_FAILED: 'Gửi email thất bại', FILE_DELETE_FAILED: 'Chưa xóa được file', LEASE_EXPIRED: 'Worker bị gián đoạn', JOB_EXECUTION_FAILED: 'Xử lý thất bại', HANDLER_UNAVAILABLE: 'Chưa hỗ trợ loại tác vụ' };
