@@ -1,5 +1,4 @@
-const requestDto = require('../../dtos/common/auth.request.dto');
-const responseDto = require('../../dtos/common/auth.response.dto');
+const { request: requestDto, response: responseDto } = require('../../dtos/common/auth.dto');
 const asyncHandler = require("../../utils/common/async-handler.util");
 const { success } = require("../../utils/common/response.util");
 const authService = require("../../config/container").services["auth"];

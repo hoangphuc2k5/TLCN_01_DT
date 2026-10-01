@@ -10,7 +10,7 @@ if (dnsServers.length) dns.setServers(dnsServers);
 function createConnection({
   mongoose: client = mongoose,
   env = process.env,
-  assertUsable = db => require('../../repository/administration/backup.repository').assertUsable(db),
+  assertUsable = db => require('../../repository/admin/backup.repository').assertUsable(db),
   logger = require('../logger/logger.config'),
 } = {}) {
   let inFlight;

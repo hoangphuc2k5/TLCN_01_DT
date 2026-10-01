@@ -1,5 +1,4 @@
-const requestDto = require('../../dtos/common/club.request.dto');
-const responseDto = require('../../dtos/common/club.response.dto');
+const { request: requestDto, response: responseDto } = require('../../dtos/common/club.dto');
 const asyncHandler = require("../../utils/common/async-handler.util"); const { success } = require("../../utils/common/response.util"); const service = require("../../config/container").services["club"];
 exports.listClubs = asyncHandler(async (req, res) => success(res, responseDto.fromService(await service.listClubs(req.user))));
 exports.createClub = asyncHandler(async (req, res) => success(res, responseDto.fromService(await service.createClub(req.user, requestDto.body(req))), 'Da tao CLB', 201));

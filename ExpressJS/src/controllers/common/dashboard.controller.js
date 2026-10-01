@@ -1,5 +1,4 @@
-const requestDto = require('../../dtos/common/dashboard.request.dto');
-const responseDto = require('../../dtos/common/dashboard.response.dto');
+const { request: requestDto, response: responseDto } = require('../../dtos/common/dashboard.dto');
 const asyncHandler = require("../../utils/common/async-handler.util");
 const { success } = require("../../utils/common/response.util");
 const dashboardService = require("../../config/container").services["dashboard"];

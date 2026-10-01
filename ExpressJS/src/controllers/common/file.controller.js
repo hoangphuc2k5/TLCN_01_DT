@@ -1,5 +1,4 @@
-const requestDto = require('../../dtos/common/file.request.dto');
-const responseDto = require('../../dtos/common/file.response.dto');
+const { request: requestDto, response: responseDto } = require('../../dtos/common/file.dto');
 const { pipeline } = require('node:stream/promises');
 const { Transform } = require('node:stream');
 const asyncHandler = require("../../utils/common/async-handler.util");

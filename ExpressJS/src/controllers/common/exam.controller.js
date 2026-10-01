@@ -1,5 +1,4 @@
-const requestDto = require('../../dtos/common/exam.request.dto');
-const responseDto = require('../../dtos/common/exam.response.dto');
+const { request: requestDto, response: responseDto } = require('../../dtos/common/exam.dto');
 const asyncHandler = require("../../utils/common/async-handler.util");
 const { success } = require("../../utils/common/response.util");
 const examService = require("../../config/container").services["exam"];

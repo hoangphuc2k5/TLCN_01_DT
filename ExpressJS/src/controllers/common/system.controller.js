@@ -1,4 +1,4 @@
-const responseDto = require('../../dtos/common/system.response.dto');
+const responseDto = require('../../dtos/common/system.dto').response;
 const asyncHandler = require("../../utils/common/async-handler.util");
 const { success } = require("../../utils/common/response.util");
 

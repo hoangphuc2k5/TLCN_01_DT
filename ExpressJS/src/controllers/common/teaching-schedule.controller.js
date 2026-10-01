@@ -1,5 +1,4 @@
-const requestDto = require('../../dtos/common/teaching-schedule.request.dto');
-const responseDto = require('../../dtos/common/teaching-schedule.response.dto');
+const { request: requestDto, response: responseDto } = require('../../dtos/common/teaching-schedule.dto');
 const asyncHandler = require("../../utils/common/async-handler.util");
 const { success } = require("../../utils/common/response.util");
 

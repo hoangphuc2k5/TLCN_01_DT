@@ -1,5 +1,4 @@
-const requestDto = require('../../dtos/common/platform.request.dto');
-const responseDto = require('../../dtos/common/platform.response.dto');
+const { request: requestDto, response: responseDto } = require('../../dtos/common/platform.dto');
 const asyncHandler = require("../../utils/common/async-handler.util"); const { success } = require("../../utils/common/response.util"); const comparison = require("../../config/container").services["school-comparison"];
 exports.compareSchools = asyncHandler(async (req, res) => success(res, responseDto.fromService(await comparison.compare(req.user, requestDto.query(req)))));
 exports.exportSchoolsExcel = asyncHandler(async (req, res) => {

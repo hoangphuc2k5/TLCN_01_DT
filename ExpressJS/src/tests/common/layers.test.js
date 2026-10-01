@@ -30,10 +30,22 @@ test('layer content is grouped in declared role directories', () => {
   const directFiles = layers.flatMap(layer => fs.readdirSync(path.join(src, layer), { withFileTypes: true })
     .filter(entry => entry.isFile())
     .map(entry => path.join(layer, entry.name)));
-  const allowedRoles = new Set(['administration', 'common', 'finance']);
+  const allowedRoles = {
+    controllers: ['admin', 'common', 'finance', 'operations', 'teacher', 'student', 'parent'],
+    dtos: ['admin', 'common', 'finance', 'operations', 'teacher', 'student', 'parent'],
+    repository: ['admin', 'common', 'finance', 'operations', 'teacher', 'student', 'parent'],
+    routes: ['admin', 'common', 'finance', 'operations', 'teacher', 'student', 'parent'],
+    services: ['admin', 'common', 'finance', 'operations', 'teacher', 'student', 'parent'],
+    tests: ['admin', 'common', 'finance', 'operations', 'teacher', 'student', 'parent'],
+  };
+  const legacyRoles = ['administration', 'common', 'finance']; // middleware, models and utils keep their layout
   const invalidRoleDirectories = layers.flatMap(layer => fs.readdirSync(path.join(src, layer), { withFileTypes: true })
-    .filter(entry => entry.isDirectory() && !allowedRoles.has(entry.name))
+    .filter(entry => entry.isDirectory() && !(allowedRoles[layer] || legacyRoles).includes(entry.name))
     .map(entry => path.join(layer, entry.name)));
+  const nestedRoleDirectories = Object.keys(allowedRoles).flatMap(layer => fs.readdirSync(path.join(src, layer), { withFileTypes: true })
+    .filter(entry => entry.isDirectory())
+    .flatMap(role => fs.readdirSync(path.join(src, layer, role.name), { withFileTypes: true })
+      .filter(entry => entry.isDirectory()).map(entry => path.join(layer, role.name, entry.name))));
   const uppercaseDirectories = layers.flatMap(layer => files(path.join(src, layer))
     .map(file => path.relative(path.join(src, layer), path.dirname(file)))
     .flatMap(relative => relative.split(path.sep))
@@ -41,6 +53,7 @@ test('layer content is grouped in declared role directories', () => {
     .filter(directory => directory !== directory.toLowerCase()));
   assert.deepEqual(directFiles, []);
   assert.deepEqual(invalidRoleDirectories, []);
+  assert.deepEqual(nestedRoleDirectories, []);
   assert.deepEqual([...new Set(uppercaseDirectories)], []);
 });
 

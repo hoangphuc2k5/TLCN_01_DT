@@ -1,5 +1,4 @@
-const requestDto = require('../../dtos/common/online-payment.request.dto');
-const responseDto = require('../../dtos/common/online-payment.response.dto');
+const { request: requestDto, response: responseDto } = require('../../dtos/common/online-payment.dto');
 const asyncHandler = require("../../utils/common/async-handler.util");
 const { success } = require("../../utils/common/response.util");
 const service = require("../../config/container").services["online-payment"];

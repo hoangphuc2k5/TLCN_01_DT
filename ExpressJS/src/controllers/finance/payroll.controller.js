@@ -1,5 +1,4 @@
-const requestDto = require('../../dtos/finance/payroll.request.dto');
-const responseDto = require('../../dtos/finance/payroll.response.dto');
+const { request: requestDto, response: responseDto } = require('../../dtos/finance/payroll.dto');
 const asyncHandler = require("../../utils/common/async-handler.util");
 const { success } = require("../../utils/common/response.util");
 const feeService = require("../../config/container").services["fee"];

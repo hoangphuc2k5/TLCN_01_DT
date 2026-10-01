@@ -1,5 +1,4 @@
-const requestDto = require('../../dtos/common/leave.request.dto');
-const responseDto = require('../../dtos/common/leave.response.dto');
+const { request: requestDto, response: responseDto } = require('../../dtos/common/leave.dto');
 const asyncHandler = require("../../utils/common/async-handler.util");
 const { success } = require("../../utils/common/response.util");
 const leaveService = require("../../config/container").services["leave"];

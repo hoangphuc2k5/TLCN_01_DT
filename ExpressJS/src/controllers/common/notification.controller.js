@@ -1,5 +1,4 @@
-const requestDto = require('../../dtos/common/notification.request.dto');
-const responseDto = require('../../dtos/common/notification.response.dto');
+const { request: requestDto, response: responseDto } = require('../../dtos/common/notification.dto');
 const asyncHandler = require("../../utils/common/async-handler.util");
 const { success } = require("../../utils/common/response.util");
 const delivery = require("../../config/container").services["notification-delivery"];

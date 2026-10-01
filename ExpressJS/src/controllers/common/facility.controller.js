@@ -1,5 +1,4 @@
-const requestDto = require('../../dtos/common/facility.request.dto');
-const responseDto = require('../../dtos/common/facility.response.dto');
+const { request: requestDto, response: responseDto } = require('../../dtos/common/facility.dto');
 const asyncHandler = require("../../utils/common/async-handler.util");
 const { success } = require("../../utils/common/response.util");
 const resourceService = require("../../config/container").services["resource"];

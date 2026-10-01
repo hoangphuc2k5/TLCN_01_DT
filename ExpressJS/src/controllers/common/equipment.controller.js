@@ -1,5 +1,4 @@
-const requestDto = require('../../dtos/common/equipment.request.dto');
-const responseDto = require('../../dtos/common/equipment.response.dto');
+const { request: requestDto, response: responseDto } = require('../../dtos/common/equipment.dto');
 const asyncHandler = require("../../utils/common/async-handler.util"); const { success } = require("../../utils/common/response.util"); const service = require("../../config/container").services["equipment"];
 exports.list = asyncHandler(async (req, res) => success(res, responseDto.fromService(await service.listEquipment(req.user, requestDto.query(req)))));
 exports.create = asyncHandler(async (req, res) => success(res, responseDto.fromService(await service.createEquipment(req.user, requestDto.body(req))), 'Equipment created', 201));

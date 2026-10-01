@@ -1,4 +1,4 @@
-const requestDto = require('../../dtos/common/export.request.dto');
+const requestDto = require('../../dtos/common/export.dto').request;
 const asyncHandler = require("../../utils/common/async-handler.util");
 const { success } = require("../../utils/common/response.util");
 const crossService = require("../../config/container").services["cross"];

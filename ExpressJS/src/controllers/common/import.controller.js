@@ -1,5 +1,4 @@
-const requestDto = require('../../dtos/common/import.request.dto');
-const responseDto = require('../../dtos/common/import.response.dto');
+const { request: requestDto, response: responseDto } = require('../../dtos/common/import.dto');
 const asyncHandler = require("../../utils/common/async-handler.util");
 const { success } = require("../../utils/common/response.util");
 const ApiError = require("../../utils/common/api-error.util");
