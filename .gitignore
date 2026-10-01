@@ -18,7 +18,7 @@ Thumbs.db
 dist/
 build/
 .trae/
-
+.trae
 # Local browser test artifacts
 ReactJS/test-results/
 ReactJS/playwright-report/
