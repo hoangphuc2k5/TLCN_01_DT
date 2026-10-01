@@ -5,7 +5,9 @@ on:
     branches:
       - main
       - develop
+      - Develop
       - 'develop/**'
+      - 'Develop/**'
       - 'integration/**'
       - 'feat/**'
       - 'fix/**'
@@ -13,7 +15,9 @@ on:
     branches:
       - main
       - develop
+      - Develop
       - 'develop/**'
+      - 'Develop/**'
       - 'integration/**'
   workflow_dispatch:
 
