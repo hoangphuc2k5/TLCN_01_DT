@@ -1,7 +1,7 @@
 function createPhoneAuthService(dependencies) {
   const persistence = dependencies.persistence;
   const crypto = require('node:crypto');
-  const ApiError = require("../../utils/common/api-error.util");
+  const ApiError = require("../../utils/common/http/api-error.util");
   const security = dependencies.services["auth-security"];
   const delivery = dependencies.services["notification-delivery"];
   const { STATUS } = require("../../config/constants/status.config");
