@@ -82,10 +82,18 @@ export const verifyMfaThunk = createAsyncThunk('auth/verifyMfa', async (data, { 
     return res.data;
   } catch { return rejectWithValue('Không kết nối được máy chủ API.'); }
 });
-export const requestPhoneLoginThunk = createAsyncThunk('auth/requestPhoneLogin', async (phone, { rejectWithValue }) => {
-  try { const res = await requestPhoneLoginApi(phone); if (res?.EC === 0) return res.data; return rejectWithValue(res?.EM || 'Khong gui duoc OTP'); }
-  catch { return rejectWithValue('Khong ket noi duoc may chu API.'); }
+export const requestPhoneLoginThunk = createAsyncThunk('auth/requestPhoneLogin', async (payload, { rejectWithValue }) => {
+  try {
+    const phone = typeof payload === 'object' ? payload.phone : payload;
+    const channel = typeof payload === 'object' ? (payload.channel || 'SMS') : 'SMS';
+    const res = await requestPhoneLoginApi(phone, channel);
+    if (res?.EC === 0) return res.data;
+    return rejectWithValue(res?.EM || 'Không gửi được mã OTP');
+  } catch {
+    return rejectWithValue('Không kết nối được máy chủ API.');
+  }
 });
+
 export const verifyPhoneLoginThunk = createAsyncThunk('auth/verifyPhoneLogin', async (data, { rejectWithValue }) => {
   try { const res = await verifyPhoneLoginApi(data.challengeId, data.code); if (res?.EC !== 0) return rejectWithValue(res?.EM || 'OTP khong hop le'); if (res.data.access_token) localStorage.setItem('access_token', res.data.access_token); return res.data; }
   catch { return rejectWithValue('Khong ket noi duoc may chu API.'); }
@@ -117,6 +125,10 @@ const authSlice = createSlice({
       state.appLoading = false;
     },
     clearError: (state) => {
+      state.error = '';
+    },
+    clearPhoneChallenge: (state) => {
+      state.phoneChallenge = null;
       state.error = '';
     },
     setAppName: (state, action) => {
@@ -172,5 +184,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, clearError, setAppName } = authSlice.actions;
+export const { logout, clearError, clearPhoneChallenge, setAppName } = authSlice.actions;
 export default authSlice.reducer;

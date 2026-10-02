@@ -19,7 +19,7 @@ const loginGoogle = asyncHandler(async (req, res) => {
   return success(res, responseDto.fromService(data), 'Đăng nhập Gmail thành công');
 });
 const loginPhoneRequest = asyncHandler(async (req, res) => {
-  const data = await require("../../config/container").services["phone-auth"].requestCode(requestDto.body(req).phone);
+  const data = await require("../../config/container").services["phone-auth"].requestCode(requestDto.body(req).phone, requestDto.body(req).channel);
   return success(res, responseDto.fromService(data), 'OTP da duoc gui');
 });
 const loginPhoneVerify = asyncHandler(async (req, res) => {
