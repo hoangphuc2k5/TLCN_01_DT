@@ -30,6 +30,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../store/auth.slice';
 import { ROLES, ROLE_LABELS } from '../constants/roles';
 import { canVisit } from '../utils/permissions';
+import logo from '../Logo/icon.png';
 
 const { Header, Sider, Content } = Layout;
 
@@ -234,6 +235,16 @@ const AppLayout = () => {
           }}
           title="Thông tin tài khoản"
         >
+          <img
+            src={logo}
+            alt={`Logo ${appName}`}
+            style={{
+              width: collapsed ? 40 : 56,
+              height: collapsed ? 40 : 56,
+              objectFit: 'contain',
+              marginBottom: collapsed ? 0 : 8,
+            }}
+          />
           <Typography.Title level={collapsed ? 5 : 4} style={{ margin: 0, color: '#0f4c5c' }}>
             {collapsed ? shortName : appName}
           </Typography.Title>
