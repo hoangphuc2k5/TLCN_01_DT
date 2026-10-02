@@ -1,6 +1,6 @@
 const { request: requestDto, response: responseDto } = require('../../dtos/admin/role.dto');
-const asyncHandler = require("../../utils/common/async-handler.util");
-const { success } = require("../../utils/common/response.util");
+const asyncHandler = require("../../utils/common/http/async-handler.util");
+const { success } = require("../../utils/common/http/response.util");
 const roleService = require("../../config/container").services["role"];
 
 const listRoles = asyncHandler(async (req, res) => {

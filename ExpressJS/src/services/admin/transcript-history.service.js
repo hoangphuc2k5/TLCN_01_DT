@@ -1,7 +1,7 @@
 function createTranscriptHistoryService(dependencies) {
   const persistence = dependencies.persistence;
   const { createHash } = require('node:crypto');
-  const ApiError = require("../../utils/common/api-error.util");
+  const ApiError = require("../../utils/common/http/api-error.util");
   const certificates = dependencies.services["certificate"];
   const { objectId } = dependencies.services["data-scope"];
   

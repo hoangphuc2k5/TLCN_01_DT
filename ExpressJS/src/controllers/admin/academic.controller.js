@@ -1,6 +1,6 @@
 const { request: requestDto, response: responseDto } = require('../../dtos/admin/academic.dto');
-const asyncHandler = require("../../utils/common/async-handler.util");
-const { success } = require("../../utils/common/response.util");
+const asyncHandler = require("../../utils/common/http/async-handler.util");
+const { success } = require("../../utils/common/http/response.util");
 const academicService = require("../../config/container").services["academic"];
 
 const listAcademicYears = asyncHandler(async (req, res) => {

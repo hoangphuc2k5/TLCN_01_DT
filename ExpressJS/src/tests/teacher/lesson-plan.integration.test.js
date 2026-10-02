@@ -19,7 +19,7 @@ const Year = require("../../models/admin/academic-year.model");
 const Subject = require("../../models/admin/subject.model");
 const TeacherAssignment = require("../../models/admin/teacher-assignment.model");
 const LessonPlan = require("../../models/teacher/lesson-plan.model");
-const Notification = require("../../models/common/notification.model");
+const Notification = require("../../models/common/communication/notification.model");
 
 let mongo, server, origin, school, foreignSchool, year, cls, subject, actors;
 

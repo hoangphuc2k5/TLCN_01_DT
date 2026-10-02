@@ -10,7 +10,7 @@ const app = require("../../app");
 const Role = require("../../models/admin/role.model");
 const User = require("../../models/admin/user.model");
 const cache = require("../../config/container").services["role-permission-cache"];
-const { authorizePermissionAction } = require("../../middleware/common/rbac.middleware");
+const { authorizePermissionAction } = require("../../middleware/common/security/rbac.middleware");
 let mongo, server, origin, reader, inactive, schoolId;
 
 before(async () => {

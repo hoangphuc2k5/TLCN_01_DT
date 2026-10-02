@@ -1,5 +1,5 @@
 const path = require('node:path');
-const ApiError = require("../../utils/common/api-error.util");
+const ApiError = require("../../utils/common/http/api-error.util");
 
 const config = () => {
   const driver = process.env.FILE_STORAGE_DRIVER || 'local';

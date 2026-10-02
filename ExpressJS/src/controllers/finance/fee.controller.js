@@ -1,6 +1,6 @@
 const { request: requestDto, response: responseDto } = require('../../dtos/finance/fee.dto');
-const asyncHandler = require("../../utils/common/async-handler.util");
-const { success } = require("../../utils/common/response.util");
+const asyncHandler = require("../../utils/common/http/async-handler.util");
+const { success } = require("../../utils/common/http/response.util");
 const feeService = require("../../config/container").services["fee"];
 
 const listInvoices = asyncHandler(async (req, res) => {

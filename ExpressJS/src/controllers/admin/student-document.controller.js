@@ -1,7 +1,7 @@
 const { request: requestDto, response: responseDto } = require('../../dtos/admin/student-document.dto');
 const { pipeline } = require('node:stream/promises');
-const asyncHandler = require("../../utils/common/async-handler.util");
-const { success } = require("../../utils/common/response.util");
+const asyncHandler = require("../../utils/common/http/async-handler.util");
+const { success } = require("../../utils/common/http/response.util");
 const documents = require("../../config/container").services["file"];
 const transcriptHistory = require("../../config/container").services["transcript-history"];
 
