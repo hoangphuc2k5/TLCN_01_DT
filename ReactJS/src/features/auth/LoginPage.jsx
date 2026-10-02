@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Card, Form, Input, Button, Typography, Alert, Divider } from 'antd';
+import { Card, Form, Input, Button, Typography, Alert, Divider, Radio } from 'antd';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { clearError, loginGoogleThunk, loginThunk, requestPhoneLoginThunk, verifyPhoneLoginThunk, verifyMfaThunk, logout } from '../../store/auth.slice';
+import { clearError, clearPhoneChallenge, loginGoogleThunk, loginThunk, requestPhoneLoginThunk, verifyPhoneLoginThunk, verifyMfaThunk, logout } from '../../store/auth.slice';
 import { getAuthConfigApi } from '../../services/api.service';
 
 const waitForGoogle = (timeoutMs = 10000) =>
@@ -170,13 +170,116 @@ const LoginPage = () => {
             </Button>
           </Form>
         )}
-        {!challenge && phoneMode && <Form layout="vertical" onFinish={async values => {
-          if (!phoneChallenge) { const result = await dispatch(requestPhoneLoginThunk(values.phone)); if (requestPhoneLoginThunk.fulfilled.match(result) && result.payload.devCode) setLocalError(`Development OTP: ${result.payload.devCode}`); }
-          else { const result = await dispatch(verifyPhoneLoginThunk({ challengeId: phoneChallenge.challengeId, code: values.code })); if (verifyPhoneLoginThunk.fulfilled.match(result) && !result.payload.mfaRequired) navigate(result.payload.mustChangePassword ? '/profile' : '/dashboard'); }
-        }}>
-          {!phoneChallenge ? <><Form.Item name="phone" label="So dien thoai" rules={[{ required: true }]}><Input size="large" placeholder="+84901234567" /></Form.Item><Button type="primary" htmlType="submit" loading={loading} block>Gui OTP</Button></> : <><Form.Item name="code" label="Ma OTP" rules={[{ required: true }]}><Input size="large" maxLength={6} autoComplete="one-time-code" /></Form.Item><Button type="primary" htmlType="submit" loading={loading} block>Xac minh</Button></>}
-        </Form>}
-        {!challenge && <Button type="link" onClick={() => setPhoneMode(value => !value)} block>{phoneMode ? 'Dang nhap bang email' : 'Dang nhap bang so dien thoai'}</Button>}
+        {!challenge && phoneMode && (
+          <Form
+            layout="vertical"
+            initialValues={{ channel: 'SMS' }}
+            onFinish={async (values) => {
+              setLocalError('');
+              dispatch(clearError());
+              if (!phoneChallenge) {
+                await dispatch(
+                  requestPhoneLoginThunk({
+                    phone: values.phone,
+                    channel: values.channel || 'SMS',
+                  })
+                );
+              } else {
+                const result = await dispatch(
+                  verifyPhoneLoginThunk({
+                    challengeId: phoneChallenge.challengeId,
+                    code: values.code,
+                  })
+                );
+                if (verifyPhoneLoginThunk.fulfilled.match(result) && !result.payload.mfaRequired) {
+                  navigate(result.payload.mustChangePassword ? '/profile' : '/dashboard');
+                }
+              }
+            }}
+          >
+            {!phoneChallenge ? (
+              <>
+                <Form.Item
+                  name="phone"
+                  label="Số điện thoại"
+                  rules={[{ required: true, message: 'Vui lòng nhập số điện thoại' }]}
+                >
+                  <Input size="large" placeholder="0817256858 hoặc +84901234567" />
+                </Form.Item>
+                <Form.Item
+                  name="channel"
+                  label="Phương thức nhận mã OTP"
+                >
+                  <Radio.Group buttonStyle="solid" style={{ width: '100%', display: 'flex' }}>
+                    <Radio.Button value="SMS" style={{ flex: 1, textAlign: 'center' }}>
+                      Tin nhắn SMS
+                    </Radio.Button>
+                    <Radio.Button value="ZALO" style={{ flex: 1, textAlign: 'center' }}>
+                      Zalo ZNS
+                    </Radio.Button>
+                  </Radio.Group>
+                </Form.Item>
+                <Button type="primary" htmlType="submit" loading={loading} block size="large">
+                  Gửi mã OTP
+                </Button>
+              </>
+            ) : (
+              <>
+                <Alert
+                  type="info"
+                  showIcon
+                  style={{ marginBottom: 16 }}
+                  message="Mã OTP đã được gửi"
+                  description={`Mã OTP đã được gửi qua ${
+                    phoneChallenge?.channel === 'ZALO' ? 'Zalo' : 'tin nhắn SMS'
+                  }. Vui lòng kiểm tra để nhận mã xác thực.`}
+                />
+                <Form.Item
+                  name="code"
+                  label="Mã xác thực OTP"
+                  rules={[{ required: true, message: 'Vui lòng nhập mã OTP 6 số' }]}
+                >
+                  <Input
+                    size="large"
+                    maxLength={6}
+                    placeholder="Nhập 6 số OTP"
+                    autoComplete="one-time-code"
+                    autoFocus
+                  />
+                </Form.Item>
+                <Button type="primary" htmlType="submit" loading={loading} block size="large">
+                  Xác minh và Đăng nhập
+                </Button>
+                <Button
+                  type="link"
+                  onClick={() => {
+                    dispatch(clearPhoneChallenge());
+                    setLocalError('');
+                  }}
+                  block
+                  style={{ marginTop: 8 }}
+                >
+                  Đổi số điện thoại hoặc phương thức
+                </Button>
+              </>
+            )}
+          </Form>
+        )}
+
+        {!challenge && (
+          <Button
+            type="link"
+            onClick={() => {
+              setPhoneMode((value) => !value);
+              dispatch(clearPhoneChallenge());
+              setLocalError('');
+            }}
+            block
+            style={{ marginTop: 4 }}
+          >
+            {phoneMode ? '← Quay lại đăng nhập bằng email' : 'Đăng nhập bằng số điện thoại'}
+          </Button>
+        )}
 
         <div style={{ display: challenge ? 'none' : undefined }}>
         <Divider plain>Hoặc (tùy chọn)</Divider>

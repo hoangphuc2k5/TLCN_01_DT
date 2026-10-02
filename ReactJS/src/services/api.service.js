@@ -122,7 +122,7 @@ export const compareSchoolsApi = (schoolIds, filters = {}) => axios.get('/v1/api
 export const exportSchoolComparisonApi = (format, schoolIds, filters = {}) => axios.get(`/v1/api/reports/schools/compare/export.${format}`, { params: { schoolIds: schoolIds.join(','), ...filters }, responseType: 'blob' });
 export const loginGoogleApi = (credential) =>
   axios.post('/v1/api/auth/google', { credential });
-export const requestPhoneLoginApi = phone => axios.post('/v1/api/auth/phone/request', { phone });
+export const requestPhoneLoginApi = (phone, channel = 'SMS') => axios.post('/v1/api/auth/phone/request', { phone, channel });
 export const verifyPhoneLoginApi = (challengeId, code) => axios.post('/v1/api/auth/phone/verify', { challengeId, code });
 export const loginSsoApi = assertion => axios.post('/v1/api/auth/sso', { assertion });
 
