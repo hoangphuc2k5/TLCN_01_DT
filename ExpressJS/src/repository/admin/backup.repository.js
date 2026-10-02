@@ -5,7 +5,7 @@ const {
   databaseName,
   fingerprint,
   RESTORE_GUARD_COLLECTION,
-} = require('../../utils/common/backup-safety.util');
+} = require('../../utils/common/backup/backup-safety.util');
 
 const GUARD_COLLECTION = RESTORE_GUARD_COLLECTION;
 

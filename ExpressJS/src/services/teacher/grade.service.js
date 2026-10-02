@@ -1,6 +1,6 @@
 function createGradeService(dependencies) {
   const persistence = dependencies.persistence;
-  const ApiError = require("../../utils/common/api-error.util");
+  const ApiError = require("../../utils/common/http/api-error.util");
   const { gradeRepo } = dependencies.repositories["shared"];
   const { getGradeStrategy } = dependencies.services["grade-strategy"];
   const { ROLES } = require("../../config/constants/roles.config");

@@ -1,19 +1,6 @@
 import axios from 'axios';
 
-const resolveBaseURL = () => {
-  if (typeof window !== 'undefined') {
-    const host = window.location.hostname || '';
-    // Cloudflare Tunnel / cùng máy qua preview → dùng Vite proxy (same origin)
-    if (
-      host.includes('trycloudflare.com') ||
-      host.includes('localhost') ||
-      host === '127.0.0.1'
-    ) {
-      return '';
-    }
-  }
-  return import.meta.env.VITE_BACKEND_URL || '';
-};
+const resolveBaseURL = () => import.meta.env.VITE_BACKEND_URL || '';
 
 const instance = axios.create({
   baseURL: resolveBaseURL(),

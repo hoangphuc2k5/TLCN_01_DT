@@ -1,6 +1,6 @@
 function createSchoolComparisonService(dependencies) {
   const persistence = dependencies.persistence;
-  const ApiError = require("../../utils/common/api-error.util"); const XLSX = require('xlsx');
+  const ApiError = require("../../utils/common/http/api-error.util"); const XLSX = require('xlsx');
   const { schoolScope, objectId } = dependencies.services["data-scope"];
   
   const compare = async (actor, query = {}) => {

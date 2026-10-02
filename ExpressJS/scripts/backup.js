@@ -4,7 +4,7 @@ const path = require('node:path');
 const { parseArgs } = require('node:util');
 const { MongoClient } = require('mongoose').mongo;
 const service = require('../src/config/container').services.backup;
-const { BackupError, requireThat, encryptionKey, databaseName } = require('../src/utils/common/backup-safety.util');
+const { BackupError, requireThat, encryptionKey, databaseName } = require('../src/utils/common/backup/backup-safety.util');
 
 const HELP = `Usage (run from ExpressJS):
   npm run backup -- create --file <absolute.edubak> --maintenance

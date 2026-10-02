@@ -1,6 +1,6 @@
 const { request: requestDto, response: responseDto } = require('../../dtos/admin/job.dto');
-const asyncHandler = require("../../utils/common/async-handler.util");
-const { success } = require("../../utils/common/response.util");
+const asyncHandler = require("../../utils/common/http/async-handler.util");
+const { success } = require("../../utils/common/http/response.util");
 const jobs = require("../../config/container").services["job"];
 exports.list = asyncHandler(async (req, res) => success(res, responseDto.fromService(await jobs.list(req.user, requestDto.query(req)))));
 exports.retry = asyncHandler(async (req, res) => success(res, responseDto.fromService(await jobs.change(req.user, requestDto.params(req).id, 'retry', requestDto.body(req))), 'Đã lên lịch thử lại'));

@@ -2,7 +2,7 @@ function createAdmissionService(dependencies) {
   const persistence = dependencies.persistence;
   const crypto = require('node:crypto');
   const mongoose = require('mongoose');
-  const ApiError = require("../../utils/common/api-error.util");
+  const ApiError = require("../../utils/common/http/api-error.util");
   const { ROLES } = require("../../config/constants/roles.config");
   const { objectId, schoolScope } = dependencies.services["data-scope"];
   

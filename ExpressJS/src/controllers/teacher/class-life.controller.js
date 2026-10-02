@@ -1,6 +1,6 @@
 const { request: requestDto, response: responseDto } = require('../../dtos/teacher/class-life.dto');
-const asyncHandler = require("../../utils/common/async-handler.util");
-const { success } = require("../../utils/common/response.util");
+const asyncHandler = require("../../utils/common/http/async-handler.util");
+const { success } = require("../../utils/common/http/response.util");
 const service = require("../../config/container").services["class-life"];
 exports.listActivities = asyncHandler(async (req, res) => success(res, responseDto.fromService(await service.listActivities(req.user, requestDto.query(req)))));
 exports.createActivity = asyncHandler(async (req, res) => success(res, responseDto.fromService(await service.createActivity(req.user, requestDto.body(req))), 'Da tao sinh hoat lop', 201));

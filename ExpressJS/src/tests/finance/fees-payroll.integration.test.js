@@ -6,7 +6,7 @@ Object.assign(process.env, { NODE_ENV: 'test', JWT_SECRET: 'fees-payroll-test' }
 const app = require("../../app"); const cache = require("../../config/container").services["role-permission-cache"];
 const { ROLE_PERMISSIONS } = require("../../config/constants/permissions.config"); const { legacyPermissionsToEntries, DEFAULT_ROLE_LEVELS } = require("../../config/constants/permission-catalog.config");
 const Role = require("../../models/admin/role.model"); const School = require("../../models/admin/school.model"); const Year = require("../../models/admin/academic-year.model");
-const User = require("../../models/admin/user.model"); const FeeInvoice = require("../../models/finance/fee-invoice.model"); const Notification = require("../../models/common/notification.model"); const PayrollRecord = require("../../models/finance/payroll-record.model");
+const User = require("../../models/admin/user.model"); const FeeInvoice = require("../../models/finance/fee-invoice.model"); const Notification = require("../../models/common/communication/notification.model"); const PayrollRecord = require("../../models/finance/payroll-record.model");
 const XLSX = require('xlsx'); const { exportFeesExcel } = require("../../config/container").services["cross"];
 let mongo; let server; let origin; let school; let year; let student; let parent; let accountant; let invoice;
 const request = async (method, route, actor, body) => { const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${jwt.sign({ _id: actor._id }, process.env.JWT_SECRET)}` }; const response = await fetch(`${origin}/v1/api${route}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) }); return { status: response.status, data: await response.json() }; };

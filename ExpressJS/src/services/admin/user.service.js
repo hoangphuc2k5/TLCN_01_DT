@@ -1,10 +1,10 @@
 function createUserService(dependencies) {
   const persistence = dependencies.persistence;
-  const ApiError = require("../../utils/common/api-error.util");
+  const ApiError = require("../../utils/common/http/api-error.util");
   const { userRepo, schoolRepo } = dependencies.repositories["shared"];
   const { hash: hashPassword } = dependencies.services["password-policy"];
-  const { isGmailAddress } = require("../../utils/common/gmail.util");
-  const { toSafeObject } = require("../../utils/common/user-sanitizer.util");
+  const { isGmailAddress } = require("../../utils/common/communication/gmail.util");
+  const { toSafeObject } = require("../../utils/common/identity/user-sanitizer.util");
   const { ROLES } = require("../../config/constants/roles.config");
   const { STATUS } = require("../../config/constants/status.config");
   const roleCache = dependencies.services["role-permission-cache"];
