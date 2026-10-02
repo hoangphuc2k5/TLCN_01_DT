@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { clearError, clearPhoneChallenge, loginGoogleThunk, loginThunk, requestPhoneLoginThunk, verifyPhoneLoginThunk, verifyMfaThunk, logout } from '../../store/auth.slice';
 import { getAuthConfigApi } from '../../services/api.service';
+import logo from '../../Logo/icon.png';
 
 const waitForGoogle = (timeoutMs = 10000) =>
   new Promise((resolve, reject) => {
@@ -135,10 +136,17 @@ const LoginPage = () => {
       }}
     >
       <Card style={{ width: 420, borderRadius: 16 }} bordered={false}>
-        <Typography.Title level={3} style={{ marginBottom: 4, color: '#0f4c5c' }}>
-          {config.appName || 'EduMoet'}
-        </Typography.Title>
-        <Typography.Paragraph type="secondary">
+        <div style={{ textAlign: 'center' }}>
+          <img
+            src={logo}
+            alt={`Logo ${config.appName || 'EduMoet'}`}
+            style={{ width: 88, height: 88, objectFit: 'contain', marginBottom: 8 }}
+          />
+          <Typography.Title level={3} style={{ marginBottom: 4, color: '#0f4c5c' }}>
+            {config.appName || 'EduMoet'}
+          </Typography.Title>
+        </div>
+        <Typography.Paragraph type="secondary" style={{ textAlign: 'center' }}>
           Đăng nhập bằng email và mật khẩu
         </Typography.Paragraph>
 

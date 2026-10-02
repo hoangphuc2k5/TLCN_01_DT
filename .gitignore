@@ -17,6 +17,7 @@ Thumbs.db
 # Build
 dist/
 build/
+/env/*.env
 .trae/
 .trae
 # Local browser test artifacts
