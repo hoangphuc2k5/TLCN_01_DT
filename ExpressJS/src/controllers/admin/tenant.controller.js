@@ -1,6 +1,6 @@
 const { request: requestDto, response: responseDto } = require('../../dtos/admin/tenant.dto');
-const asyncHandler = require("../../utils/common/async-handler.util");
-const { success } = require("../../utils/common/response.util");
+const asyncHandler = require("../../utils/common/http/async-handler.util");
+const { success } = require("../../utils/common/http/response.util");
 const tenantService = require("../../config/container").services["tenant"];
 
 const listClusters = asyncHandler(async (req, res) => {

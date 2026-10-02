@@ -1,4 +1,4 @@
-const { authorizeRoles, authorizePermissionAction, authorizeRead } = require("../../middleware/common/rbac.middleware");
+const { authorizeRoles, authorizePermissionAction, authorizeRead } = require("../../middleware/common/security/rbac.middleware");
 const { PERMISSIONS } = require("../../config/constants/permissions.config");
 const controller = require('../../controllers/admin/academic.controller');
 

@@ -21,7 +21,7 @@ const Role = require("../../models/admin/role.model"); const School = require(".
 const Year = require("../../models/admin/academic-year.model"); const Class = require("../../models/admin/class.model");
 const Subject = require("../../models/admin/subject.model"); const User = require("../../models/admin/user.model");
 const Grade = require("../../models/teacher/grade.model"); const StudentDocument = require("../../models/admin/student-document.model");
-const FileAsset = require("../../models/common/file-asset.model");
+const FileAsset = require("../../models/common/files/file-asset.model");
 const TranscriptSnapshot = require("../../models/admin/transcript-snapshot.model");
 const ConductRecord = require("../../models/teacher/conduct-record.model"); const RewardDisciplineRecord = require("../../models/teacher/reward-discipline-record.model");
 const AuditLog = require("../../models/admin/audit-log.model"); const JSZip = require('jszip');

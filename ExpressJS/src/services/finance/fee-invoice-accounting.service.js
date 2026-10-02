@@ -1,5 +1,5 @@
 function createFeeInvoiceAccountingService(dependencies) {
-  const ApiError = require("../../utils/common/api-error.util");
+  const ApiError = require("../../utils/common/http/api-error.util");
   
   const categories = new Set(['TUITION', 'OTHER', 'BOARDING', 'TRANSPORT', 'ACTIVITY']);
   const money = value => Math.round(Number(value) * 100) / 100;

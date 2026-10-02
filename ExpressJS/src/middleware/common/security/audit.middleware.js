@@ -1,0 +1,25 @@
+const systemRepository = require("../../../config/container").repositories.system;
+
+const audit = (action, resource) => async (req, res, next) => {
+  res.on('finish', () => {
+    if (res.statusCode >= 400) return;
+    systemRepository.createAudit({
+      actorId: req.user?._id,
+      schoolId: req.schoolId || req.user?.schoolId || null,
+      action,
+      resource,
+      resourceId: String(req.params.id || req.params.studentId || res.locals?.resourceId || ''),
+      details: {
+        method: req.method,
+        path: req.originalUrl,
+        bodyKeys: Object.keys(req.body || {}),
+        ...(req.params.format ? { format: req.params.format } : {}),
+        ...(res.locals?.transcriptVersion ? { transcriptVersion: res.locals.transcriptVersion } : {}),
+      },
+      ip: req.ip,
+    }).catch(() => {});
+  });
+  next();
+};
+
+module.exports = audit;

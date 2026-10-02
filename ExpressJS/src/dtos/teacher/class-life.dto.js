@@ -1,5 +1,5 @@
-const request = require('../common/request.dto');
-const { fromService, fromPayload } = require('../common/response.dto');
+const request = require('../common/shared/request.dto');
+const { fromService, fromPayload } = require('../common/shared/response.dto');
 
 // class-life accepts the existing request fields without narrowing the API.
 // class-life owns this boundary; preserve the existing public JSON representation.

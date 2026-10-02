@@ -1,6 +1,6 @@
 function createAdminExtraService(dependencies) {
   const persistence = dependencies.persistence;
-  const ApiError = require("../../utils/common/api-error.util");
+  const ApiError = require("../../utils/common/http/api-error.util");
   const { ROLES } = require("../../config/constants/roles.config");
   const { scopedDocument, reference, targetSchool, academicReferences } = dependencies.services["write-scope"];
   const { objectId, schoolScope, personalStudentIds, teacherClassScope } = dependencies.services["data-scope"];

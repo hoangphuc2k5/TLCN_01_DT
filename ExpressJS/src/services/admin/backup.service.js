@@ -2,9 +2,9 @@ const fs = require('node:fs/promises');
 const { createReadStream } = require('node:fs');
 const path = require('node:path');
 const { randomUUID, createHash } = require('node:crypto');
-const archive = require('../../utils/common/backup-archive.util');
-const { inspect } = require('../../utils/common/backup-snapshot.util');
-const { requireThat, validAsset, safePath, isWithin, fingerprint, databaseName } = require('../../utils/common/backup-safety.util');
+const archive = require('../../utils/common/backup/backup-archive.util');
+const { inspect } = require('../../utils/common/backup/backup-snapshot.util');
+const { requireThat, validAsset, safePath, isWithin, fingerprint, databaseName } = require('../../utils/common/backup/backup-safety.util');
 
 function createBackupService(dependencies) {
 const repository = dependencies.persistence;

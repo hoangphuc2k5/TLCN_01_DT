@@ -1,6 +1,6 @@
 const { request: requestDto, response: responseDto } = require('../../dtos/admin/admission.dto');
-const asyncHandler = require("../../utils/common/async-handler.util");
-const { success } = require("../../utils/common/response.util");
+const asyncHandler = require("../../utils/common/http/async-handler.util");
+const { success } = require("../../utils/common/http/response.util");
 const service = require("../../config/container").services["admission"];
 
 const createPublic = asyncHandler(async (req, res) => success(res, responseDto.fromService(await service.createPublic(requestDto.body(req))), 'Nộp hồ sơ tuyển sinh thành công', 201));

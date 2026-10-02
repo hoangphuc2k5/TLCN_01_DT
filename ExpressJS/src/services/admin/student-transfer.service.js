@@ -1,6 +1,6 @@
 function createStudentTransferService(dependencies) {
   const persistence = dependencies.persistence;
-  const ApiError = require("../../utils/common/api-error.util");
+  const ApiError = require("../../utils/common/http/api-error.util");
   const transaction = dependencies.services["schedule-transaction"];
   
   // Carry only the selected semester forward. Other semesters remain attached to their original class.

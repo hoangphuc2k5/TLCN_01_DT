@@ -6,7 +6,7 @@ const connection = require("./config/database/database.config");
 const container = require("./config/container");
 const logger = require("./config/logger/logger.config");
 const registerEventListeners = require("./config/events/register-listeners.config");
-const { getAppName } = require("./utils/common/app-name.util");
+const { getAppName } = require("./utils/common/platform/app-name.util");
 const port = process.env.PORT || 8080;
 const appName = getAppName();
 

@@ -2,7 +2,7 @@ function createJobService(dependencies) {
   const persistence = dependencies.persistence;
   const { randomUUID } = require('node:crypto');
   const jobStatuses = ['QUEUED', 'RUNNING', 'SUCCEEDED', 'FAILED', 'CANCELLED', 'SKIPPED'];
-  const ApiError = require("../../utils/common/api-error.util");
+  const ApiError = require("../../utils/common/http/api-error.util");
   const config = require("../../config/jobs/jobs.config");
   const { objectId, schoolScope } = dependencies.services["data-scope"];
   

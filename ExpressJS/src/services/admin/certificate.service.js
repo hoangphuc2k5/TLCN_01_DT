@@ -5,7 +5,7 @@ function createCertificateService(dependencies) {
   } = require('docx');
   const path = require('node:path');
   const PDFDocument = require('pdfkit');
-  const ApiError = require("../../utils/common/api-error.util");
+  const ApiError = require("../../utils/common/http/api-error.util");
   const { schoolScope, personalStudentIds, objectId } = dependencies.services["data-scope"];
   
   const ascii = value => String(value ?? '')
