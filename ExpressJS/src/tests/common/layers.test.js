@@ -33,14 +33,16 @@ test('layer content is grouped in declared role directories', () => {
   const allowedRoles = {
     controllers: ['admin', 'common', 'finance', 'operations', 'teacher', 'student', 'parent'],
     dtos: ['admin', 'common', 'finance', 'operations', 'teacher', 'student', 'parent'],
+    middleware: ['common'],
+    models: ['admin', 'common', 'finance', 'operations', 'teacher'],
     repository: ['admin', 'common', 'finance', 'operations', 'teacher', 'student', 'parent'],
     routes: ['admin', 'common', 'finance', 'operations', 'teacher', 'student', 'parent'],
     services: ['admin', 'common', 'finance', 'operations', 'teacher', 'student', 'parent'],
     tests: ['admin', 'common', 'finance', 'operations', 'teacher', 'student', 'parent'],
+    utils: ['common'],
   };
-  const legacyRoles = ['administration', 'common', 'finance']; // middleware, models and utils keep their layout
   const invalidRoleDirectories = layers.flatMap(layer => fs.readdirSync(path.join(src, layer), { withFileTypes: true })
-    .filter(entry => entry.isDirectory() && !(allowedRoles[layer] || legacyRoles).includes(entry.name))
+    .filter(entry => entry.isDirectory() && !allowedRoles[layer].includes(entry.name))
     .map(entry => path.join(layer, entry.name)));
   const nestedRoleDirectories = Object.keys(allowedRoles).flatMap(layer => fs.readdirSync(path.join(src, layer), { withFileTypes: true })
     .filter(entry => entry.isDirectory())

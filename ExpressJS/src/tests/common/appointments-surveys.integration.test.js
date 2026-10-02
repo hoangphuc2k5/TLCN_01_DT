@@ -9,10 +9,10 @@ const app = require("../../app");
 const cache = require("../../config/container").services["role-permission-cache"];
 const { ROLE_PERMISSIONS } = require("../../config/constants/permissions.config");
 const { legacyPermissionsToEntries, DEFAULT_ROLE_LEVELS } = require("../../config/constants/permission-catalog.config");
-const Role = require("../../models/administration/role.model");
-const School = require("../../models/common/school.model");
-const User = require("../../models/common/user.model");
-const Year = require("../../models/common/academic-year.model");
+const Role = require("../../models/admin/role.model");
+const School = require("../../models/admin/school.model");
+const User = require("../../models/admin/user.model");
+const Year = require("../../models/admin/academic-year.model");
 const TeacherAppointment = require("../../models/common/teacher-appointment.model");
 const SatisfactionSurvey = require("../../models/common/satisfaction-survey.model");
 

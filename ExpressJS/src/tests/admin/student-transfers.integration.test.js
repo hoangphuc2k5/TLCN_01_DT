@@ -2,12 +2,12 @@ const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const mongoose = require('mongoose');
 const { MongoMemoryReplSet } = require('mongodb-memory-server');
-const School = require("../../models/common/school.model");
-const User = require("../../models/common/user.model");
-const Class = require("../../models/common/class.model");
-const Year = require("../../models/common/academic-year.model");
-const Subject = require("../../models/common/subject.model");
-const Grade = require("../../models/common/grade.model");
+const School = require("../../models/admin/school.model");
+const User = require("../../models/admin/user.model");
+const Class = require("../../models/admin/class.model");
+const Year = require("../../models/admin/academic-year.model");
+const Subject = require("../../models/admin/subject.model");
+const Grade = require("../../models/teacher/grade.model");
 const transfers = require("../../config/container").services["student-transfer"];
 const grades = require("../../config/container").services["grade"];
 let mongo; let school; let year; let source; let target; let student; let actor; let subject;
@@ -61,7 +61,7 @@ test('allows historical corrections and receiving-class edits without duplicatin
 });
 test('old and new teachers can only change grades in their assigned classes', async () => {
   const teachers = await User.create(['old', 'new'].map(name => ({ name, email: `${name}-teacher@test.invalid`, role: 'SUBJECT_TEACHER', schoolId: school._id })));
-  await require("../../models/common/teacher-assignment.model").create(teachers.map((teacher, index) => ({ teacherId: teacher._id, schoolId: school._id, academicYearId: year._id, classId: [source, target][index]._id, subjectId: subject._id })));
+  await require("../../models/admin/teacher-assignment.model").create(teachers.map((teacher, index) => ({ teacherId: teacher._id, schoolId: school._id, academicYearId: year._id, classId: [source, target][index]._id, subjectId: subject._id })));
   const historical = await Grade.findOne({ semester: 1 });
   const current = await Grade.findOne({ semester: 2 });
   await grades.addScore(teachers[0], historical._id, { type: 'MIDTERM', score: 8 });

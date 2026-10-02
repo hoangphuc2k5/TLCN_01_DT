@@ -22,10 +22,10 @@ Kết luận: toàn bộ suite hiện có và production build đạt trên môi
 
 Log của lượt chạy được lưu cục bộ:
 
-- [Backend](../tmp/regression-backend-20260927.log)
-- [Frontend unit](../tmp/regression-frontend-20260927.log)
-- [Build](../tmp/regression-build-20260927.log)
-- [E2E](../tmp/regression-e2e-20260927.log)
+- Backend: `tmp/regression-backend-20260927.log`
+- Frontend unit: `tmp/regression-frontend-20260927.log`
+- Build: `tmp/regression-build-20260927.log`
+- E2E: `tmp/regression-e2e-20260927.log`
 - Báo cáo HTML: `ReactJS/playwright-report/index.html`.
 
 Log và báo cáo HTML là artifact local bị Git ignore; cần upload riêng nếu dùng làm minh chứng CI/UAT. Các dòng `[Error] ApiError` có thể là kết quả mong đợi của test âm; xác định thành công/thất bại bằng tổng kết runner và exit code.

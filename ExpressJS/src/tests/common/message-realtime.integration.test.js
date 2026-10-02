@@ -13,9 +13,9 @@ const { attachMessageGateway } = require("../../config/realtime/realtime.config"
 const cache = require("../../config/container").services["role-permission-cache"];
 const { ROLE_PERMISSIONS } = require("../../config/constants/permissions.config");
 const { legacyPermissionsToEntries, DEFAULT_ROLE_LEVELS } = require("../../config/constants/permission-catalog.config");
-const Role = require("../../models/administration/role.model");
-const School = require("../../models/common/school.model");
-const User = require("../../models/common/user.model");
+const Role = require("../../models/admin/role.model");
+const School = require("../../models/admin/school.model");
+const User = require("../../models/admin/user.model");
 const Message = require("../../models/common/message.model");
 
 let mongo, server, gateway, origin, wsOrigin, school, foreignSchool, actors;

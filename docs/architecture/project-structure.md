@@ -7,14 +7,14 @@
 │   ├── scripts/             # CLI/worker/fixture entry points
 │   └── src/
 │       ├── config/          # composition root, singleton và runtime adapters
-│       ├── controllers/     # administration | finance | common
-│       ├── dtos/            # administration | finance | common
+│       ├── controllers/     # admin | teacher | finance | operations | common
+│       ├── dtos/            # admin | teacher | finance | operations | common
 │       ├── middleware/      # common cross-cutting middleware
-│       ├── models/          # administration | finance | common schemas
-│       ├── repository/      # administration | finance | common persistence
-│       ├── routes/          # administration | finance | common endpoints
-│       ├── services/        # administration | finance | common business logic
-│       ├── tests/           # administration | finance | common tests
+│       ├── models/          # admin | teacher | finance | operations | common schemas
+│       ├── repository/      # admin | teacher | finance | common persistence
+│       ├── routes/          # admin | teacher | finance | operations | common endpoints
+│       ├── services/        # admin | teacher | finance | common business logic
+│       ├── tests/           # admin | teacher | finance | common tests
 │       ├── utils/           # common pure helpers
 │       ├── app.js           # cấu hình Express
 │       └── server.js        # bootstrap/listen
@@ -41,4 +41,4 @@
     └── quality/
 ```
 
-Backend dùng cấu trúc `layer/role/<feature>.<layer>.js`. `administration` gom nghiệp vụ quản trị hệ thống/trường, `finance` chứa nghiệp vụ do khối tài chính sở hữu, và `common` chứa chức năng dùng bởi nhiều role hoặc hạ tầng dùng chung. Không tạo thư mục riêng cho giáo viên, học sinh hay phụ huynh khi cùng một module phục vụ nhiều nhóm. Frontend dùng PascalCase cho React component và kebab-case cho feature folder.
+Backend dùng cấu trúc `layer/role/<feature>.<layer>.js`. `admin`, `teacher`, `finance` và `operations` biểu thị role sở hữu chính của nghiệp vụ; `common` chứa chức năng dùng chung hoặc hạ tầng xuyên suốt. Một module chỉ có một nơi sở hữu, các role khác tái sử dụng qua service/repository thay vì nhân bản mã. Frontend dùng PascalCase cho React component và kebab-case cho feature folder.

@@ -38,13 +38,13 @@ Chọn chuyển từng nhóm chức năng theo chiều dọc, mỗi nhóm có đ
 
 ## Cấu trúc và dependency
 
-Các thư mục lớp: `config`, `controllers`, `middleware`, `models`, `repository`, `services`, `routes`, `dtos`, `utils`, `tests`. Các lớp nghiệp vụ dùng cấu trúc `layer/role/file`: `administration`, `finance`, `common`. File vẫn theo `<feature>.<layer>.js`; hạ tầng dùng cùng quy ước, ngoại trừ ba entry point bắt buộc `app.js`, `server.js`, `config/container.js`.
+Các thư mục lớp: `config`, `controllers`, `middleware`, `models`, `repository`, `services`, `routes`, `dtos`, `utils`, `tests`. Các lớp nghiệp vụ dùng cấu trúc `layer/role/file`: `admin`, `teacher`, `finance`, `operations`, `common`. File vẫn theo `<feature>.<layer>.js`; hạ tầng dùng cùng quy ước, ngoại trừ ba entry point bắt buộc `app.js`, `server.js`, `config/container.js`.
 
-`administration` ánh xạ các trách nhiệm chính của `SUPER_ADMIN`, `CLUSTER_ADMIN`, `SCHOOL_ADMIN` và `ACADEMIC_AFFAIRS`. `finance` chứa phần do `ACCOUNTANT` sở hữu như payroll và tính toán hóa đơn. Module được giáo viên, học sinh, phụ huynh hoặc nhiều nhóm quản trị cùng sử dụng nằm trong `common`; không nhân bản module theo từng role.
+`admin` ánh xạ các trách nhiệm chính của `SUPER_ADMIN`, `CLUSTER_ADMIN`, `SCHOOL_ADMIN` và `ACADEMIC_AFFAIRS`; `teacher` gom nghiệp vụ lớp học do giáo viên sở hữu; `finance` chứa phần do `ACCOUNTANT` sở hữu; `operations` chứa nghiệp vụ vận hành như thư viện. Module dùng chung hoặc hạ tầng xuyên nhiều role nằm trong `common`. Khi nhiều role cùng truy cập một module, thư mục phản ánh role quản lý vòng đời chính và các role còn lại tái sử dụng cùng implementation.
 
 Theo phạm vi bổ sung, `src` cuối cùng chỉ còn các thư mục lớp trên và hai entry point. Backup, worker, realtime, seed, constants và tài nguyên được phân lại vào `repository`/`services`/`utils`/`config`; thư mục tương thích cũ, thư mục rỗng và view mẫu không có consumer được loại bỏ.
 
-Ví dụ: `services/administration/user.service.js`, `repository/administration/user.repository.js`, `models/common/user.model.js`, `dtos/administration/user.request.dto.js`, `dtos/administration/user.response.dto.js`.
+Ví dụ: `services/admin/user.service.js`, `repository/admin/user.repository.js`, `models/admin/user.model.js`, `dtos/admin/user.dto.js`; nghiệp vụ điểm số nằm trong `teacher`, còn model thư viện nằm trong `models/operations`.
 
 Luồng chính: route -> middleware -> controller -> service -> repository -> model.
 
