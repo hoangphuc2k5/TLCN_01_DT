@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import { Provider } from 'react-redux';
 import { createBrowserRouter, Navigate, Outlet, RouterProvider } from 'react-router-dom';
@@ -8,49 +8,50 @@ import App from './App.jsx';
 import store from './store/store.js';
 import { PrivateRoute } from './components/guards/AuthGuards.jsx';
 import AppLayout from './layouts/AppLayout.jsx';
-import LoginPage from './features/auth/LoginPage.jsx';
-import DashboardPage from './features/dashboard/DashboardPage.jsx';
-import ClustersPage from './features/schools/ClustersPage.jsx';
-import SchoolsPage from './features/schools/SchoolsPage.jsx';
-import UsersPage from './features/users/UsersPage.jsx';
-import RolesPage from './features/roles/RolesPage.jsx';
-import ClassesPage from './features/classes/ClassesPage.jsx';
-import AttendancePage from './features/attendance/AttendancePage.jsx';
-import GradesPage from './features/grades/GradesPage.jsx';
-import VnpayReturnPage from './features/fees/VnpayReturnPage.jsx';
-import FeesPage from './features/fees/FeesPage.jsx';
-import AppointmentsPage from './features/appointments/AppointmentsPage.jsx';
-import RewardsPage from './features/rewards/RewardsPage.jsx';
-import AdmissionApplyPage from './features/admissions/AdmissionApplyPage.jsx';
-import AdmissionsPage from './features/admissions/AdmissionsPage.jsx';
-import AnnouncementsPage from './features/announcements/AnnouncementsPage.jsx';
-import LeavePage from './features/leave/LeavePage.jsx';
-import TimetablePage from './features/timetable/TimetablePage.jsx';
-import ProfilePage from './features/profile/ProfilePage.jsx';
-import SubscriptionsPage from './features/subscriptions/SubscriptionsPage.jsx';
-import ExamsPage from './features/exams/ExamsPage.jsx';
-import MaterialsPage from './features/library/MaterialsPage.jsx';
-import LibraryPage from './features/library/LibraryPage.jsx';
-import FacilitiesPage from './features/facilities/FacilitiesPage.jsx';
-import AuditLogsPage from './features/admin/AuditLogsPage.jsx';
-import SupportPage from './features/admin/SupportPage.jsx';
-import ConductPage from './features/conduct/ConductPage.jsx';
-import TemplatesPage from './features/admin/TemplatesPage.jsx';
-import MessagesPage from './features/messages/MessagesPage.jsx';
-import CalendarPage from './features/calendar/CalendarPage.jsx';
-import JobsPage from './features/admin/JobsPage.jsx';
-import AssignmentsPage from './features/assignments/AssignmentsPage.jsx';
-import LessonPlansPage from './features/lesson-plans/LessonPlansPage.jsx';
-import ContactBookPage from './features/contact-book/ContactBookPage.jsx';
-import ClassLifePage from './features/class-life/ClassLifePage.jsx';
-import ActivitiesPage from './features/activities/ActivitiesPage.jsx';
-import StudentDocumentsPage from './features/student-documents/StudentDocumentsPage.jsx';
-import PayrollPage from './features/fees/PayrollPage.jsx';
-import EquipmentMaintenancePage from './features/facilities/EquipmentMaintenancePage.jsx';
-import MonitoringPage from './features/admin/MonitoringPage.jsx';
-import SchoolComparisonPage from './features/admin/SchoolComparisonPage.jsx';
 import { ROLES } from './constants/roles.js';
 import './styles/global.css';
+
+const LoginPage = lazy(() => import('./features/auth/LoginPage.jsx'));
+const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage.jsx'));
+const ClustersPage = lazy(() => import('./features/schools/ClustersPage.jsx'));
+const SchoolsPage = lazy(() => import('./features/schools/SchoolsPage.jsx'));
+const UsersPage = lazy(() => import('./features/users/UsersPage.jsx'));
+const RolesPage = lazy(() => import('./features/roles/RolesPage.jsx'));
+const ClassesPage = lazy(() => import('./features/classes/ClassesPage.jsx'));
+const AttendancePage = lazy(() => import('./features/attendance/AttendancePage.jsx'));
+const GradesPage = lazy(() => import('./features/grades/GradesPage.jsx'));
+const VnpayReturnPage = lazy(() => import('./features/fees/VnpayReturnPage.jsx'));
+const FeesPage = lazy(() => import('./features/fees/FeesPage.jsx'));
+const AppointmentsPage = lazy(() => import('./features/appointments/AppointmentsPage.jsx'));
+const RewardsPage = lazy(() => import('./features/rewards/RewardsPage.jsx'));
+const AdmissionApplyPage = lazy(() => import('./features/admissions/AdmissionApplyPage.jsx'));
+const AdmissionsPage = lazy(() => import('./features/admissions/AdmissionsPage.jsx'));
+const AnnouncementsPage = lazy(() => import('./features/announcements/AnnouncementsPage.jsx'));
+const LeavePage = lazy(() => import('./features/leave/LeavePage.jsx'));
+const TimetablePage = lazy(() => import('./features/timetable/TimetablePage.jsx'));
+const ProfilePage = lazy(() => import('./features/profile/ProfilePage.jsx'));
+const SubscriptionsPage = lazy(() => import('./features/subscriptions/SubscriptionsPage.jsx'));
+const ExamsPage = lazy(() => import('./features/exams/ExamsPage.jsx'));
+const MaterialsPage = lazy(() => import('./features/library/MaterialsPage.jsx'));
+const LibraryPage = lazy(() => import('./features/library/LibraryPage.jsx'));
+const FacilitiesPage = lazy(() => import('./features/facilities/FacilitiesPage.jsx'));
+const AuditLogsPage = lazy(() => import('./features/admin/AuditLogsPage.jsx'));
+const SupportPage = lazy(() => import('./features/admin/SupportPage.jsx'));
+const ConductPage = lazy(() => import('./features/conduct/ConductPage.jsx'));
+const TemplatesPage = lazy(() => import('./features/admin/TemplatesPage.jsx'));
+const MessagesPage = lazy(() => import('./features/messages/MessagesPage.jsx'));
+const CalendarPage = lazy(() => import('./features/calendar/CalendarPage.jsx'));
+const JobsPage = lazy(() => import('./features/admin/JobsPage.jsx'));
+const AssignmentsPage = lazy(() => import('./features/assignments/AssignmentsPage.jsx'));
+const LessonPlansPage = lazy(() => import('./features/lesson-plans/LessonPlansPage.jsx'));
+const ContactBookPage = lazy(() => import('./features/contact-book/ContactBookPage.jsx'));
+const ClassLifePage = lazy(() => import('./features/class-life/ClassLifePage.jsx'));
+const ActivitiesPage = lazy(() => import('./features/activities/ActivitiesPage.jsx'));
+const StudentDocumentsPage = lazy(() => import('./features/student-documents/StudentDocumentsPage.jsx'));
+const PayrollPage = lazy(() => import('./features/fees/PayrollPage.jsx'));
+const EquipmentMaintenancePage = lazy(() => import('./features/facilities/EquipmentMaintenancePage.jsx'));
+const MonitoringPage = lazy(() => import('./features/admin/MonitoringPage.jsx'));
+const SchoolComparisonPage = lazy(() => import('./features/admin/SchoolComparisonPage.jsx'));
 
 const router = createBrowserRouter([
   { path: '/payments/vnpay-return', element: <VnpayReturnPage /> },
@@ -135,7 +136,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           },
         }}
       >
-        <RouterProvider router={router} />
+        <Suspense fallback={<div role="status" aria-live="polite">Đang tải...</div>}>
+          <RouterProvider router={router} />
+        </Suspense>
       </ConfigProvider>
     </Provider>
   </React.StrictMode>

@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Multi-tenant School Management System API (MERN)",
   "main": "src/server.js",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "nodemon ./src/server.js",
     "start": "node ./src/server.js",
