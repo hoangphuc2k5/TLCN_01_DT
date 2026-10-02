@@ -20,27 +20,37 @@ Hệ thống **multi-tenant** (cụm / trường) + **JWT RBAC** với **role đ
 code/
 ├── ExpressJS/                 # Backend API
 │   ├── .env.example
+│   ├── Dockerfile
 │   └── src/
-│       ├── config/            # DB Singleton
-│       ├── constants/         # roles, permissions, permissionCatalog
-│       ├── patterns/          # Repository, Strategy, Factory, Observer
-│       ├── models/            # User, Role, School, …
-│       ├── repositories/
-│       ├── services/          # auth, user, role, …
-│       ├── controllers/
-│       ├── middleware/        # Auth → Tenant → RBAC → Validate → Error
-│       ├── routes/
-│       ├── seed/              # seedDemo.js (+ 10 Role hệ thống)
+│       ├── config/            # container DI, DB/logger Singleton, constants, runtime adapters
+│       ├── models/{administration,finance,common}/
+│       ├── repository/{administration,finance,common}/
+│       ├── services/{administration,finance,common}/
+│       ├── controllers/{administration,finance,common}/
+│       ├── middleware/common/ # Auth → Tenant → RBAC → Validate → Error
+│       ├── routes/{administration,finance,common}/
+│       ├── dtos/{administration,finance,common}/
+│       ├── utils/common/
+│       ├── tests/{administration,finance,common}/
+│       ├── app.js             # cấu hình Express
 │       └── server.js
 ├── ReactJS/                   # Frontend
 │   ├── .env.example
+│   ├── e2e/                   # Playwright theo luồng chức năng
+│   ├── tests/unit/            # Unit test frontend
 │   └── src/
-│       ├── api/
-│       ├── components/        # layout, guards
-│       ├── features/          # users, roles, exams, …
-│       ├── Redux/
+│       ├── components/        # component dùng chung và route guards
+│       ├── config/            # HTTP client và cấu hình runtime
 │       ├── constants/
+│       ├── features/          # page/component theo chức năng
+│       ├── layouts/           # khung giao diện
+│       ├── services/          # API service
+│       ├── store/             # Redux store và slices
+│       ├── styles/
+│       ├── utils/
 │       └── main.jsx
+├── docs/                      # architecture, deployment, features, planning, quality
+├── .github/workflows/         # CI và phát hành image GHCR
 └── README.md
 ```
 
@@ -49,7 +59,7 @@ code/
 ### 1. Yêu cầu
 
 - Node.js 18+
-- MongoDB local **hoặc** MongoDB Atlas
+- MongoDB local cấu hình **replica set** hoặc MongoDB Atlas. Các nghiệp vụ dùng transaction (ví dụ cập nhật điểm) không hoạt động đầy đủ trên MongoDB standalone.
 
 ### 2. Backend
 
@@ -79,6 +89,8 @@ GOOGLE_CLIENT_ID=
 GMAIL_USER=
 GMAIL_APP_PASSWORD=
 FRONTEND_URL=http://localhost:5173
+# Chỉ khi có thêm frontend chạy ở origin khác:
+CORS_ALLOWED_ORIGINS=
 ```
 
 Seed dữ liệu demo (xoá data cũ trong DB đang trỏ tới, tạo lại cụm/trường/user + **10 Role hệ thống**):
@@ -95,6 +107,8 @@ npm run dev
 
 - API: `http://localhost:8080`
 - Health: `GET /v1/api/health`
+
+API chỉ gửi CORS headers cho `FRONTEND_URL` và các origin khai báo trong `CORS_ALLOWED_ORIGINS` (phân tách bằng dấu phẩy, gồm giao thức và cổng, không có path). Reverse proxy cùng origin không cần thêm CORS origin. Với môi trường production, đặt `FRONTEND_URL` theo domain giao diện thực tế.
 
 Khi server khởi động, hệ thống đảm bảo các Role hệ thống tồn tại (không ghi đè permissions đã chỉnh tay, trừ khi chạy `npm run seed` với force).
 
@@ -171,7 +185,7 @@ Số **level càng nhỏ = quyền càng cao**.
 | PUT | `/v1/api/roles/:id` | Sửa name / level / permissions / status |
 | DELETE | `/v1/api/roles/:id` | Xóa role không phải hệ thống (và không còn user đang dùng) |
 
-Quyền route vẫn tương thích các key cũ (`MANAGE_USERS`, …) — map sang resource/action qua [`permissionCatalog.js`](ExpressJS/src/constants/permissionCatalog.js). Cache quyền in-memory được invalidate khi sửa Role.
+Quyền route vẫn tương thích các key cũ (`MANAGE_USERS`, …) — map sang resource/action qua [`permission-catalog.config.js`](ExpressJS/src/config/constants/permission-catalog.config.js). Cache quyền in-memory được invalidate khi sửa Role.
 
 ## Module cốt lõi
 
@@ -201,7 +215,7 @@ Hệ thống hỗ trợ **hai kênh** (cấu hình bằng biến môi trường)
 | `ALLOW_PASSWORD_LOGIN=false` | Chỉ Google Sign-In |
 | `AUTH_GMAIL_ONLY=true` | Google chỉ nhận `@gmail.com` / `@googlemail.com` |
 
-Không dùng SĐT / SMS / Zalo để xác thực.
+Ngoài hai kênh trên, code có adapter SSO doanh nghiệp và đăng nhập OTP qua điện thoại (tùy cấu hình). SMS/Zalo/push cần gateway tương ứng; xem [SSO, OTP và thông báo realtime](docs/features/phase2-sso-phone-realtime.md). Test local không thay thế xác minh với nhà cung cấp thật.
 
 ### Google OAuth (tuỳ chọn)
 
@@ -256,29 +270,33 @@ App Password (`GMAIL_USER` + `GMAIL_APP_PASSWORD`) dùng gửi email thông báo
 ## Design Patterns
 
 ### 1. Repository
-[`BaseRepository.js`](ExpressJS/src/patterns/BaseRepository.js), [`repositories/`](ExpressJS/src/repositories/) — service không gọi Mongoose trực tiếp cho CRUD chuẩn.
+[`base.repository.js`](ExpressJS/src/repository/common/base.repository.js), [`repository/`](ExpressJS/src/repository/) — mọi truy vấn Mongoose nằm trong repository; service nhận repository qua constructor.
 
 ### 2. Service Layer
-`services/` — nghiệp vụ, tenant scope, hierarchy, event.
+[`services/`](ExpressJS/src/services/) — nghiệp vụ, tenant scope, hierarchy và event. Controller chỉ đọc DTO, gọi service và tạo response DTO.
 
 ### 3. Chain of Responsibility (Middleware)
 
 `authenticate` → `tenantContext` → `authorizeRoles` / `authorizePermission` → `validate` → controller → `errorHandler`
 
 ### 4. Strategy
-[`gradeStrategy.js`](ExpressJS/src/patterns/gradeStrategy.js) — tính ĐTB / xếp loại.
+[`grade-strategy.service.js`](ExpressJS/src/services/common/grade-strategy.service.js) — tính ĐTB / xếp loại.
 
 ### 5. Factory
-[`dashboardFactory.js`](ExpressJS/src/patterns/dashboardFactory.js) — dashboard theo role.
+[`dashboard-factory.service.js`](ExpressJS/src/services/common/dashboard-factory.service.js) — dashboard theo role.
 
 ### 6. Observer
-[`eventBus.js`](ExpressJS/src/patterns/eventBus.js), [`registerListeners.js`](ExpressJS/src/patterns/registerListeners.js) — `attendance.recorded`, `announcement.created`, `leave.reviewed` → Notification (+ mail tuỳ cấu hình).
+[`event-bus.config.js`](ExpressJS/src/config/events/event-bus.config.js), [`register-listeners.config.js`](ExpressJS/src/config/events/register-listeners.config.js) — `attendance.recorded`, `announcement.created`, `leave.reviewed` → Notification (+ mail tuỳ cấu hình).
 
 ### 7. Singleton
-[`config/database.js`](ExpressJS/src/config/database.js) — một kết nối Mongoose.
+[`database.config.js`](ExpressJS/src/config/database/database.config.js) và [`logger.config.js`](ExpressJS/src/config/logger/logger.config.js) — mỗi tiến trình chỉ có một kết nối Mongoose và một logger.
 
 ### 8. Facade
-`seed/seedDemo.js`, `dashboardService` — gom nhiều model thành một luồng gọi đơn giản.
+[`seed.service.js`](ExpressJS/src/services/common/seed.service.js), [`dashboard.service.js`](ExpressJS/src/services/common/dashboard.service.js) — gom nhiều repository thành một luồng gọi đơn giản.
+
+### 9. Dependency Injection và DTO
+
+[`container.js`](ExpressJS/src/config/container.js) là composition root duy nhất, khởi tạo repository/service và nối dependency. Request/response được chuẩn hóa qua [`dtos/`](ExpressJS/src/dtos/), không trả thẳng Mongoose document từ controller.
 
 ## Luồng xử lý tiêu biểu
 
@@ -321,6 +339,25 @@ sequenceDiagram
 
 - **Không commit** `.env` (đã có trong `.gitignore`). Dùng `.env.example` làm mẫu.
 - Đổi `JWT_SECRET` khi deploy; không đưa URI Atlas / Google secret lên Git.
-- Menu UI vẫn gắn theo mã role hệ thống; API enforce theo permission DB (role tùy chỉnh dùng được API nếu được cấp quyền).
-- Chưa làm: payment gateway thật, backup/restore, chat realtime (Socket), SSO ngoài Google.
-- Sau khi pull code mới liên quan seed/role: chạy lại `npm run seed` trong `ExpressJS` (cẩn thận — xoá data demo trong DB hiện tại).
+- Menu UI được lọc theo quyền qua `canVisit`; API kiểm tra permission DB và phạm vi dữ liệu. Role tùy chỉnh được kiểm thử riêng.
+- Đã có [tích hợp VNPay sandbox](docs/deployment/phase2-vnpay-new-sandbox-terminal.md), [CLI backup/restore](docs/deployment/phase1-backup-restore.md), [tin nhắn WebSocket](docs/features/phase3-realtime-messaging.md) và adapter SSO doanh nghiệp. Việc có code/test local không đồng nghĩa đã xác minh vận hành production; WebSocket hiện dùng event bus trong một tiến trình.
+- Chỉ chạy `npm run seed` trong `ExpressJS` khi chủ động tạo lại dữ liệu demo trên database riêng: lệnh xoá dữ liệu hiện có. Không cần seed lại database để chạy regression tự động.
+
+## Kiểm thử và sẵn sàng demo
+
+Chạy từ các thư mục tương ứng:
+
+```powershell
+cd ExpressJS
+npm test
+cd ../ReactJS
+npm test
+npm run build
+npm run test:e2e
+```
+
+Backend test và Playwright dùng MongoDB tạm. E2E tự khởi động API ở cổng `8091`, Vite ở `5175`; hai cổng phải trống. Các bài kiểm thử VNPay dùng gateway giả lập và IPN có chữ ký fixture, không thực hiện thanh toán thật.
+
+GitHub Actions chạy backend, frontend, E2E và build hai Docker image. Khi push vào `main`, workflow đẩy đúng image đã kiểm tra lên GitHub Container Registry với tag theo commit; xem [hướng dẫn CI/CD](docs/deployment/ci-cd.md).
+
+Kết quả regression, phạm vi năm luồng demo và các mục còn cần xác minh được ghi tại [checklist sẵn sàng demo](docs/quality/demo-readiness-2026-09-27.md).

@@ -2,17 +2,14 @@ import { useEffect, useState } from 'react';
 import { Button, Form, Input, Modal, Select, Space, Table, Tag, message } from 'antd';
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
-import { createFacilityApi, getFacilitiesApi, reviewFacilityApi } from '../../api';
+import { createFacilityApi, getFacilitiesApi, reviewFacilityApi } from '../../services/api.service';
+import { can } from '../../utils/permissions';
 import { ROLES } from '../../constants/roles';
 
 const FacilitiesPage = () => {
   const { user } = useSelector((s) => s.auth);
-  const canRequest = [
-    ROLES.SUBJECT_TEACHER,
-    ROLES.HOMEROOM_TEACHER,
-    ROLES.ACADEMIC_AFFAIRS,
-  ].includes(user?.role);
-  const canReview = [ROLES.LIBRARIAN, ROLES.SCHOOL_ADMIN, ROLES.ACADEMIC_AFFAIRS].includes(
+  const canRequest = can(user, 'facilities', 'create');
+  const canReview = can(user, 'facilities', 'execute') && [ROLES.LIBRARIAN, ROLES.SCHOOL_ADMIN, ROLES.ACADEMIC_AFFAIRS].includes(
     user?.role
   );
   const [rows, setRows] = useState([]);
@@ -61,7 +58,7 @@ const FacilitiesPage = () => {
             ? {
                 title: 'Duyệt',
                 render: (_, r) =>
-                  r.status === 'PENDING' ? (
+                  r.status === 'PENDING' && (r.requesterId?._id || r.requesterId) !== user?._id ? (
                     <Space>
                       <Button
                         size="small"

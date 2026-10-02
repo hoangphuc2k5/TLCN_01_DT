@@ -1,0 +1,202 @@
+function createAdminExtraService(dependencies) {
+  const persistence = dependencies.persistence;
+  const ApiError = require("../../utils/common/api-error.util");
+  const { ROLES } = require("../../config/constants/roles.config");
+  const { scopedDocument, reference, targetSchool, academicReferences } = dependencies.services["write-scope"];
+  const { objectId, schoolScope, personalStudentIds, teacherClassScope } = dependencies.services["data-scope"];
+  const User = "user";
+  
+  // Audit
+  const listAuditLogs = async (actor, query = {}) => {
+    const filter = { $and: [await schoolScope(actor), query.schoolId ? { schoolId: objectId(query.schoolId) } : {}] };
+    if (query.action) filter.action = query.action;
+    if (query.resource) filter.resource = query.resource;
+    return persistence.listAuditLogsFind(filter, { createdAt: -1 }, Number(query.limit) || 100);
+  };
+  
+  // Support
+  const listTickets = async (actor, query = {}) => {
+    const filter = {};
+    if (actor.role === ROLES.SUPER_ADMIN) {
+      if (query.status) filter.status = query.status;
+    } else if (actor.role === ROLES.CLUSTER_ADMIN) {
+      filter.clusterId = actor.clusterId;
+    } else {
+      filter.schoolId = actor.schoolId;
+    }
+    if (query.status) filter.status = query.status;
+    return persistence.listTicketsFind(filter, { createdAt: -1 });
+  };
+  
+  const createTicket = async (actor, data) => {
+    if (!data.title || !data.description) throw new ApiError(400, 'Thiếu title/description');
+    return persistence.createTicketCreate({
+      schoolId: actor.schoolId || null,
+      clusterId: actor.clusterId || null,
+      createdBy: actor._id,
+      title: data.title,
+      description: data.description,
+      category: data.category || 'TECHNICAL',
+      priority: data.priority || 'MEDIUM',
+    });
+  };
+  
+  const updateTicket = async (actor, id, data) => {
+    const scope = actor.role === ROLES.CLUSTER_ADMIN ? { clusterId: actor.clusterId } : await schoolScope(actor);
+    const ticket = await persistence.ticketFindOne({ ...scope, _id: objectId(id) });
+    if (!ticket) throw new ApiError(404, 'Không tìm thấy ticket');
+    if (actor.role !== ROLES.SUPER_ADMIN && actor.role !== ROLES.CLUSTER_ADMIN && String(ticket.schoolId) !== String(actor.schoolId)) {
+      throw new ApiError(403, 'Ngoài phạm vi');
+    }
+    const allowed = ['status', 'priority', 'resolution', 'assignedTo', 'category'];
+    if (data.assignedTo && actor.role !== ROLES.SUPER_ADMIN) {
+      if (!ticket.schoolId) throw new ApiError(403, 'Chỉ Super Admin được phân công ticket cụm');
+      await reference(User, data.assignedTo, ticket.schoolId);
+    }
+    for (const key of allowed) {
+      if (data[key] !== undefined) ticket[key] = data[key];
+    }
+    if (actor.role === ROLES.SUPER_ADMIN && !ticket.assignedTo) {
+      ticket.assignedTo = actor._id;
+    }
+    await persistence.updateTicketSave(ticket);
+    return ticket;
+  };
+  
+  // Conduct
+  const listConduct = async (actor, query = {}) => {
+    const filter = { $and: [await schoolScope(actor)] };
+    if (query.studentId) filter.studentId = objectId(query.studentId, 'studentId');
+    if (query.semester) filter.semester = Number(query.semester);
+    const personal = await personalStudentIds(actor);
+    if (personal !== null) filter.$and.push({ studentId: { $in: personal } });
+    if (actor.role === ROLES.HOMEROOM_TEACHER) {
+      const classes = await persistence.classesFind({ schoolId: actor.schoolId, homeroomTeacherId: actor._id });
+      filter.$and.push({ classId: { $in: classes.map(c => c._id) } });
+    } else {
+      filter.$and.push(await teacherClassScope(actor, 'conduct'));
+    }
+    return persistence.listConductFind(filter, { updatedAt: -1 });
+  };
+  
+  const upsertConduct = async (actor, data) => {
+    if (!data.studentId || !data.academicYearId || !data.rating) {
+      throw new ApiError(400, 'Thiếu studentId/academicYearId/rating');
+    }
+    const student = await scopedDocument(User, actor, data.studentId);
+    if (student.role !== ROLES.STUDENT) throw new ApiError(400, 'Cần tài khoản học sinh');
+    const cls = await academicReferences(actor, { ...data, classId: data.classId || student.classId }, { homeroomAllowed: true });
+    if (actor.role === ROLES.HOMEROOM_TEACHER && String(cls.homeroomTeacherId) !== String(actor._id)) throw new ApiError(403, 'Không phải lớp chủ nhiệm');
+    const filter = {
+      schoolId: cls.schoolId,
+      studentId: data.studentId,
+      academicYearId: data.academicYearId,
+      semester: data.semester || 1,
+    };
+    return persistence.upsertConductFindOneAndUpdate(filter, {
+        ...filter,
+        classId: cls._id,
+        rating: data.rating,
+        comment: data.comment || '',
+        recordedBy: actor._id,
+      }, { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true });
+  };
+  
+  // Templates
+  const listTemplates = async (actor, query = {}) => {
+    const or = [{ scope: 'SYSTEM', isActive: true }];
+    if (actor.clusterId) or.push({ scope: 'CLUSTER', clusterId: actor.clusterId, isActive: true });
+    if (actor.role === ROLES.SUPER_ADMIN) {
+      return persistence.listTemplatesFind(query.type ? { type: query.type } : {}, { createdAt: -1 });
+    }
+    const filter = { $or: or };
+    if (query.type) filter.type = query.type;
+    return persistence.listTemplatesFind2(filter, { createdAt: -1 });
+  };
+  
+  const createTemplate = async (actor, data) => {
+    if (!data.name || !data.type) throw new ApiError(400, 'Thiếu name/type');
+    let scope = 'SYSTEM';
+    let clusterId = null;
+    if (actor.role === ROLES.CLUSTER_ADMIN) {
+      scope = 'CLUSTER';
+      clusterId = actor.clusterId;
+    } else if (actor.role !== ROLES.SUPER_ADMIN) {
+      throw new ApiError(403, 'Không có quyền tạo mẫu');
+    }
+    return persistence.createTemplateCreate({
+      name: data.name,
+      type: data.type,
+      scope,
+      clusterId,
+      content: data.content || '',
+      version: data.version || '1.0',
+      createdBy: actor._id,
+      isActive: true,
+    });
+  };
+  
+  const updateTemplate = async (actor, id, data) => {
+    const tpl = await persistence.tplFindById(id);
+    if (!tpl) throw new ApiError(404, 'Không tìm thấy mẫu');
+    if (actor.role !== ROLES.SUPER_ADMIN && (actor.role !== ROLES.CLUSTER_ADMIN || tpl.scope !== 'CLUSTER' || String(tpl.clusterId) !== String(actor.clusterId))) {
+      throw new ApiError(403, 'Ngoài phạm vi');
+    }
+    ['name', 'content', 'version', 'isActive', 'type'].forEach((k) => {
+      if (data[k] !== undefined) tpl[k] = data[k];
+    });
+    await persistence.updateTemplateSave(tpl);
+    await persistence.updateTemplateUpdateMany({ templateId: tpl._id }, { $set: { name: tpl.name, type: tpl.type, version: tpl.version, content: tpl.content, sourceUpdatedAt: tpl.updatedAt, syncedAt: new Date() } });
+    return tpl;
+  };
+  
+  const applyTemplateToSchool = async (actor, schoolId, templateId) => {
+    await targetSchool(actor, schoolId);
+    const template = await persistence.templateFindById(objectId(templateId));
+    if (!template || !template.isActive) throw new ApiError(404, 'Mẫu không tồn tại hoặc đã ngưng');
+    const school = await persistence.schoolFindById(schoolId);
+    if (!school) throw new ApiError(404, 'Không tìm thấy trường');
+    if (template.scope === 'CLUSTER' && String(template.clusterId) !== String(school.clusterId)) throw new ApiError(403, 'Mẫu không thuộc cụm của trường');
+    if (actor.role === ROLES.SCHOOL_ADMIN && String(school._id) !== String(actor.schoolId)) {
+      throw new ApiError(403, 'Ngoài phạm vi');
+    }
+    if (actor.role === ROLES.CLUSTER_ADMIN && String(school.clusterId) !== String(actor.clusterId)) {
+      throw new ApiError(403, 'Ngoài phạm vi cụm');
+    }
+    const ids = new Set((school.appliedTemplateIds || []).map(String));
+    ids.add(String(templateId));
+    school.appliedTemplateIds = [...ids];
+    await persistence.applyTemplateToSchoolSave(school);
+    await persistence.applyTemplateToSchoolFindOneAndUpdate({ schoolId: school._id, templateId: template._id }, { schoolId: school._id, templateId: template._id, name: template.name, type: template.type, version: template.version, content: template.content, sourceUpdatedAt: template.updatedAt, syncedAt: new Date() }, { upsert: true, new: true, setDefaultsOnInsert: true });
+    return persistence.applyTemplateToSchoolPopulate(school);
+  };
+  
+  const listTemplateDeployments = async (actor, query = {}) => {
+    const filter = { ...(await schoolScope(actor)) };
+    if (query.templateId) filter.templateId = objectId(query.templateId, 'templateId');
+    return persistence.listTemplateDeploymentsFind(filter, { syncedAt: -1 });
+  };
+  
+  return {
+    listAuditLogs,
+    listTickets,
+    createTicket,
+    updateTicket,
+    listConduct,
+    upsertConduct,
+    listTemplates,
+    createTemplate,
+    updateTemplate,
+    applyTemplateToSchool,
+    listTemplateDeployments,
+  };
+  
+}
+
+class AdminExtraService {
+  constructor(dependencies) {
+    Object.assign(this, createAdminExtraService(dependencies));
+  }
+}
+
+module.exports = AdminExtraService;

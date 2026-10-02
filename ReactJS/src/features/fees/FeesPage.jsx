@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react';
-import { Button, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, message } from 'antd';
+import { Button, Card, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, message } from 'antd';
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
 import {
   createFeeApi,
+  createOnlinePaymentApi,
   getAcademicYearsApi,
   getFeesApi,
-  getUsersApi,
+  getUserDirectoryApi,
   recordPaymentApi,
+  runFeeRemindersApi,
   downloadExport,
-} from '../../api';
+} from '../../services/api.service';
 import ImportExcelButton from '../../components/ImportExcelButton';
 import { ROLES } from '../../constants/roles';
+import { can, canExport } from '../../utils/permissions';
 
 const statusColor = {
   UNPAID: 'red',
@@ -20,15 +23,28 @@ const statusColor = {
   OVERDUE: 'magenta',
 };
 
+const categoryOptions = [
+  { value: 'TUITION', label: 'Học phí' },
+  { value: 'OTHER', label: 'Khoản thu khác' },
+  { value: 'BOARDING', label: 'Bán trú' },
+  { value: 'TRANSPORT', label: 'Xe đưa đón' },
+  { value: 'ACTIVITY', label: 'Hoạt động' },
+];
+
+const money = value => Number(value || 0).toLocaleString('vi-VN');
+
 const FeesPage = () => {
   const { user } = useSelector((s) => s.auth);
-  const canManage = [ROLES.ACCOUNTANT, ROLES.SCHOOL_ADMIN].includes(user?.role);
+  const canManage = can(user, 'fees', 'create');
+  const canOnline = can(user, 'online_payments', 'create');
+  const canRemind = can(user, 'fees', 'execute');
   const [rows, setRows] = useState([]);
   const [students, setStudents] = useState([]);
   const [years, setYears] = useState([]);
   const [openFee, setOpenFee] = useState(false);
   const [openPay, setOpenPay] = useState(false);
   const [selected, setSelected] = useState(null);
+  const [payingId, setPayingId] = useState(null);
   const [feeForm] = Form.useForm();
   const [payForm] = Form.useForm();
 
@@ -41,7 +57,7 @@ const FeesPage = () => {
     (async () => {
       if (canManage) {
         const [u, y] = await Promise.all([
-          getUsersApi({ role: ROLES.STUDENT }),
+          getUserDirectoryApi({ role: ROLES.STUDENT }),
           getAcademicYearsApi(),
         ]);
         if (u?.EC === 0) setStudents(u.data || []);
@@ -53,13 +69,17 @@ const FeesPage = () => {
 
   return (
     <div>
-      {canManage && (
+      {(canManage || canExport(user, 'fees')) && (
         <Space style={{ marginBottom: 16 }}>
-          <Button type="primary" onClick={() => setOpenFee(true)}>
+          {canManage && <Button type="primary" onClick={() => {
+            feeForm.resetFields();
+            feeForm.setFieldsValue({ lineItems: [{ category: 'TUITION', quantity: 1 }] });
+            setOpenFee(true);
+          }}>
             Tạo hóa đơn
-          </Button>
-          <ImportExcelButton type="fees" onDone={load} />
-          <Button
+          </Button>}
+          {canManage && can(user, 'fees', 'update') && <ImportExcelButton type="fees" onDone={load} />}
+          {canExport(user, 'fees') && <Button
             onClick={async () => {
               try {
                 await downloadExport('fees');
@@ -69,15 +89,36 @@ const FeesPage = () => {
             }}
           >
             Xuất Excel
-          </Button>
+          </Button>}
+          {canRemind && <Button onClick={async () => { const res = await runFeeRemindersApi(); if (res?.EC === 0) message.success(`Đã gửi ${res.data.notifications} thông báo`); else message.error(res?.EM); }}>Nhắc nợ</Button>}
         </Space>
       )}
       <Table
         rowKey="_id"
         dataSource={rows}
+        expandable={{
+          rowExpandable: row => (row.lineItems || []).length > 0,
+          expandedRowRender: row => <Table
+            size="small"
+            rowKey={item => item._id || `${item.code}-${item.name}`}
+            pagination={false}
+            dataSource={row.lineItems || []}
+            columns={[
+              { title: 'Mã', dataIndex: 'code', render: value => value || '-' },
+              { title: 'Khoản thu', dataIndex: 'name' },
+              { title: 'Loại', dataIndex: 'category', render: value => categoryOptions.find(item => item.value === value)?.label || value },
+              { title: 'SL', dataIndex: 'quantity' },
+              { title: 'Đơn giá', dataIndex: 'unitAmount', render: money },
+              { title: 'Thành tiền', dataIndex: 'amount', render: money },
+              { title: 'Đã thu', dataIndex: 'paidAmount', render: money },
+              { title: 'Trạng thái', dataIndex: 'status', render: value => <Tag color={statusColor[value]}>{value}</Tag> },
+            ]}
+          />,
+        }}
         columns={[
           { title: 'Học sinh', render: (_, r) => r.studentId?.name },
           { title: 'Nội dung', dataIndex: 'title' },
+          { title: 'Số mục', render: (_, r) => r.lineItems?.length || 1 },
           {
             title: 'Số tiền',
             dataIndex: 'amount',
@@ -98,12 +139,12 @@ const FeesPage = () => {
             dataIndex: 'status',
             render: (v) => <Tag color={statusColor[v]}>{v}</Tag>,
           },
-          canManage
+          (canManage || canOnline)
             ? {
                 title: 'Thao tác',
-                render: (_, r) =>
-                  r.status !== 'PAID' ? (
-                    <Button
+                render: (_, r) => r.status !== 'PAID' ? (
+                  <Space size="small">
+                    {canManage && <Button
                       size="small"
                       onClick={() => {
                         setSelected(r);
@@ -111,9 +152,33 @@ const FeesPage = () => {
                         setOpenPay(true);
                       }}
                     >
-                      Thu tiền
-                    </Button>
-                  ) : null,
+                      Thu tien
+                    </Button>}
+                    {canOnline && <Button
+                      size="small"
+                      type="primary"
+                      loading={payingId === r._id}
+                      disabled={!!payingId}
+                      onClick={async () => {
+                        setPayingId(r._id);
+                        try {
+                          const res = await createOnlinePaymentApi({
+                            invoiceId: r._id,
+                            provider: 'VNPAY',
+                          });
+                          if (res?.EC === 0 && res.data?.checkoutUrl) {
+                            window.location.assign(res.data.checkoutUrl);
+                          } else {
+                            message.error(res?.EM || 'Không tạo được giao dịch');
+                          }
+                        } catch { message.error('Không kết nối được cổng thanh toán'); }
+                        finally { setPayingId(null); }
+                      }}
+                    >
+                      Thanh toán VNPay
+                    </Button>}
+                  </Space>
+                ) : null,
               }
             : {},
         ].filter((c) => c.title)}
@@ -142,9 +207,31 @@ const FeesPage = () => {
           <Form.Item name="title" label="Nội dung" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="amount" label="Số tiền" rules={[{ required: true }]}>
-            <InputNumber style={{ width: '100%' }} min={0} />
-          </Form.Item>
+          <Form.Item name="description" label="Chi tiết"><Input.TextArea maxLength={1000} /></Form.Item>
+          <Form.List
+            name="lineItems"
+            rules={[{ validator: async (_, items) => { if (!items?.length) throw new Error('Cần ít nhất một khoản thu'); } }]}
+          >
+            {(fields, { add, remove }, { errors }) => <Space direction="vertical" style={{ width: '100%' }}>
+              {fields.map(({ key, name, ...rest }) => <Card
+                key={key}
+                size="small"
+                title={`Khoản thu ${name + 1}`}
+                extra={<Button danger size="small" disabled={fields.length === 1} onClick={() => remove(name)}>Xóa</Button>}
+              >
+                <Space align="start" wrap>
+                  <Form.Item {...rest} name={[name, 'code']} label="Mã"><Input maxLength={50} style={{ width: 110 }} /></Form.Item>
+                  <Form.Item {...rest} name={[name, 'name']} label="Tên khoản" rules={[{ required: true, whitespace: true }]}><Input maxLength={200} style={{ width: 220 }} /></Form.Item>
+                  <Form.Item {...rest} name={[name, 'category']} label="Loại" rules={[{ required: true }]}><Select options={categoryOptions} style={{ width: 150 }} /></Form.Item>
+                  <Form.Item {...rest} name={[name, 'quantity']} label="Số lượng" rules={[{ required: true }]}><InputNumber min={0.01} style={{ width: 100 }} /></Form.Item>
+                  <Form.Item {...rest} name={[name, 'unitAmount']} label="Đơn giá" rules={[{ required: true }]}><InputNumber min={1} step={1000} style={{ width: 160 }} /></Form.Item>
+                </Space>
+                <Form.Item {...rest} name={[name, 'description']} label="Mô tả"><Input maxLength={500} /></Form.Item>
+              </Card>)}
+              <Button type="dashed" onClick={() => add({ category: 'TUITION', quantity: 1 })}>Thêm khoản thu</Button>
+              <Form.ErrorList errors={errors} />
+            </Space>}
+          </Form.List>
           <Form.Item name="dueDate" label="Hạn thanh toán" rules={[{ required: true }]}>
             <Input type="date" />
           </Form.Item>
@@ -182,7 +269,6 @@ const FeesPage = () => {
               options={[
                 { value: 'CASH', label: 'Tiền mặt' },
                 { value: 'TRANSFER', label: 'Chuyển khoản' },
-                { value: 'ONLINE', label: 'Online' },
               ]}
             />
           </Form.Item>
@@ -191,6 +277,7 @@ const FeesPage = () => {
           </Form.Item>
         </Form>
       </Modal>
+
     </div>
   );
 };

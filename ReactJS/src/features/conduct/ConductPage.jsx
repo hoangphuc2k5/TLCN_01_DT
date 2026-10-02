@@ -7,8 +7,8 @@ import {
   getClassesApi,
   getConductApi,
   upsertConductApi,
-} from '../../api';
-import { ROLES } from '../../constants/roles';
+} from '../../services/api.service';
+import { can } from '../../utils/permissions';
 
 const ratingLabel = {
   TOT: 'Tốt',
@@ -19,7 +19,7 @@ const ratingLabel = {
 
 const ConductPage = () => {
   const { user } = useSelector((s) => s.auth);
-  const canManage = [ROLES.HOMEROOM_TEACHER, ROLES.SCHOOL_ADMIN].includes(user?.role);
+  const canManage = can(user, 'conduct', 'create') && can(user, 'conduct', 'update');
   const [rows, setRows] = useState([]);
   const [classes, setClasses] = useState([]);
   const [years, setYears] = useState([]);

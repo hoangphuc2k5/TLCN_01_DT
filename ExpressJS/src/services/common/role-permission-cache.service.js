@@ -1,0 +1,133 @@
+function createRolePermissionCacheService(dependencies) {
+  const persistence = dependencies.persistence;
+  const { STATUS } = require("../../config/constants/status.config");
+  const {
+    DEFAULT_ROLE_LEVELS,
+    legacyPermissionsToEntries,
+    hasResourceAction,
+    entriesSatisfyLegacy,
+  } = require("../../config/constants/permission-catalog.config");
+  const { ROLE_LABELS, ROLES } = require("../../config/constants/roles.config");
+  
+  let cacheByCode = new Map();
+  let loaded = false;
+  
+  const getStaticRolePermissions = () => {
+    // lazy to avoid circular require with permissions.js
+    return require("../../config/constants/permissions.config").ROLE_PERMISSIONS;
+  };
+  
+  const normalizeRoleDoc = (doc) => {
+    if (!doc) return null;
+    const obj = typeof doc.toObject === 'function' ? doc.toObject() : doc;
+    return {
+      _id: obj._id,
+      code: obj.code,
+      name: obj.name,
+      description: obj.description || '',
+      level: obj.level,
+      isSystem: !!obj.isSystem,
+      schoolId: obj.schoolId || null,
+      clusterId: obj.clusterId || null,
+      status: obj.status,
+      permissions: obj.permissions || [],
+    };
+  };
+  
+  const reload = async () => {
+    const roles = await persistence.rolesFind({ status: STATUS.ACTIVE });
+    const next = new Map();
+    for (const r of roles) {
+      next.set(r.code, normalizeRoleDoc(r));
+    }
+    cacheByCode = next;
+    loaded = true;
+    return cacheByCode;
+  };
+  
+  const ensureLoaded = async () => {
+    if (!loaded) await reload();
+    return cacheByCode;
+  };
+  
+  const getRoleSync = (code) => cacheByCode.get(code) || null;
+  
+  const getRole = async (code) => {
+    await ensureLoaded();
+    return cacheByCode.get(code) || null;
+  };
+  
+  const getRoleLevel = async (code) => {
+    const role = await getRole(code);
+    if (role) return role.level;
+    return DEFAULT_ROLE_LEVELS[code] ?? 999;
+  };
+  
+  const getRoleLevelSync = (code) => {
+    const role = getRoleSync(code);
+    if (role) return role.level;
+    return DEFAULT_ROLE_LEVELS[code] ?? 999;
+  };
+  
+  const getRolePermissions = async (code) => {
+    const role = await getRole(code);
+    return role?.permissions || [];
+  };
+  
+  const hasPermissionLegacy = async (roleCode, legacyPermission) => {
+    if (roleCode === ROLES.SUPER_ADMIN) return true;
+    const entries = await getRolePermissions(roleCode);
+    return entriesSatisfyLegacy(entries, legacyPermission);
+  };
+  
+  const hasPermissionLegacySync = (roleCode, legacyPermission) => {
+    if (roleCode === ROLES.SUPER_ADMIN) return true;
+    if (!loaded) return false;
+    const role = getRoleSync(roleCode);
+    return role ? entriesSatisfyLegacy(role.permissions, legacyPermission) : false;
+  };
+
+  const listLegacyPermissionsForRole = async roleCode => {
+    const { PERMISSIONS, ROLE_PERMISSIONS } = require("../../config/constants/permissions.config");
+    if (roleCode === ROLES.SUPER_ADMIN) return Object.values(PERMISSIONS);
+    const role = await getRole(roleCode);
+    if (!role) return ROLE_PERMISSIONS[roleCode] || [];
+    return Object.values(PERMISSIONS).filter(permission => entriesSatisfyLegacy(role.permissions, permission));
+  };
+  
+  const canAccess = async (roleCode, resource, action) => {
+    if (roleCode === ROLES.SUPER_ADMIN) return true;
+    const entries = await getRolePermissions(roleCode);
+    return hasResourceAction(entries, resource, action);
+  };
+  
+  const invalidate = () => {
+    loaded = false;
+    cacheByCode = new Map();
+  };
+  
+  return {
+    reload,
+    ensureLoaded,
+    getRole,
+    getRoleSync,
+    getRoleLevel,
+    getRoleLevelSync,
+    getRolePermissions,
+    hasPermissionLegacy,
+    hasPermissionLegacySync,
+    listLegacyPermissionsForRole,
+    canAccess,
+    invalidate,
+    normalizeRoleDoc,
+  };
+  
+}
+
+class RolePermissionCacheService {
+  constructor(dependencies) {
+    Object.assign(this, createRolePermissionCacheService(dependencies));
+  }
+}
+
+module.exports = RolePermissionCacheService;
