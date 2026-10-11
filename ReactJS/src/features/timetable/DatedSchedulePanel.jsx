@@ -24,6 +24,8 @@ export default function DatedSchedulePanel() {
       <label>Từ ngày <Input type="date" aria-label="Lịch từ ngày" value={fromDate} onChange={e => setFrom(e.target.value)} /></label>
       <label>Đến ngày <Input type="date" aria-label="Lịch đến ngày" value={toDate} onChange={e => setTo(e.target.value)} /></label>
       <Button aria-label="Xem lịch" onClick={load} loading={loading}>Xem lịch</Button>
+      <Button onClick={() => { setFrom(dayjs().startOf('week').format('YYYY-MM-DD')); setTo(dayjs().endOf('week').format('YYYY-MM-DD')); }}>Tuần này</Button>
+      <Button onClick={() => { setFrom(dayjs().format('YYYY-MM-DD')); setTo(dayjs().add(30, 'day').format('YYYY-MM-DD')); }}>30 ngày tới</Button>
     </Space>
     <Table size="small" rowKey="key" loading={loading} dataSource={rows} scroll={{ x: 720 }} pagination={{ pageSize: 50 }} columns={[
       { title: 'Ngày', dataIndex: 'date', render: v => dayjs(v).format('DD/MM/YYYY') },

@@ -28,3 +28,6 @@ ExpressJS/storage/
 *.edubak
 *.edubak.partial-*
 *.edubak.checking-*
+~$*
+tmp/
+
