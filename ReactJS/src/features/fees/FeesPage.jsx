@@ -6,12 +6,15 @@ import {
   createFeeApi,
   createOnlinePaymentApi,
   getAcademicYearsApi,
+  getClassStudentsApi,
+  getClassesApi,
   getFeesApi,
   getUserDirectoryApi,
   recordPaymentApi,
   runFeeRemindersApi,
   downloadExport,
 } from '../../services/api.service';
+import { Radio } from 'antd';
 import ImportExcelButton from '../../components/ImportExcelButton';
 import { ROLES } from '../../constants/roles';
 import { can, canExport } from '../../utils/permissions';
@@ -40,8 +43,10 @@ const FeesPage = () => {
   const canRemind = can(user, 'fees', 'execute');
   const [rows, setRows] = useState([]);
   const [students, setStudents] = useState([]);
+  const [classes, setClasses] = useState([]);
   const [years, setYears] = useState([]);
   const [openFee, setOpenFee] = useState(false);
+  const [targetScope, setTargetScope] = useState('STUDENT');
   const [openPay, setOpenPay] = useState(false);
   const [selected, setSelected] = useState(null);
   const [payingId, setPayingId] = useState(null);
@@ -56,12 +61,14 @@ const FeesPage = () => {
   useEffect(() => {
     (async () => {
       if (canManage) {
-        const [u, y] = await Promise.all([
+        const [u, y, c] = await Promise.all([
           getUserDirectoryApi({ role: ROLES.STUDENT }),
           getAcademicYearsApi(),
+          getClassesApi(),
         ]);
         if (u?.EC === 0) setStudents(u.data || []);
         if (y?.EC === 0) setYears(y.data || []);
+        if (c?.EC === 0) setClasses(c.data || []);
       }
       load();
     })();
@@ -184,28 +191,73 @@ const FeesPage = () => {
         ].filter((c) => c.title)}
       />
 
-      <Modal open={openFee} title="Tạo hóa đơn" onCancel={() => setOpenFee(false)} onOk={() => feeForm.submit()}>
+      <Modal
+        open={openFee}
+        title="Tạo hóa đơn học phí"
+        onCancel={() => setOpenFee(false)}
+        onOk={() => feeForm.submit()}
+        okText="Tạo hóa đơn"
+        cancelText="Hủy"
+        width={720}
+      >
         <Form
           form={feeForm}
           layout="vertical"
+          initialValues={{ targetScope: 'STUDENT', lineItems: [{ category: 'TUITION', quantity: 1 }] }}
           onFinish={async (v) => {
-            const res = await createFeeApi(v);
-            if (res?.EC === 0) {
-              message.success(res.EM);
+            if (v.targetScope === 'CLASS') {
+              const stRes = await getClassStudentsApi(v.classId);
+              const classStudents = stRes?.data || [];
+              if (!classStudents.length) {
+                return message.warning('Lớp học này chưa có học sinh nào');
+              }
+              let successCount = 0;
+              for (const st of classStudents) {
+                const res = await createFeeApi({ ...v, studentId: st._id });
+                if (res?.EC === 0) successCount += 1;
+              }
+              message.success(`Đã tạo hóa đơn cho ${successCount}/${classStudents.length} học sinh`);
               setOpenFee(false);
               feeForm.resetFields();
               load();
-            } else message.error(res?.EM);
+            } else {
+              const res = await createFeeApi(v);
+              if (res?.EC === 0) {
+                message.success(res.EM || 'Tạo hóa đơn thành công');
+                setOpenFee(false);
+                feeForm.resetFields();
+                load();
+              } else message.error(res?.EM);
+            }
           }}
         >
-          <Form.Item name="studentId" label="Học sinh" rules={[{ required: true }]}>
-            <Select options={students.map((s) => ({ value: s._id, label: s.name }))} />
+          <Form.Item name="targetScope" label="Đối tượng áp dụng" initialValue="STUDENT">
+            <Radio.Group onChange={(e) => setTargetScope(e.target.value)}>
+              <Radio.Button value="STUDENT">Từng học sinh</Radio.Button>
+              <Radio.Button value="CLASS">Cả lớp học</Radio.Button>
+            </Radio.Group>
           </Form.Item>
-          <Form.Item name="academicYearId" label="Năm học" rules={[{ required: true }]}>
-            <Select options={years.map((y) => ({ value: y._id, label: y.name }))} />
+
+          {targetScope === 'CLASS' ? (
+            <Form.Item name="classId" label="Lớp học" rules={[{ required: true, message: 'Vui lòng chọn lớp' }]}>
+              <Select placeholder="Chọn lớp áp dụng" options={classes.map((c) => ({ value: c._id, label: c.name }))} />
+            </Form.Item>
+          ) : (
+            <Form.Item name="studentId" label="Học sinh" rules={[{ required: true, message: 'Vui lòng chọn học sinh' }]}>
+              <Select
+                placeholder="Chọn học sinh"
+                showSearch
+                optionFilterProp="label"
+                options={students.map((s) => ({ value: s._id, label: `${s.name} (${s.code || 'HS'})` }))}
+              />
+            </Form.Item>
+          )}
+
+          <Form.Item name="academicYearId" label="Năm học" rules={[{ required: true, message: 'Chọn năm học' }]}>
+            <Select placeholder="Chọn năm học" options={years.map((y) => ({ value: y._id, label: y.name }))} />
           </Form.Item>
-          <Form.Item name="title" label="Nội dung" rules={[{ required: true }]}>
-            <Input />
+          <Form.Item name="title" label="Tiêu đề / Khoản thu" rules={[{ required: true, message: 'Nhập tiêu đề' }]}>
+            <Input placeholder="VD: Học phí Học kỳ 1, Tiền bán trú tháng 9..." />
           </Form.Item>
           <Form.Item name="description" label="Chi tiết"><Input.TextArea maxLength={1000} /></Form.Item>
           <Form.List

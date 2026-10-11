@@ -5,7 +5,7 @@ import { useSelector } from 'react-redux';
 import {
   closeHomeworkApi, createHomeworkApi, createRetakeRequestApi, downloadHomeworkAttachmentApi,
   getAcademicYearsApi, getClassesApi, getHomeworkSubmissionsApi, getHomeworksApi,
-  getRetakeRequestsApi, getSubjectsApi, gradeHomeworkApi, publishHomeworkApi,
+  getRetakeRequestsApi, getSubjectsApi, getUserDirectoryApi, gradeHomeworkApi, publishHomeworkApi,
   reviewRetakeRequestApi, submitHomeworkApi, uploadHomeworkAttachmentApi,
 } from '../../services/api.service';
 import { ROLES } from '../../constants/roles';
@@ -30,6 +30,7 @@ export default function AssignmentsPage() {
   const [classes, setClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [years, setYears] = useState([]);
+  const [teachers, setTeachers] = useState([]);
   const [retakes, setRetakes] = useState([]);
   const [open, setOpen] = useState(false);
   const [submitTarget, setSubmitTarget] = useState(null);
@@ -56,7 +57,17 @@ export default function AssignmentsPage() {
   useEffect(() => {
     (async () => {
       const requests = [];
-      if (manage) requests.push(getClassesApi().then(result => setClasses(result?.data || [])));
+      if (manage) {
+        requests.push(getClassesApi().then(result => setClasses(result?.data || [])));
+        if (!isTeacher) {
+          requests.push(
+            Promise.all([
+              getUserDirectoryApi({ role: ROLES.SUBJECT_TEACHER }),
+              getUserDirectoryApi({ role: ROLES.HOMEROOM_TEACHER }),
+            ]).then(([t, h]) => setTeachers([...(t?.data || []), ...(h?.data || [])]))
+          );
+        }
+      }
       if (manage || seeRetakes) {
         requests.push(getSubjectsApi().then(result => setSubjects(result?.data || [])));
         requests.push(getAcademicYearsApi().then(result => setYears(result?.data || [])));
@@ -138,7 +149,14 @@ export default function AssignmentsPage() {
         <Form.Item name="classId" label="Lớp" rules={[{ required: true }]}><Select options={classes.map(item => ({ value: item._id, label: item.name }))} /></Form.Item>
         <Form.Item name="subjectId" label="Môn" rules={[{ required: true }]}><Select options={subjects.map(item => ({ value: item._id, label: item.name }))} /></Form.Item>
         <Form.Item name="academicYearId" label="Năm học" rules={[{ required: true }]}><Select options={years.map(item => ({ value: item._id, label: item.name }))} /></Form.Item>
-        {!isTeacher && <Form.Item name="teacherId" label="ID giáo viên" rules={[{ required: true }]}><Input /></Form.Item>}
+        {!isTeacher && (
+          <Form.Item name="teacherId" label="Giáo viên phụ trách" rules={[{ required: true, message: 'Vui lòng chọn giáo viên' }]}>
+            <Select
+              placeholder="Chọn giáo viên đứng lớp"
+              options={teachers.map(t => ({ value: t._id, label: `${t.name} (${t.email})` }))}
+            />
+          </Form.Item>
+        )}
         <Form.Item name="dueAt" label="Hạn nộp" rules={[{ required: true }]}><Input type="datetime-local" /></Form.Item>
         <Form.Item name="maxScore" label="Điểm tối đa" initialValue={10} rules={[{ required: true }]}><InputNumber min={0.1} max={100} /></Form.Item>
         <Form.Item name="allowLate" label="Cho phép nộp trễ" valuePropName="checked"><input type="checkbox" /></Form.Item>

@@ -37,16 +37,17 @@ const TimetablePage = () => {
 
   useEffect(() => {
     (async () => {
-      const [c, s, y, t] = await Promise.all([
+      const [c, s, y, subT, homeT] = await Promise.all([
         getClassesApi(),
         getSubjectsApi(),
         getAcademicYearsApi(),
         getUserDirectoryApi({ role: ROLES.SUBJECT_TEACHER }),
+        getUserDirectoryApi({ role: ROLES.HOMEROOM_TEACHER }),
       ]);
       if (c?.EC === 0) setClasses(c.data || []);
       if (s?.EC === 0) setSubjects(s.data || []);
       if (y?.EC === 0) setYears(y.data || []);
-      if (t?.EC === 0) setTeachers(t.data || []);
+      setTeachers([...(subT?.data || []), ...(homeT?.data || [])]);
       load();
     })();
   }, []);
