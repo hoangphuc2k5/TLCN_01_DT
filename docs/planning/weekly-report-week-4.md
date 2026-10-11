@@ -35,14 +35,19 @@
 - **Correlation Tracing:** Bổ sung middleware `X-Request-Id` (UUID v4) trong `ExpressJS/src/app.js` tự động gắn vào response header phục vụ đối soát và truy vết lỗi.
 - **Tối ưu hóa Bundle Frontend:** Cấu hình `manualChunks` trong `ReactJS/vite.config.js` bóc tách `vendor-react` và `vendor-antd`. Giảm dung lượng file `index.js` chính từ 754.89 kB xuống còn **91.41 kB** (giảm 87%), rút ngắn thời gian build còn **8.5 giây** và sạch hoàn toàn cảnh báo build.
 
-### d. Kiểm thử tự động hóa toàn diện (Full Test Matrix)
-- Viết bổ sung 2 kịch bản kiểm thử tích hợp tự động cho `X-Request-Id` và Health Probe trong `ExpressJS/src/tests/common/contracts/http-boundary.integration.test.js`.
+### d. Cải tiến Phân hệ Thời khóa biểu & Lịch học (Layered Schedule Pattern)
+- Nâng cấp kiến trúc dữ liệu Thời khóa biểu: Bổ sung trường ngày hiệu lực `effectiveFrom` và `effectiveTo` trong `Timetable` giúp hệ thống hỗ trợ đổi TKB giữa kỳ mà không làm sai lệch lịch sử học tập các tuần trước đó.
+- Cải tiến giao diện [DatedSchedulePanel.jsx](file:///d:/TLCN/TLCN_01_DT/ReactJS/src/features/timetable/DatedSchedulePanel.jsx): Tích hợp bộ chọn Năm học và Tuần học thông minh, tự động nhận diện tuần hiện tại, tải dữ liệu on-demand theo tuần và duy trì 100% khả năng tương thích ngược.
+- Bổ sung integration test xác thực phạm vi hiệu lực của TKB trong `teaching-schedule.integration.test.js`.
+
+### e. Kiểm thử tự động hóa toàn diện (Full Test Matrix)
+- Viết bổ sung 3 kịch bản kiểm thử tích hợp tự động cho `X-Request-Id`, Health Probe và Giới hạn hiệu lực TKB.
 - Thực hiện kiểm thử toàn bộ hệ thống với kết quả tuyệt đối:
-  * **Backend Tests:** 288 / 288 tests PASSED (100%).
+  * **Backend Tests:** 289 / 289 tests PASSED (100%).
   * **Frontend Unit Tests:** 11 / 11 tests PASSED (100%).
   * **E2E Playwright Tests:** 46 / 46 kịch bản PASSED (100%) trên toàn bộ 14 phân hệ nghiệp vụ.
   * **Frontend Production Build:** 100% thành công, 0 lỗi, 0 warning.
-  * **Tổng cộng:** 345 / 345 bài kiểm thử đều đạt.
+  * **Tổng cộng:** 346 / 346 bài kiểm thử đều đạt.
 
 ### e. Quản lý mã nguồn & Quy trình Git
 - Hợp nhất sạch sẽ 26 commits từ nhánh `origin/Develop`.

@@ -20,6 +20,8 @@ function createTeachingScheduleService(dependencies) {
       if (!table.academicYearId?.startDate) continue;
       for (const date of days) {
         if (!dates.inRange(date, table.academicYearId.startDate, table.academicYearId.endDate)) continue;
+        if (table.effectiveFrom && date < dates.dateKey(table.effectiveFrom)) continue;
+        if (table.effectiveTo && date > dates.dateKey(table.effectiveTo)) continue;
         for (const slot of table.slots.filter(s => s.dayOfWeek === dates.weekday(date))) {
           const absence = absenceFor(leaves, slot.teacherId, date);
           rows.push({ ...slot, date, classId: table.classId, academicYearId: table.academicYearId,
