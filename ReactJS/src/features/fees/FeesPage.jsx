@@ -193,11 +193,9 @@ const FeesPage = () => {
 
       <Modal
         open={openFee}
-        title="Tạo hóa đơn học phí"
+        title="Tạo hóa đơn"
         onCancel={() => setOpenFee(false)}
         onOk={() => feeForm.submit()}
-        okText="Tạo hóa đơn"
-        cancelText="Hủy"
         width={720}
       >
         <Form
@@ -256,7 +254,7 @@ const FeesPage = () => {
           <Form.Item name="academicYearId" label="Năm học" rules={[{ required: true, message: 'Chọn năm học' }]}>
             <Select placeholder="Chọn năm học" options={years.map((y) => ({ value: y._id, label: y.name }))} />
           </Form.Item>
-          <Form.Item name="title" label="Tiêu đề / Khoản thu" rules={[{ required: true, message: 'Nhập tiêu đề' }]}>
+          <Form.Item name="title" label="Nội dung" rules={[{ required: true, message: 'Nhập nội dung' }]}>
             <Input placeholder="VD: Học phí Học kỳ 1, Tiền bán trú tháng 9..." />
           </Form.Item>
           <Form.Item name="description" label="Chi tiết"><Input.TextArea maxLength={1000} /></Form.Item>

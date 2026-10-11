@@ -129,6 +129,7 @@ export default function ClassLifePage() {
         parent ? (
           <Button
             size="small"
+            aria-label="Respond"
             type={r.response?.status ? 'default' : 'primary'}
             onClick={() => {
               rsvpForm.resetFields();
