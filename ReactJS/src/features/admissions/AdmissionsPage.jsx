@@ -1,11 +1,130 @@
 import { useEffect, useState } from 'react';
-import { Button, Input, Space, Table, Tag, message } from 'antd';
+import { Button, Form, Input, Modal, Select, Space, Table, Tag, message } from 'antd';
 import { getAdmissionsApi, reviewAdmissionApi } from '../../services/api.service';
 
-const AdmissionsPage = () => {
-  const [rows, setRows] = useState([]); const load = async () => { const r = await getAdmissionsApi(); if (r?.EC === 0) setRows(r.data || []); };
-  useEffect(() => { load(); }, []);
-  const review = async (row, status) => { const note = window.prompt('Ghi chu ket qua', ''); const r = await reviewAdmissionApi(row._id, { status, reviewNote: note || '' }); if (r?.EC === 0) load(); else message.error(r?.EM); };
-  return <div><Space style={{ marginBottom: 16 }}><Input.Search placeholder="Loc status" onSearch={value => getAdmissionsApi(value ? { status: value.toUpperCase() } : undefined).then(r => r?.EC === 0 && setRows(r.data || []))} /></Space><Table rowKey="_id" dataSource={rows} columns={[{ title: 'Ma ho so', dataIndex: 'trackingCode' }, { title: 'Hoc sinh', dataIndex: 'applicantName' }, { title: 'Khoi', dataIndex: 'requestedGrade' }, { title: 'Trang thai', dataIndex: 'status', render: v => <Tag>{v}</Tag> }, { title: 'Thao tac', render: (_, r) => <Space>{r.status === 'SUBMITTED' && <Button size="small" onClick={() => review(r, 'UNDER_REVIEW')}>Tiep nhan</Button>}{['SUBMITTED', 'UNDER_REVIEW'].includes(r.status) && <><Button size="small" onClick={() => review(r, 'ACCEPTED')}>Nhan hoc</Button><Button size="small" danger onClick={() => review(r, 'REJECTED')}>Tu choi</Button></>}</Space> }]} /></div>;
+const STATUS_COLORS = {
+  SUBMITTED: 'gold',
+  UNDER_REVIEW: 'blue',
+  ACCEPTED: 'green',
+  REJECTED: 'red',
 };
+
+const STATUS_LABELS = {
+  SUBMITTED: 'Đã nộp',
+  UNDER_REVIEW: 'Đang xét duyệt',
+  ACCEPTED: 'Nhận học',
+  REJECTED: 'Từ chối',
+};
+
+const AdmissionsPage = () => {
+  const [rows, setRows] = useState([]);
+  const [reviewTarget, setReviewTarget] = useState(null);
+  const [reviewStatus, setReviewStatus] = useState(null);
+  const [form] = Form.useForm();
+
+  const load = async () => {
+    const r = await getAdmissionsApi();
+    if (r?.EC === 0) setRows(r.data || []);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const openReview = (row, status) => {
+    form.resetFields();
+    setReviewTarget(row);
+    setReviewStatus(status);
+  };
+
+  const submitReview = async (values) => {
+    const r = await reviewAdmissionApi(reviewTarget._id, { status: reviewStatus, reviewNote: values.reviewNote || '' });
+    if (r?.EC === 0) {
+      message.success('Đã cập nhật kết quả xét tuyển');
+      setReviewTarget(null);
+      load();
+    } else {
+      message.error(r?.EM || 'Không thể cập nhật');
+    }
+  };
+
+  const reviewModalTitle = {
+    UNDER_REVIEW: 'Tiếp nhận hồ sơ',
+    ACCEPTED: 'Nhận học',
+    REJECTED: 'Từ chối hồ sơ',
+  }[reviewStatus] || 'Xét duyệt';
+
+  return (
+    <div>
+      <Space style={{ marginBottom: 16 }}>
+        <Input.Search
+          placeholder="Lọc theo trạng thái (SUBMITTED, ACCEPTED...)"
+          onSearch={value =>
+            getAdmissionsApi(value ? { status: value.toUpperCase() } : undefined)
+              .then(r => r?.EC === 0 && setRows(r.data || []))
+          }
+        />
+      </Space>
+      <Table
+        rowKey="_id"
+        dataSource={rows}
+        columns={[
+          { title: 'Mã hồ sơ', dataIndex: 'trackingCode' },
+          { title: 'Học sinh', dataIndex: 'applicantName' },
+          { title: 'Khối', dataIndex: 'requestedGrade' },
+          { title: 'Ghi chú duyệt', dataIndex: 'reviewNote', render: v => v || '—' },
+          {
+            title: 'Trạng thái',
+            dataIndex: 'status',
+            render: v => <Tag color={STATUS_COLORS[v]}>{STATUS_LABELS[v] || v}</Tag>,
+          },
+          {
+            title: 'Thao tác',
+            render: (_, r) => (
+              <Space>
+                {r.status === 'SUBMITTED' && (
+                  <Button size="small" onClick={() => openReview(r, 'UNDER_REVIEW')}>
+                    Tiếp nhận
+                  </Button>
+                )}
+                {['SUBMITTED', 'UNDER_REVIEW'].includes(r.status) && (
+                  <>
+                    <Button size="small" type="primary" onClick={() => openReview(r, 'ACCEPTED')}>
+                      Nhận học
+                    </Button>
+                    <Button size="small" danger onClick={() => openReview(r, 'REJECTED')}>
+                      Từ chối
+                    </Button>
+                  </>
+                )}
+              </Space>
+            ),
+          },
+        ]}
+      />
+      <Modal
+        open={!!reviewTarget}
+        title={reviewModalTitle}
+        okText="Xác nhận"
+        cancelText="Hủy"
+        okButtonProps={{ danger: reviewStatus === 'REJECTED' }}
+        onCancel={() => setReviewTarget(null)}
+        onOk={() => form.submit()}
+      >
+        <Form form={form} layout="vertical" onFinish={submitReview}>
+          <Form.Item
+            name="reviewNote"
+            label="Ghi chú kết quả xét tuyển"
+            rules={reviewStatus === 'REJECTED' ? [{ required: true, whitespace: true, message: 'Vui lòng nhập lý do từ chối' }] : []}
+          >
+            <Input.TextArea
+              rows={3}
+              maxLength={500}
+              placeholder={reviewStatus === 'REJECTED' ? 'Bắt buộc nhập lý do từ chối...' : 'Ghi chú thêm (không bắt buộc)'}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+    </div>
+  );
+};
+
 export default AdmissionsPage;
