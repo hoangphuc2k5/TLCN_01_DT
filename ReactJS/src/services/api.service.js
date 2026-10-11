@@ -213,6 +213,21 @@ export const importExcelApi = (type, file) => {
   fd.append('file', file);
   return axios.post(`/v1/api/import/${type}`, fd);
 };
+
+export const parseExamQuestionsApi = (file) => {
+  const fd = new FormData();
+  fd.append('file', file);
+  return axios.post('/v1/api/import/exams/parse', fd);
+};
+
+export const importExamFileApi = (file, meta = {}) => {
+  const fd = new FormData();
+  fd.append('file', file);
+  Object.entries(meta).forEach(([k, v]) => {
+    if (v !== undefined && v !== null) fd.append(k, v);
+  });
+  return axios.post('/v1/api/import/exams', fd);
+};
 // Advanced modules
 export const getSubscriptionsApi = () => axios.get('/v1/api/subscriptions');
 export const upsertSubscriptionApi = (data) => axios.post('/v1/api/subscriptions', data);

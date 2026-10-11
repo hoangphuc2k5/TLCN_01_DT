@@ -36,10 +36,23 @@ const importAttendance = asyncHandler(async (req, res) => {
   return success(res, responseDto.fromService(data), `Import điểm danh: ${data.success} thành công, ${data.failed} lỗi`);
 });
 
+const parseExamQuestions = asyncHandler(async (req, res) => {
+  const data = importService.parseExamQuestions(requireFile(req));
+  return success(res, responseDto.fromService(data), `Đã đọc ${data.questions.length} câu hỏi từ file`);
+});
+
+const importExam = asyncHandler(async (req, res) => {
+  const data = await importService.importExam(req.user, requireFile(req), requestDto.body(req));
+  return success(res, responseDto.fromService(data), `Tạo đề thi thành công với ${data.success} câu hỏi`);
+});
+
 module.exports = {
   downloadTemplate,
   importUsers,
   importGrades,
   importFees,
   importAttendance,
+  parseExamQuestions,
+  importExam,
 };
+

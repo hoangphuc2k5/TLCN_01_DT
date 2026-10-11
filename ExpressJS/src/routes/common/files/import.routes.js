@@ -34,6 +34,19 @@ const register1 = router => {
     audit('IMPORT', 'Attendance'),
     imp.importAttendance
   );
+  router.post(
+    '/import/exams/parse',
+    authorizePermissionAction('create', PERMISSIONS.MANAGE_EXAMS),
+    upload.single('file'),
+    imp.parseExamQuestions
+  );
+  router.post(
+    '/import/exams',
+    authorizePermissionAction('create', PERMISSIONS.MANAGE_EXAMS),
+    upload.single('file'),
+    audit('IMPORT', 'Exam'),
+    imp.importExam
+  );
 };
 
 module.exports = { register1 };
