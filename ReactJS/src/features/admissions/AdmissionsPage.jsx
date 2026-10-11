@@ -54,14 +54,39 @@ const AdmissionsPage = () => {
 
   return (
     <div>
-      <Space style={{ marginBottom: 16 }}>
-        <Input.Search
-          placeholder="Lọc theo trạng thái (SUBMITTED, ACCEPTED...)"
-          onSearch={value =>
-            getAdmissionsApi(value ? { status: value.toUpperCase() } : undefined)
+      <Space style={{ marginBottom: 16 }} wrap>
+        <Select
+          style={{ width: 180 }}
+          placeholder="Lọc theo trạng thái"
+          allowClear
+          options={[
+            { value: 'SUBMITTED', label: 'Đã nộp' },
+            { value: 'UNDER_REVIEW', label: 'Đang xét duyệt' },
+            { value: 'ACCEPTED', label: 'Nhận học' },
+            { value: 'REJECTED', label: 'Từ chối' },
+          ]}
+          onChange={value =>
+            getAdmissionsApi(value ? { status: value } : undefined)
               .then(r => r?.EC === 0 && setRows(r.data || []))
           }
         />
+        <Input.Search
+          placeholder="Tìm mã hồ sơ hoặc tên học sinh..."
+          style={{ width: 280 }}
+          allowClear
+          onSearch={value => {
+            const q = (value || '').trim().toLowerCase();
+            if (!q) {
+              load();
+            } else {
+              setRows(prev => prev.filter(r =>
+                (r.trackingCode || '').toLowerCase().includes(q) ||
+                (r.applicantName || '').toLowerCase().includes(q)
+              ));
+            }
+          }}
+        />
+        <Button onClick={load}>Làm mới</Button>
       </Space>
       <Table
         rowKey="_id"

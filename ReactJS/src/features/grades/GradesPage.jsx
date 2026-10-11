@@ -22,6 +22,9 @@ const GradesPage = () => {
   const [subjects, setSubjects] = useState([]);
   const [years, setYears] = useState([]);
   const [students, setStudents] = useState([]);
+  const [filterClass, setFilterClass] = useState(null);
+  const [filterSubject, setFilterSubject] = useState(null);
+  const [filterSemester, setFilterSemester] = useState(null);
   const [form] = Form.useForm();
 
   const load = async () => {
@@ -43,10 +46,25 @@ const GradesPage = () => {
     })();
   }, []);
 
+  const displayRows = rows.filter((r) => {
+    if (filterClass && (r.classId?._id || r.classId) !== filterClass) return false;
+    if (filterSubject && (r.subjectId?._id || r.subjectId) !== filterSubject) return false;
+    if (filterSemester && r.semester !== filterSemester) return false;
+    return true;
+  });
+
+  const getClassificationTag = (cls) => {
+    if (!cls) return '—';
+    if (['GIỎI', 'XUẤT SẮC', 'GIOI', 'EXCELLENT'].includes(String(cls).toUpperCase())) return <span style={{ color: '#2e7d32', fontWeight: 600 }}>{cls}</span>;
+    if (['KHÁ', 'KHA', 'GOOD'].includes(String(cls).toUpperCase())) return <span style={{ color: '#1565c0', fontWeight: 600 }}>{cls}</span>;
+    if (['TRUNG BÌNH', 'TB', 'AVERAGE'].includes(String(cls).toUpperCase())) return <span style={{ color: '#e65100', fontWeight: 600 }}>{cls}</span>;
+    return <span style={{ color: '#c62828', fontWeight: 600 }}>{cls}</span>;
+  };
+
   return (
     <div>
       {(canEnter || canExport(user, 'grades')) && (
-        <Space style={{ marginBottom: 16 }}>
+        <Space style={{ marginBottom: 16 }} wrap>
           {canEnter && <Button type="primary" onClick={() => setOpen(true)}>
             Nhập / cập nhật điểm
           </Button>}
@@ -64,16 +82,52 @@ const GradesPage = () => {
           </Button>}
         </Space>
       )}
+
+      <Space wrap style={{ marginBottom: 16 }}>
+        <Select
+          allowClear
+          placeholder="Lọc theo Lớp"
+          style={{ width: 160 }}
+          value={filterClass}
+          onChange={setFilterClass}
+          options={classes.map((c) => ({ value: c._id, label: c.name }))}
+        />
+        <Select
+          allowClear
+          placeholder="Lọc theo Môn"
+          style={{ width: 160 }}
+          value={filterSubject}
+          onChange={setFilterSubject}
+          options={subjects.map((s) => ({ value: s._id, label: s.name }))}
+        />
+        <Select
+          allowClear
+          placeholder="Lọc theo Học kỳ"
+          style={{ width: 140 }}
+          value={filterSemester}
+          onChange={setFilterSemester}
+          options={[
+            { value: 1, label: 'Học kỳ 1' },
+            { value: 2, label: 'Học kỳ 2' },
+          ]}
+        />
+        {(filterClass || filterSubject || filterSemester) && (
+          <Button onClick={() => { setFilterClass(null); setFilterSubject(null); setFilterSemester(null); }}>
+            Xóa bộ lọc
+          </Button>
+        )}
+      </Space>
+
       <Table
         rowKey="_id"
-        dataSource={rows}
+        dataSource={displayRows}
         columns={[
           { title: 'Học sinh', render: (_, r) => r.studentId?.name },
           { title: 'Lớp', render: (_, r) => r.classId?.name },
           { title: 'Môn', render: (_, r) => r.subjectId?.name },
           { title: 'HK', dataIndex: 'semester' },
           { title: 'ĐTB', dataIndex: 'average' },
-          { title: 'Xếp loại', dataIndex: 'classification' },
+          { title: 'Xếp loại', dataIndex: 'classification', render: (v) => getClassificationTag(v) },
           {
             title: 'Chi tiết',
             render: (_, r) =>

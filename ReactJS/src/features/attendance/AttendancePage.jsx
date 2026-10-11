@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, Form, Select, Space, Table, message, DatePicker, InputNumber } from 'antd';
+import { Button, Form, Select, Space, Table, Tag, message, DatePicker, InputNumber } from 'antd';
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
 import {
@@ -19,6 +19,13 @@ const statusOptions = [
   { value: 'ABSENT_EXCUSED', label: 'Vắng có phép' },
   { value: 'ABSENT_UNEXCUSED', label: 'Vắng không phép' },
 ];
+
+const ATTENDANCE_STATUS_TAGS = {
+  PRESENT: { label: 'Có mặt', color: 'green' },
+  LATE: { label: 'Đi trễ', color: 'gold' },
+  ABSENT_EXCUSED: { label: 'Có phép', color: 'orange' },
+  ABSENT_UNEXCUSED: { label: 'Không phép', color: 'red' },
+};
 
 const AttendancePage = () => {
   const { user } = useSelector((s) => s.auth);
@@ -179,9 +186,16 @@ const AttendancePage = () => {
               rowKey={(x) => x.studentId?._id || x.studentId}
               dataSource={r.records || []}
               columns={[
-                { title: 'HS', render: (_, x) => x.studentId?.name || x.studentId },
-                { title: 'TT', dataIndex: 'status' },
-                { title: 'Ghi chú', dataIndex: 'note' },
+                { title: 'Học sinh', render: (_, x) => x.studentId?.name || x.studentId },
+                {
+                  title: 'Trạng thái',
+                  dataIndex: 'status',
+                  render: (v) => {
+                    const item = ATTENDANCE_STATUS_TAGS[v];
+                    return item ? <Tag color={item.color}>{item.label}</Tag> : (v || '—');
+                  },
+                },
+                { title: 'Ghi chú', dataIndex: 'note', render: (v) => v || '—' },
               ]}
             />
           ),
