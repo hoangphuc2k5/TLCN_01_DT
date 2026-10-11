@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, Form, Select, Space, Table, Tag, message, DatePicker, InputNumber } from 'antd';
+import { Alert, Button, Form, Select, Space, Table, Tag, message, DatePicker, InputNumber } from 'antd';
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
 import {
@@ -7,6 +7,7 @@ import {
   getClassStudentsApi,
   getClassesApi,
   getSubjectsApi,
+  getTimetablesApi,
   recordAttendanceApi,
   downloadExport,
 } from '../../services/api.service';
@@ -36,6 +37,7 @@ const AttendancePage = () => {
   const [subjects, setSubjects] = useState([]);
   const [students, setStudents] = useState([]);
   const [records, setRecords] = useState({});
+  const [myTodaySlots, setMyTodaySlots] = useState([]);
   const [form] = Form.useForm();
 
   const loadHistory = async () => {
@@ -45,9 +47,29 @@ const AttendancePage = () => {
 
   useEffect(() => {
     (async () => {
-      const [c, s] = await Promise.all([getClassesApi(), getSubjectsApi()]);
+      const [c, s, tt] = await Promise.all([getClassesApi(), getSubjectsApi(), getTimetablesApi()]);
       if (c?.EC === 0) setClasses(c.data || []);
       if (s?.EC === 0) setSubjects(s.data || []);
+      if (tt?.EC === 0 && tt.data) {
+        const todayDow = dayjs().day() === 0 ? 7 : dayjs().day();
+        const slots = [];
+        tt.data.forEach((item) => {
+          (item.slots || []).forEach((slot) => {
+            const tId = slot.teacherId?._id || slot.teacherId;
+            const isMySlot = !user?._id || String(tId) === String(user?._id);
+            if (slot.dayOfWeek === todayDow && isMySlot) {
+              slots.push({
+                ...slot,
+                classId: item.classId?._id || item.classId,
+                className: item.classId?.name || 'Lớp',
+                subjectId: slot.subjectId?._id || slot.subjectId,
+                subjectName: slot.subjectId?.name || 'Môn',
+              });
+            }
+          });
+        });
+        setMyTodaySlots(slots);
+      }
       loadHistory();
     })();
   }, []);
@@ -62,6 +84,26 @@ const AttendancePage = () => {
       });
       setRecords(init);
     }
+  };
+
+  const applySlot = (slot) => {
+    form.setFieldsValue({
+      classId: slot.classId,
+      subjectId: slot.subjectId,
+      period: slot.period,
+      date: dayjs(),
+    });
+    onClassChange(slot.classId);
+    message.success(`Đã tự động chọn Lớp ${slot.className}, Môn ${slot.subjectName}, Tiết ${slot.period}`);
+  };
+
+  const markAllPresent = () => {
+    const all = {};
+    students.forEach((st) => {
+      all[st._id] = 'PRESENT';
+    });
+    setRecords(all);
+    message.info('Đã đánh dấu tất cả học sinh có mặt');
   };
 
   const submit = async (values) => {
@@ -84,19 +126,46 @@ const AttendancePage = () => {
       {(canTake || canExport(user, 'attendance')) && (
         <Space style={{ marginBottom: 16 }}>
           {canTake && <ImportExcelButton type="attendance" onDone={loadHistory} />}
-          {canExport(user, 'attendance') && <Button
-            onClick={async () => {
-              try {
-                await downloadExport('attendance');
-              } catch {
-                message.error('Xuất Excel thất bại');
-              }
-            }}
-          >
-            Xuất Excel
-          </Button>}
+          {canExport(user, 'attendance') && (
+            <Button
+              onClick={async () => {
+                try {
+                  await downloadExport('attendance');
+                } catch {
+                  message.error('Xuất Excel thất bại');
+                }
+              }}
+            >
+              Xuất Excel
+            </Button>
+          )}
         </Space>
       )}
+
+      {canTake && myTodaySlots.length > 0 && (
+        <Alert
+          style={{ marginBottom: 16 }}
+          type="info"
+          showIcon
+          message={
+            <Space wrap align="center">
+              <span><strong>Tiết dạy hôm nay theo TKB:</strong></span>
+              {myTodaySlots.map((slot, idx) => (
+                <Button
+                  key={idx}
+                  size="small"
+                  type="primary"
+                  ghost
+                  onClick={() => applySlot(slot)}
+                >
+                  Tiết {slot.period}: {slot.subjectName} ({slot.className})
+                </Button>
+              ))}
+            </Space>
+          }
+        />
+      )}
+
       {canTake && (
         <Form
           form={form}
@@ -134,27 +203,34 @@ const AttendancePage = () => {
       )}
 
       {canTake && students.length > 0 && (
-        <Table
-          style={{ marginBottom: 24 }}
-          rowKey="_id"
-          pagination={false}
-          dataSource={students}
-          columns={[
-            { title: 'Học sinh', dataIndex: 'name' },
-            { title: 'Mã', dataIndex: 'code' },
-            {
-              title: 'Trạng thái',
-              render: (_, r) => (
-                <Select
-                  style={{ width: 180 }}
-                  value={records[r._id]}
-                  options={statusOptions}
-                  onChange={(v) => setRecords((prev) => ({ ...prev, [r._id]: v }))}
-                />
-              ),
-            },
-          ]}
-        />
+        <div style={{ marginBottom: 24 }}>
+          <Space style={{ marginBottom: 8, justifyContent: 'space-between', width: '100%' }}>
+            <span><strong>Danh sách điểm danh ({students.length} học sinh)</strong></span>
+            <Button size="small" onClick={markAllPresent}>
+              Tất cả có mặt
+            </Button>
+          </Space>
+          <Table
+            rowKey="_id"
+            pagination={false}
+            dataSource={students}
+            columns={[
+              { title: 'Học sinh', dataIndex: 'name' },
+              { title: 'Mã', dataIndex: 'code' },
+              {
+                title: 'Trạng thái',
+                render: (_, r) => (
+                  <Select
+                    style={{ width: 180 }}
+                    value={records[r._id]}
+                    options={statusOptions}
+                    onChange={(v) => setRecords((prev) => ({ ...prev, [r._id]: v }))}
+                  />
+                ),
+              },
+            ]}
+          />
+        </div>
       )}
 
       <Space style={{ marginBottom: 8 }}>

@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button, Card, Form, Input, InputNumber, Modal, Radio, Select, Space, Table, Tag, message } from 'antd';
+import { Button, Card, Form, Input, InputNumber, Modal, Popconfirm, Radio, Select, Space, Table, Tag, message } from 'antd';
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
 import {
   closeHomeworkApi, createHomeworkApi, createRetakeRequestApi, downloadHomeworkAttachmentApi,
   getAcademicYearsApi, getClassesApi, getHomeworkSubmissionsApi, getHomeworksApi,
   getRetakeRequestsApi, getSubjectsApi, getUserDirectoryApi, gradeHomeworkApi, publishHomeworkApi,
-  reviewRetakeRequestApi, submitHomeworkApi, uploadHomeworkAttachmentApi,
+  reviewRetakeRequestApi, submitHomeworkApi, uploadHomeworkAttachmentApi, upsertGradeApi,
 } from '../../services/api.service';
 import { ROLES } from '../../constants/roles';
 import { can } from '../../utils/permissions';
@@ -195,6 +195,38 @@ export default function AssignmentsPage() {
     </Modal>
 
     <Modal open={!!gradeTarget} title={`Bài nộp: ${gradeTarget?.title || ''}`} onCancel={() => setGradeTarget(null)} footer={null} width={920}>
+      <Space style={{ marginBottom: 12 }}>
+        <Button
+          size="small"
+          type="primary"
+          onClick={async () => {
+            const graded = submissions.filter((s) => s.score != null);
+            if (graded.length === 0) return message.warning('Chưa có bài nào được chấm điểm');
+            let success = 0;
+            for (const item of graded) {
+              const classId = gradeTarget?.classId?._id || gradeTarget?.classId;
+              const subjectId = gradeTarget?.subjectId?._id || gradeTarget?.subjectId;
+              const academicYearId = gradeTarget?.academicYearId?._id || gradeTarget?.academicYearId;
+              const studentId = item.studentId?._id || item.studentId;
+              if (classId && subjectId && academicYearId && studentId) {
+                const res = await upsertGradeApi({
+                  academicYearId,
+                  classId,
+                  subjectId,
+                  studentId,
+                  semester: 1,
+                  scores: [{ type: 'QUIZ_15', score: item.score, weight: 1, note: `Bài: ${gradeTarget?.title || ''}` }],
+                  strategy: 'weighted',
+                });
+                if (res?.EC === 0) success += 1;
+              }
+            }
+            message.success(`Đã đồng bộ ${success}/${graded.length} điểm vào sổ điểm môn học (cột 15 phút)!`);
+          }}
+        >
+          Đồng bộ tất cả bài đã chấm vào sổ điểm (cột 15p)
+        </Button>
+      </Space>
       <Table size="small" rowKey="_id" dataSource={submissions} columns={[
         { title: 'Học sinh', render: (_, row) => row.studentId?.name || '' },
         { title: 'Hình thức', dataIndex: 'submissionMode', render: value => modeLabels[value] || value },
@@ -203,7 +235,44 @@ export default function AssignmentsPage() {
         { title: 'Thời gian nộp', dataIndex: 'submittedAt', render: formatDate },
         { title: 'Trễ', dataIndex: 'late', render: value => value ? 'Có' : 'Không' },
         { title: 'Điểm', dataIndex: 'score', render: value => value == null ? 'Chưa chấm' : value },
-        { title: 'Chấm', render: (_, row) => row.status === 'SUBMITTED' ? <Button size="small" onClick={() => { gradeForm.resetFields(); gradeForm.setFieldsValue({ submissionId: row._id }); }}>Chấm bài</Button> : 'Đã chấm' },
+        {
+          title: 'Thao tác',
+          render: (_, row) => (
+            <Space>
+              {row.status === 'SUBMITTED' ? (
+                <Button size="small" onClick={() => { gradeForm.resetFields(); gradeForm.setFieldsValue({ submissionId: row._id }); }}>Chấm bài</Button>
+              ) : (
+                <Tag color="green">Đã chấm</Tag>
+              )}
+              {row.score != null && (
+                <Popconfirm
+                  title="Đồng bộ điểm này vào sổ điểm (cột 15p)?"
+                  okText="Đồng ý"
+                  cancelText="Hủy"
+                  onConfirm={async () => {
+                    const classId = gradeTarget?.classId?._id || gradeTarget?.classId;
+                    const subjectId = gradeTarget?.subjectId?._id || gradeTarget?.subjectId;
+                    const academicYearId = gradeTarget?.academicYearId?._id || gradeTarget?.academicYearId;
+                    const studentId = row.studentId?._id || row.studentId;
+                    const res = await upsertGradeApi({
+                      academicYearId,
+                      classId,
+                      subjectId,
+                      studentId,
+                      semester: 1,
+                      scores: [{ type: 'QUIZ_15', score: row.score, weight: 1, note: `Bài: ${gradeTarget?.title || ''}` }],
+                      strategy: 'weighted',
+                    });
+                    if (res?.EC === 0) message.success('Đã đồng bộ điểm vào sổ điểm môn học!');
+                    else message.error(res?.EM || 'Không thể đồng bộ điểm');
+                  }}
+                >
+                  <Button size="small" type="link">Vào sổ điểm</Button>
+                </Popconfirm>
+              )}
+            </Space>
+          ),
+        },
       ]} />
       <Form form={gradeForm} layout="inline" onFinish={async values => { const result = await gradeHomeworkApi(values.submissionId, values); if (result?.EC === 0) { const refreshed = await getHomeworkSubmissionsApi(gradeTarget._id); setSubmissions(refreshed.data || []); gradeForm.resetFields(); message.success(result.EM); } else message.error(result?.EM); }} style={{ marginTop: 16 }}>
         <Form.Item name="submissionId" hidden><Input /></Form.Item>
