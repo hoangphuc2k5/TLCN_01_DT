@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button, Card, Col, Form, InputNumber, Modal, Row, Select, Space, Statistic, Table, Tabs, Tag, message } from 'antd';
+import { FileExcelOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
 import {
   getAcademicYearsApi,
@@ -149,6 +151,56 @@ const GradesPage = () => {
     },
   ];
 
+  const exportClassGradeSummary = () => {
+    if (!summaryData.students.length) {
+      message.warning('Không có dữ liệu điểm để xuất');
+      return;
+    }
+    const currentClassName = classes.find((c) => c._id === summaryClassId)?.name || 'Lop';
+    const headerRow = [
+      'STT',
+      'Mã Học Sinh',
+      'Họ và Tên',
+      ...summaryData.subjects.map((s) => s.name),
+      'Điểm TB Chung',
+      'Xếp Loại Học Lực',
+    ];
+
+    const dataRows = summaryData.students.map((st, idx) => {
+      const subjectScores = summaryData.subjects.map((s) => {
+        const val = st.scores[String(s.id)];
+        return val != null ? val : '';
+      });
+      return [
+        idx + 1,
+        st.code || '',
+        `"${(st.name || '').replace(/"/g, '""')}"`,
+        ...subjectScores,
+        st.gpa != null ? st.gpa : '',
+        st.classification || '',
+      ].join(',');
+    });
+
+    const csvContent =
+      '\uFEFF' +
+      [
+        `"BẢNG TỔNG HỢP ĐIỂM VÀ GPA LỚP: ${currentClassName.toUpperCase()} - HỌC KỲ ${summarySemester}"`,
+        `"Thời gian xuất: ${dayjs().format('DD/MM/YYYY HH:mm')}"`,
+        '',
+        headerRow.join(','),
+        ...dataRows,
+      ].join('\r\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Bang_Diem_Tong_Ket_${currentClassName}_HK${summarySemester}.csv`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    message.success('Đã xuất bảng điểm tổng kết lớp thành công');
+  };
+
   return (
     <div>
       <Tabs
@@ -266,6 +318,14 @@ const GradesPage = () => {
                       { value: 2, label: 'Học kỳ 2' },
                     ]}
                   />
+                  {canExport(user, 'grades') && (
+                    <Button
+                      icon={<FileExcelOutlined />}
+                      onClick={exportClassGradeSummary}
+                    >
+                      Xuất bảng điểm lớp (Excel)
+                    </Button>
+                  )}
                 </Space>
 
                 <Row gutter={16} style={{ marginBottom: 16 }}>

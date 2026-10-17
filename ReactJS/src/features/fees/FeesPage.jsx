@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Button, Card, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, message } from 'antd';
+import { Button, Card, Col, Form, Input, InputNumber, Modal, Row, Select, Space, Table, Tag, message } from 'antd';
+import { PrinterOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
 import {
@@ -50,6 +51,7 @@ const FeesPage = () => {
   const [openPay, setOpenPay] = useState(false);
   const [selected, setSelected] = useState(null);
   const [payingId, setPayingId] = useState(null);
+  const [receiptModal, setReceiptModal] = useState({ open: false, invoice: null });
   const [feeForm] = Form.useForm();
   const [payForm] = Form.useForm();
 
@@ -149,43 +151,56 @@ const FeesPage = () => {
           (canManage || canOnline)
             ? {
                 title: 'Thao tác',
-                render: (_, r) => r.status !== 'PAID' ? (
+                render: (_, r) => (
                   <Space size="small">
-                    {canManage && <Button
-                      size="small"
-                      onClick={() => {
-                        setSelected(r);
-                        payForm.resetFields();
-                        setOpenPay(true);
-                      }}
-                    >
-                      Thu tien
-                    </Button>}
-                    {canOnline && <Button
-                      size="small"
-                      type="primary"
-                      loading={payingId === r._id}
-                      disabled={!!payingId}
-                      onClick={async () => {
-                        setPayingId(r._id);
-                        try {
-                          const res = await createOnlinePaymentApi({
-                            invoiceId: r._id,
-                            provider: 'VNPAY',
-                          });
-                          if (res?.EC === 0 && res.data?.checkoutUrl) {
-                            window.location.assign(res.data.checkoutUrl);
-                          } else {
-                            message.error(res?.EM || 'Không tạo được giao dịch');
-                          }
-                        } catch { message.error('Không kết nối được cổng thanh toán'); }
-                        finally { setPayingId(null); }
-                      }}
-                    >
-                      Thanh toán VNPay
-                    </Button>}
+                    {r.status !== 'PAID' && canManage && (
+                      <Button
+                        size="small"
+                        onClick={() => {
+                          setSelected(r);
+                          payForm.resetFields();
+                          setOpenPay(true);
+                        }}
+                      >
+                        Thu tiền
+                      </Button>
+                    )}
+                    {r.status !== 'PAID' && canOnline && (
+                      <Button
+                        size="small"
+                        type="primary"
+                        loading={payingId === r._id}
+                        disabled={!!payingId}
+                        onClick={async () => {
+                          setPayingId(r._id);
+                          try {
+                            const res = await createOnlinePaymentApi({
+                              invoiceId: r._id,
+                              provider: 'VNPAY',
+                            });
+                            if (res?.EC === 0 && res.data?.checkoutUrl) {
+                              window.location.assign(res.data.checkoutUrl);
+                            } else {
+                              message.error(res?.EM || 'Không tạo được giao dịch');
+                            }
+                          } catch { message.error('Không kết nối được cổng thanh toán'); }
+                          finally { setPayingId(null); }
+                        }}
+                      >
+                        Thanh toán VNPay
+                      </Button>
+                    )}
+                    {r.paidAmount > 0 && (
+                      <Button
+                        size="small"
+                        icon={<PrinterOutlined />}
+                        onClick={() => setReceiptModal({ open: true, invoice: r })}
+                      >
+                        Biên lai
+                      </Button>
+                    )}
                   </Space>
-                ) : null,
+                ),
               }
             : {},
         ].filter((c) => c.title)}
@@ -328,6 +343,96 @@ const FeesPage = () => {
         </Form>
       </Modal>
 
+      <Modal
+        open={receiptModal.open}
+        title={null}
+        footer={[
+          <Button key="close" onClick={() => setReceiptModal({ open: false, invoice: null })}>
+            Đóng
+          </Button>,
+          <Button
+            key="print"
+            type="primary"
+            icon={<PrinterOutlined />}
+            onClick={() => window.print()}
+          >
+            In phiếu thu
+          </Button>,
+        ]}
+        onCancel={() => setReceiptModal({ open: false, invoice: null })}
+        width={680}
+      >
+        {receiptModal.invoice && (
+          <div style={{ padding: '16px 8px', color: '#1f1f1f', fontFamily: 'sans-serif' }}>
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: 1, color: '#595959' }}>
+                HỆ THỐNG GIÁO DỤC EDUMOET
+              </div>
+              <h2 style={{ margin: '8px 0 4px 0', color: '#0f4c5c', textTransform: 'uppercase' }}>
+                PHIẾU THU TIỀN HỌC PHÍ
+              </h2>
+              <div style={{ fontSize: 12, color: '#8c8c8c' }}>
+                Mã biên lai: <strong>REC-{receiptModal.invoice._id?.slice(-8).toUpperCase()}</strong> · Ngày lập: {dayjs(receiptModal.invoice.updatedAt || receiptModal.invoice.createdAt).format('DD/MM/YYYY HH:mm')}
+              </div>
+            </div>
+
+            <div style={{ background: '#fafafa', padding: 14, borderRadius: 6, marginBottom: 16 }}>
+              <Row gutter={[16, 8]}>
+                <Col span={14}>
+                  <div>Họ tên học sinh: <strong>{receiptModal.invoice.studentId?.name || 'Học sinh'}</strong></div>
+                  <div>Mã học sinh: <strong>{receiptModal.invoice.studentId?.code || '—'}</strong></div>
+                </Col>
+                <Col span={10}>
+                  <div>Nội dung thu: <strong>{receiptModal.invoice.title}</strong></div>
+                  <div>Trạng thái: <Tag color={statusColor[receiptModal.invoice.status]}>{receiptModal.invoice.status}</Tag></div>
+                </Col>
+              </Row>
+            </div>
+
+            <Table
+              size="small"
+              pagination={false}
+              dataSource={receiptModal.invoice.lineItems?.length ? receiptModal.invoice.lineItems : [{ name: receiptModal.invoice.title, amount: receiptModal.invoice.amount, paidAmount: receiptModal.invoice.paidAmount }]}
+              rowKey={(item, idx) => item._id || idx}
+              columns={[
+                { title: 'STT', render: (_, __, i) => i + 1, width: 50 },
+                { title: 'Khoản thu', dataIndex: 'name' },
+                { title: 'Số tiền phải nộp', dataIndex: 'amount', render: v => Number(v || 0).toLocaleString('vi-VN') + ' đ' },
+                { title: 'Đã thanh toán', dataIndex: 'paidAmount', render: v => <strong style={{ color: '#2e7d32' }}>{Number(v || receiptModal.invoice.paidAmount || 0).toLocaleString('vi-VN')} đ</strong> },
+              ]}
+              summary={() => (
+                <Table.Summary fixed>
+                  <Table.Summary.Row style={{ background: '#f6ffed' }}>
+                    <Table.Summary.Cell index={0} colSpan={2}>
+                      <strong>TỔNG TIỀN ĐÃ THU</strong>
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={1} colSpan={2}>
+                      <strong style={{ color: '#2e7d32', fontSize: 16 }}>
+                        {Number(receiptModal.invoice.paidAmount || 0).toLocaleString('vi-VN')} VNĐ
+                      </strong>
+                    </Table.Summary.Cell>
+                  </Table.Summary.Row>
+                </Table.Summary>
+              )}
+            />
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 32, textAlign: 'center', padding: '0 24px' }}>
+              <div>
+                <div style={{ fontWeight: 600 }}>Người nộp tiền</div>
+                <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>(Ký và ghi rõ họ tên)</div>
+                <div style={{ height: 48 }} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 600 }}>Người lập phiếu / Thủ quỹ</div>
+                <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>(Đã xác thực điện tử)</div>
+                <div style={{ height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Tag color="success">ĐÃ XÁC NHẬN</Tag>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };
