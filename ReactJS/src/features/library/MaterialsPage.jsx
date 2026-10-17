@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button, Form, Input, Modal, Popconfirm, Select, Space, Table, Radio, Switch, Typography, message } from 'antd';
+import { EyeOutlined, DownloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
 import {
@@ -10,11 +11,13 @@ import {
   getSubjectsApi,
   uploadMaterialApi,
   downloadFileAssetApi,
+  fetchFileAssetBlobApi,
   getFileUsageApi,
   getMaterialDownloadsApi,
 } from '../../services/api.service';
 import { can } from '../../utils/permissions';
 import { ROLES } from '../../constants/roles';
+import FilePreviewModal from '../../components/FilePreviewModal';
 
 const MaterialsPage = () => {
   const { user } = useSelector((s) => s.auth);
@@ -33,7 +36,67 @@ const MaterialsPage = () => {
   const [saving, setSaving] = useState(false);
   const [usage, setUsage] = useState(null);
   const [downloads, setDownloads] = useState({ open: false, loading: false, data: null });
+  const [preview, setPreview] = useState({
+    open: false,
+    loading: false,
+    error: null,
+    title: '',
+    fileName: '',
+    fileUrl: '',
+    mimeType: '',
+    sizeBytes: null,
+    onDownload: null,
+  });
   const [form] = Form.useForm();
+
+  const handlePreviewMaterial = async (row) => {
+    setPreview({
+      open: true,
+      loading: true,
+      error: null,
+      title: row.title,
+      fileName: '',
+      fileUrl: '',
+      mimeType: '',
+      sizeBytes: null,
+      onDownload: () => downloadFileAssetApi(row.fileAssetId).catch(e => message.error(e.message)),
+    });
+    try {
+      const res = await fetchFileAssetBlobApi(row.fileAssetId);
+      setPreview((prev) => ({
+        ...prev,
+        loading: false,
+        fileName: res.fileName,
+        fileUrl: res.url,
+        mimeType: res.mimeType,
+        sizeBytes: res.sizeBytes,
+      }));
+    } catch (err) {
+      setPreview((prev) => ({
+        ...prev,
+        loading: false,
+        error: err.message || 'Không thể tải tệp xem trước',
+      }));
+    }
+  };
+
+  const closePreview = () => {
+    if (preview.fileUrl) {
+      URL.revokeObjectURL(preview.fileUrl);
+    }
+    setPreview({
+      open: false,
+      loading: false,
+      error: null,
+      title: '',
+      fileName: '',
+      fileUrl: '',
+      mimeType: '',
+      sizeBytes: null,
+      onDownload: null,
+    });
+  };
+
 
   const load = async () => {
     const res = await getMaterialsApi();
@@ -75,9 +138,26 @@ const MaterialsPage = () => {
             title: 'Tài liệu',
             dataIndex: 'fileUrl',
             render: (v, r) =>
-              r.fileAssetId ? <Button type="link" onClick={() => downloadFileAssetApi(r.fileAssetId).catch(e => message.error(e.message))}>Tải file</Button> : v ? (
+              r.fileAssetId ? (
+                <Space size="small">
+                  <Button
+                    type="link"
+                    icon={<EyeOutlined />}
+                    onClick={() => handlePreviewMaterial(r)}
+                  >
+                    Xem
+                  </Button>
+                  <Button
+                    type="text"
+                    icon={<DownloadOutlined />}
+                    onClick={() => downloadFileAssetApi(r.fileAssetId).catch(e => message.error(e.message))}
+                  >
+                    Tải
+                  </Button>
+                </Space>
+              ) : v ? (
                 <a href={v} target="_blank" rel="noreferrer">
-                  Mở
+                  Mở link
                 </a>
               ) : (
                 '—'
@@ -206,6 +286,7 @@ const MaterialsPage = () => {
           </Form.Item>
         </Form>
       </Modal>
+      <FilePreviewModal {...preview} onClose={closePreview} />
     </div>
   );
 };
