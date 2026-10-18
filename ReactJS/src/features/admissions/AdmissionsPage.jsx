@@ -54,13 +54,16 @@ const AdmissionsPage = () => {
 
   const openEnroll = (row) => {
     enrollForm.resetFields();
-    const clean = (row.trackingCode || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    const clean = (row.trackingCode || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    const cleanNum = (row.trackingCode || '').replace(/[^0-9]/g, '');
+    const autoCode = `HS${dayjs().year()}-${cleanNum ? cleanNum.slice(-4) : clean ? clean.slice(-4) : Math.floor(1000 + Math.random() * 9000)}`;
     const gradeClasses = classes.filter((c) => !row.requestedGrade || c.gradeLevel === row.requestedGrade);
     enrollForm.setFieldsValue({
       name: row.applicantName,
+      code: autoCode,
       dateOfBirth: row.dateOfBirth ? dayjs(row.dateOfBirth) : undefined,
       phone: row.guardianPhone,
-      email: `hs.${clean || Date.now()}@school.edu.vn`,
+      email: `hs.${clean.toLowerCase() || Date.now()}@school.edu.vn`,
       classId: gradeClasses[0]?._id || classes[0]?._id,
     });
     setEnrollTarget(row);
@@ -71,6 +74,7 @@ const AdmissionsPage = () => {
     try {
       const payload = {
         name: values.name,
+        code: values.code,
         email: values.email,
         phone: values.phone,
         role: 'STUDENT',
@@ -79,7 +83,7 @@ const AdmissionsPage = () => {
       };
       const res = await createUserApi(payload);
       if (res?.EC === 0) {
-        message.success(`Đã tạo học sinh "${values.name}" thành công và phân vào lớp!`);
+        message.success(`Đã tạo học sinh "${values.name}" (Mã: ${values.code}) thành công và phân vào lớp!`);
         setEnrollTarget(null);
       } else {
         message.error(res?.EM || 'Không thể tạo tài khoản học sinh');
@@ -215,6 +219,9 @@ const AdmissionsPage = () => {
         <Form form={enrollForm} layout="vertical" onFinish={submitEnroll}>
           <Form.Item name="name" label="Họ và tên học sinh" rules={[{ required: true }]}>
             <Input />
+          </Form.Item>
+          <Form.Item name="code" label="Mã số học sinh (Tự động sinh)" rules={[{ required: true, message: 'Nhập mã học sinh' }]}>
+            <Input placeholder="HS2026-XXXX" />
           </Form.Item>
           <Form.Item name="email" label="Email đăng nhập" rules={[{ required: true, type: 'email' }]}>
             <Input placeholder="hs.xxx@school.edu.vn" />

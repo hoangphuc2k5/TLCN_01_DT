@@ -14,8 +14,8 @@ test('accountant creates and reviews a fee invoice split into line items', async
   await page.getByRole('button', { name: 'Tạo hóa đơn', exact: true }).click();
 
   const modal = page.getByRole('dialog', { name: 'Tạo hóa đơn' });
-  await modal.getByLabel('Học sinh').click();
-  await page.locator('.ant-select-dropdown:visible').getByText('student 0', { exact: true }).click();
+  await modal.getByLabel('Học sinh', { exact: true }).click();
+  await page.locator('.ant-select-dropdown:visible').getByText('student 0').first().click();
   await modal.getByLabel('Năm học').click();
   await page.locator('.ant-select-dropdown:visible').getByText('2026-2027', { exact: true }).click();
   await modal.getByLabel('Nội dung').fill('Học phí tháng 9 nhiều khoản');

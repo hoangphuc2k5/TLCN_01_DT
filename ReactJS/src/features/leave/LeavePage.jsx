@@ -153,7 +153,7 @@ const LeavePage = () => {
             : {},
         ].filter((c) => c.title)}
       />
-      <Modal open={!!cancelTarget} title="Hủy lịch dạy bù" okText="Xác nhận hủy" okButtonProps={{ danger: true }} cancelText="Đóng" onCancel={() => setCancelTarget(null)} onOk={() => cancelForm.submit()}>
+      <Modal open={!!cancelTarget} title="Hủy lịch dạy bù" okText="Đồng ý" okButtonProps={{ danger: true }} cancelText="Đóng" onCancel={() => setCancelTarget(null)} onOk={() => cancelForm.submit()}>
         <p>Lịch bù sẽ được gỡ khỏi lịch theo ngày. Giáo viên có thể gửi đề xuất mới cho tiết nghỉ này.</p>
         <Form form={cancelForm} layout="vertical" onFinish={async values => {
           const res = await cancelMakeupApi(cancelTarget._id, values);
