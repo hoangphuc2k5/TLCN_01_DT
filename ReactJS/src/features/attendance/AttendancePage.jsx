@@ -6,6 +6,7 @@ import {
   getAttendanceApi,
   getClassStudentsApi,
   getClassesApi,
+  getLeavesApi,
   getSubjectsApi,
   getTimetablesApi,
   recordAttendanceApi,
@@ -37,6 +38,8 @@ const AttendancePage = () => {
   const [subjects, setSubjects] = useState([]);
   const [students, setStudents] = useState([]);
   const [records, setRecords] = useState({});
+  const [leaves, setLeaves] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(dayjs());
   const [myTodaySlots, setMyTodaySlots] = useState([]);
   const [form] = Form.useForm();
 
@@ -47,9 +50,15 @@ const AttendancePage = () => {
 
   useEffect(() => {
     (async () => {
-      const [c, s, tt] = await Promise.all([getClassesApi(), getSubjectsApi(), getTimetablesApi()]);
+      const [c, s, tt, lv] = await Promise.all([
+        getClassesApi(),
+        getSubjectsApi(),
+        getTimetablesApi(),
+        getLeavesApi({ status: 'APPROVED' }).catch(() => ({ EC: -1 })),
+      ]);
       if (c?.EC === 0) setClasses(c.data || []);
       if (s?.EC === 0) setSubjects(s.data || []);
+      if (lv?.EC === 0) setLeaves(lv.data || []);
       if (tt?.EC === 0 && tt.data) {
         const todayDow = dayjs().day() === 0 ? 7 : dayjs().day();
         const slots = [];
@@ -74,13 +83,28 @@ const AttendancePage = () => {
     })();
   }, []);
 
-  const onClassChange = async (classId) => {
+  const getLeaveForStudent = (studentId, date = selectedDate) => {
+    if (!date) return null;
+    const target = dayjs(date).startOf('day');
+    return leaves.find((l) => {
+      if (l.status !== 'APPROVED' || l.type !== 'STUDENT_ABSENCE') return false;
+      const sid = l.studentId?._id || l.studentId;
+      if (String(sid) !== String(studentId)) return false;
+      const from = dayjs(l.fromDate).startOf('day');
+      const to = dayjs(l.toDate).endOf('day');
+      return (target.isAfter(from) || target.isSame(from)) && (target.isBefore(to) || target.isSame(to));
+    });
+  };
+
+  const onClassChange = async (classId, date = selectedDate) => {
     const res = await getClassStudentsApi(classId);
     if (res?.EC === 0) {
-      setStudents(res.data || []);
+      const studentList = res.data || [];
+      setStudents(studentList);
       const init = {};
-      (res.data || []).forEach((st) => {
-        init[st._id] = 'PRESENT';
+      studentList.forEach((st) => {
+        const lv = getLeaveForStudent(st._id, date);
+        init[st._id] = lv ? 'ABSENT_EXCUSED' : 'PRESENT';
       });
       setRecords(init);
     }
@@ -191,7 +215,16 @@ const AttendancePage = () => {
             />
           </Form.Item>
           <Form.Item name="date" rules={[{ required: true }]}>
-            <DatePicker />
+            <DatePicker
+              format="DD/MM/YYYY"
+              onChange={(d) => {
+                if (d) {
+                  setSelectedDate(d);
+                  const cId = form.getFieldValue('classId');
+                  if (cId) onClassChange(cId, d);
+                }
+              }}
+            />
           </Form.Item>
           <Form.Item name="period">
             <InputNumber min={1} max={10} placeholder="Tiết" />
@@ -204,6 +237,14 @@ const AttendancePage = () => {
 
       {canTake && students.length > 0 && (
         <div style={{ marginBottom: 24 }}>
+          {students.some((st) => getLeaveForStudent(st._id, selectedDate)) && (
+            <Alert
+              type="warning"
+              showIcon
+              style={{ marginBottom: 12 }}
+              message={`Phát hiện ${students.filter((st) => getLeaveForStudent(st._id, selectedDate)).length} học sinh có đơn xin nghỉ phép hợp lệ trong ngày. Hệ thống đã tự động chọn trạng thái "Có phép".`}
+            />
+          )}
           <Space style={{ marginBottom: 8, justifyContent: 'space-between', width: '100%' }}>
             <span><strong>Danh sách điểm danh ({students.length} học sinh)</strong></span>
             <Button size="small" onClick={markAllPresent}>
@@ -217,6 +258,19 @@ const AttendancePage = () => {
             columns={[
               { title: 'Học sinh', dataIndex: 'name' },
               { title: 'Mã', dataIndex: 'code' },
+              {
+                title: 'Đơn xin nghỉ phép',
+                render: (_, r) => {
+                  const lv = getLeaveForStudent(r._id, selectedDate);
+                  return lv ? (
+                    <Tag color="cyan">
+                      Đơn phép: {lv.reason} ({dayjs(lv.fromDate).format('DD/MM')} - {dayjs(lv.toDate).format('DD/MM')})
+                    </Tag>
+                  ) : (
+                    '—'
+                  );
+                },
+              },
               {
                 title: 'Trạng thái',
                 render: (_, r) => (
