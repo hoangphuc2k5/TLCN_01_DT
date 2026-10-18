@@ -246,7 +246,7 @@ const FeesPage = () => {
         >
           <Form.Item name="targetScope" label="Đối tượng áp dụng" initialValue="STUDENT">
             <Radio.Group onChange={(e) => setTargetScope(e.target.value)}>
-              <Radio.Button value="STUDENT">Từng học sinh</Radio.Button>
+              <Radio.Button value="STUDENT">Theo cá nhân</Radio.Button>
               <Radio.Button value="CLASS">Cả lớp học</Radio.Button>
             </Radio.Group>
           </Form.Item>
@@ -261,7 +261,7 @@ const FeesPage = () => {
                 placeholder="Chọn học sinh"
                 showSearch
                 optionFilterProp="label"
-                options={students.map((s) => ({ value: s._id, label: `${s.name} (${s.code || 'HS'})` }))}
+                options={students.map((s) => ({ value: s._id, label: s.name }))}
               />
             </Form.Item>
           )}
