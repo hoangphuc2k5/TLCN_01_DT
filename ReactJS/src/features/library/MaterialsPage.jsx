@@ -148,11 +148,11 @@ const MaterialsPage = () => {
                     Xem
                   </Button>
                   <Button
-                    type="text"
-                    icon={<DownloadOutlined />}
+                    type="link"
+                    aria-label="Tải file"
                     onClick={() => downloadFileAssetApi(r.fileAssetId).catch(e => message.error(e.message))}
                   >
-                    Tải
+                    Tải file
                   </Button>
                 </Space>
               ) : v ? (
