@@ -341,6 +341,73 @@ export const downloadFileAssetApi = async id => {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
 
+export const fetchFileAssetBlobApi = async id => {
+  const meta = await axios.get(`/v1/api/files/${id}`);
+  if (meta?.EC !== 0) throw new Error(meta?.EM || 'Không tải được thông tin file');
+  const response = await fetch(`${apiOrigin()}/v1/api/files/${id}/download`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.EM || 'Tải dữ liệu tệp thất bại');
+  }
+  const originalName = meta.data?.originalName || 'file';
+  let mimeType = meta.data?.mimeType;
+  if (!mimeType || mimeType === 'application/octet-stream') {
+    const lower = originalName.toLowerCase();
+    if (lower.endsWith('.pdf')) mimeType = 'application/pdf';
+    else if (lower.endsWith('.png')) mimeType = 'image/png';
+    else if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) mimeType = 'image/jpeg';
+    else if (lower.endsWith('.webp')) mimeType = 'image/webp';
+    else if (lower.endsWith('.svg')) mimeType = 'image/svg+xml';
+    else if (lower.endsWith('.txt')) mimeType = 'text/plain';
+    else if (lower.endsWith('.json')) mimeType = 'application/json';
+  }
+  const rawBlob = await response.blob();
+  const blob = mimeType ? new Blob([rawBlob], { type: mimeType }) : rawBlob;
+  const url = URL.createObjectURL(blob);
+  return {
+    url,
+    meta: meta.data,
+    fileName: originalName,
+    mimeType: mimeType || rawBlob.type,
+    sizeBytes: meta.data?.sizeBytes || rawBlob.size,
+  };
+};
+
+export const fetchStudentDocumentBlobApi = async (id, fallbackName = 'document') => {
+  const response = await fetch(`${apiOrigin()}/v1/api/student-documents/${id}/download`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.EM || 'Tải dữ liệu hồ sơ thất bại');
+  }
+  const disposition = response.headers.get('content-disposition') || '';
+  const match = disposition.match(/filename="([^"]+)"/i);
+  const fileName = match?.[1] || fallbackName;
+  let mimeType = '';
+  const lower = fileName.toLowerCase();
+  if (lower.endsWith('.pdf')) mimeType = 'application/pdf';
+  else if (lower.endsWith('.png')) mimeType = 'image/png';
+  else if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) mimeType = 'image/jpeg';
+  else if (lower.endsWith('.webp')) mimeType = 'image/webp';
+  else if (lower.endsWith('.svg')) mimeType = 'image/svg+xml';
+  else if (lower.endsWith('.txt')) mimeType = 'text/plain';
+  else if (lower.endsWith('.json')) mimeType = 'application/json';
+
+  const rawBlob = await response.blob();
+  const blob = mimeType ? new Blob([rawBlob], { type: mimeType }) : rawBlob;
+  const url = URL.createObjectURL(blob);
+  return {
+    url,
+    fileName,
+    mimeType: mimeType || rawBlob.type,
+    sizeBytes: rawBlob.size,
+  };
+};
+
+
 export const getBooksApi = (params) => axios.get('/v1/api/library/books', { params });
 export const createBookApi = (data) => axios.post('/v1/api/library/books', data);
 export const getLoansApi = (params) => axios.get('/v1/api/library/loans', { params });

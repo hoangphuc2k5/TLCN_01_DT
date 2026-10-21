@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button, Card, Form, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
+import { EyeOutlined, DownloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
 import {
@@ -10,8 +11,10 @@ import {
   getStudentDocumentsApi,
   getUserDirectoryApi,
   uploadStudentDocumentApi,
+  fetchStudentDocumentBlobApi,
 } from '../../services/api.service';
 import { can } from '../../utils/permissions';
+import FilePreviewModal from '../../components/FilePreviewModal';
 
 const TYPE_LABELS = {
   IDENTITY: 'Giấy tờ tùy thân',
@@ -33,7 +36,68 @@ const StudentDocumentsPage = () => {
   const [file, setFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState('');
+  const [preview, setPreview] = useState({
+    open: false,
+    loading: false,
+    error: null,
+    title: '',
+    fileName: '',
+    fileUrl: '',
+    mimeType: '',
+    sizeBytes: null,
+    onDownload: null,
+  });
   const [form] = Form.useForm();
+
+  const handlePreviewDocument = async (row) => {
+    const docName = row.fileAssetId?.originalName || row.title || 'Hồ sơ học sinh';
+    setPreview({
+      open: true,
+      loading: true,
+      error: null,
+      title: row.title || 'Hồ sơ học sinh',
+      fileName: docName,
+      fileUrl: '',
+      mimeType: '',
+      sizeBytes: null,
+      onDownload: () => downloadStudentDocumentApi(row._id, docName).catch(e => message.error(e.message)),
+    });
+    try {
+      const res = await fetchStudentDocumentBlobApi(row._id, docName);
+      setPreview((prev) => ({
+        ...prev,
+        loading: false,
+        fileName: res.fileName,
+        fileUrl: res.url,
+        mimeType: res.mimeType,
+        sizeBytes: res.sizeBytes,
+      }));
+    } catch (err) {
+      setPreview((prev) => ({
+        ...prev,
+        loading: false,
+        error: err.message || 'Không thể tải tệp xem trước',
+      }));
+    }
+  };
+
+  const closePreview = () => {
+    if (preview.fileUrl) {
+      URL.revokeObjectURL(preview.fileUrl);
+    }
+    setPreview({
+      open: false,
+      loading: false,
+      error: null,
+      title: '',
+      fileName: '',
+      fileUrl: '',
+      mimeType: '',
+      sizeBytes: null,
+      onDownload: null,
+    });
+  };
+
 
   const load = async () => {
     const result = await getStudentDocumentsApi();
@@ -124,12 +188,22 @@ const StudentDocumentsPage = () => {
             {
               title: 'Tệp',
               render: (_, row) => (
-                <Button
-                  type="link"
-                  onClick={() => downloadStudentDocumentApi(row._id, row.fileAssetId?.originalName || row.title).catch(e => message.error(e.message))}
-                >
-                  Tải xuống
-                </Button>
+                <Space size="small">
+                  <Button
+                    type="link"
+                    icon={<EyeOutlined />}
+                    onClick={() => handlePreviewDocument(row)}
+                  >
+                    Xem
+                  </Button>
+                  <Button
+                    type="text"
+                    icon={<DownloadOutlined />}
+                    onClick={() => downloadStudentDocumentApi(row._id, row.fileAssetId?.originalName || row.title).catch(e => message.error(e.message))}
+                  >
+                    Tải
+                  </Button>
+                </Space>
               ),
             },
             { title: 'Người tải lên', render: (_, row) => row.uploadedBy?.name || '—' },
@@ -214,6 +288,7 @@ const StudentDocumentsPage = () => {
           </Form.Item>
         </Form>
       </Modal>
+      <FilePreviewModal {...preview} onClose={closePreview} />
     </Space>
   );
 };
