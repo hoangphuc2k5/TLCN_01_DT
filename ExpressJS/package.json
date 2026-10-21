@@ -13,7 +13,8 @@
     "backup": "node scripts/backup.js",
     "seed": "node ./src/config/seed/seed.config.js",
     "fixture:vnpay-sandbox": "node scripts/vnpay-sandbox-fixture.js",
-    "test": "node --test --test-concurrency=1"
+    "test": "node --test --test-concurrency=1",
+    "test:coverage": "node --experimental-test-coverage --test --test-concurrency=1"
   },
   "keywords": [
     "nodejs",
