@@ -27,7 +27,7 @@
   "license": "ISC",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1127.0",
-    "bcrypt": "^5.1.1",
+    "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "docx": "^9.7.1",
     "dotenv": "^16.4.5",
@@ -39,18 +39,21 @@
     "mongoose": "^8.5.2",
     "morgan": "^1.11.0",
     "multer": "^2.2.0",
-    "nodemailer": "^9.0.5",
+    "nodemailer": "^10.2.1",
     "otpauth": "^9.5.2",
     "pdfkit": "^0.20.2",
     "ws": "^8.21.3",
-    "xlsx": "^0.18.5"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "mongodb-memory-server": "^10.1.4",
     "nodemon": "^3.1.4"
   },
+  "overrides": {
+    "qs": "^6.16.1"
+  },
   "allowScripts": {
-    "bcrypt@5.1.1": true,
+    "bcrypt@6.0.0": true,
     "mongodb-memory-server@10.1.4": true
   }
 }
