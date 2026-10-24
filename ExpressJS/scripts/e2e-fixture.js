@@ -69,6 +69,8 @@ async function start() {
   await Role.create({ code: 'QA_CREATOR', name: 'QA tạo học liệu', level: 35, permissions: [{ resource: 'materials', actions: ['view', 'create'] }] });
   const cluster = await Cluster.create({ name: 'QA Cluster', code: 'QA' });
   const password = await bcrypt.hash('Phase0@Test123', 4);
+  await User.create({ name: 'QA Super Admin', email: 'superadmin@test.invalid', password, role: 'SUPER_ADMIN' });
+  await User.create({ name: 'QA Cluster Admin', email: 'clusteradmin@test.invalid', password, role: 'CLUSTER_ADMIN', clusterId: cluster._id });
   for (let i = 0; i < 2; i++) {
     const school = await School.create({ name: `QA School ${i}`, code: `QA${i}`, subdomain: `qa${i}`, clusterId: cluster._id });
     await Role.create({ code: `QA_LOCAL_${i}`, name: `QA Local Role ${i}`, level: 35, schoolId: school._id, permissions: [{ resource: 'grades', actions: ['view'] }] });
@@ -77,6 +79,9 @@ async function start() {
     const subject = await Subject.create({ schoolId: school._id, name: 'QA Math', code: 'MATH' });
     const user = (name, role, extra = {}) => User.create({ name: `${name} ${i}`, email: `${name}${i}@test.invalid`, password, role, schoolId: school._id, clusterId: cluster._id, ...extra });
     const teacher = await user('teacher', 'SUBJECT_TEACHER');
+    await user('academic', 'ACADEMIC_AFFAIRS');
+    await user('homeroom', 'HOMEROOM_TEACHER');
+    await user('accountant', 'ACCOUNTANT');
     await user('security', 'SUBJECT_TEACHER');
     const student = await user('student', 'STUDENT', { classId: cls._id, code: `QA-ST${i}` });
     const peer = await user('peer', 'STUDENT', { classId: cls._id, code: `QA-PEER${i}` });
