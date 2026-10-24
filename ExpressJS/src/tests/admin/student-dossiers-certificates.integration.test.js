@@ -57,7 +57,8 @@ before(async () => {
   foreign = await User.create({ name: 'Foreign', email: 'dossier-foreign@test.invalid', role: 'STUDENT', schoolId: school._id, code: 'HS002' });
   await Grade.create({ schoolId: school._id, academicYearId: year._id, classId: cls._id, subjectId: subject._id, studentId: student._id, teacherId: admin._id, semester: 1, scores: [{ type: 'MIDTERM', score: 8, weight: 1, note: 'Trình bày tốt' }], average: 8, classification: 'GOOD' });
   await ConductRecord.create({ schoolId: school._id, academicYearId: year._id, classId: cls._id, studentId: student._id, semester: 1, rating: 'TOT', comment: 'Tích cực', recordedBy: admin._id });
-  await RewardDisciplineRecord.create(Array.from({ length: 50 }, (_, index) => ({ schoolId: school._id, academicYearId: year._id, classId: cls._id, studentId: student._id, type: index % 2 ? 'REWARD' : 'DISCIPLINE', title: `Record ${index}`, description: `Chi tiết bản ghi ${index}`, points: index % 2 ? 1 : -1, status: 'APPROVED', recordedBy: admin._id, reviewedBy: admin._id, reviewedAt: new Date() })));
+  const awardedAt = new Date('2026-09-15T12:00:00.000Z');
+  await RewardDisciplineRecord.create(Array.from({ length: 50 }, (_, index) => ({ schoolId: school._id, academicYearId: year._id, classId: cls._id, studentId: student._id, type: index % 2 ? 'REWARD' : 'DISCIPLINE', title: `Record ${index}`, description: `Chi tiết bản ghi ${index}`, points: index % 2 ? 1 : -1, awardedAt, status: 'APPROVED', recordedBy: admin._id, reviewedBy: admin._id, reviewedAt: new Date() })));
   server = app.listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve)); origin = `http://127.0.0.1:${server.address().port}`;
 });
 after(async () => { if (server) await new Promise(resolve => server.close(resolve)); await mongoose.disconnect(); if (mongo) await mongo.stop(); await fs.rm(root, { recursive: true, force: true }); });

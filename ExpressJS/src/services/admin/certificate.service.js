@@ -33,7 +33,7 @@ function createCertificateService(dependencies) {
       persistence.getTranscriptFindById(student.schoolId),
       persistence.getTranscriptFind({ schoolId: student.schoolId, studentId: student._id }, { academicYearId: 1, semester: 1, subjectId: 1 }),
       persistence.getTranscriptFind2({ schoolId: student.schoolId, studentId: student._id }, { academicYearId: 1, semester: 1 }),
-      persistence.getTranscriptFind3({ schoolId: student.schoolId, studentId: student._id, status: 'APPROVED' }, { awardedAt: 1 }),
+      persistence.getTranscriptFind3({ schoolId: student.schoolId, studentId: student._id, status: 'APPROVED' }, { awardedAt: 1, _id: 1 }),
     ]);
     return {
       school: school || {}, student, classHistory: student.classHistory || [],
