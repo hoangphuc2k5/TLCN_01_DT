@@ -111,6 +111,9 @@ export default function AssignmentsPage() {
       render: (_, row) => row.submission ? <Space direction="vertical" size={2}>
         <span>{row.submission.status === 'UPLOADING' ? 'Chờ tải file' : row.submission.score == null ? 'Đã nộp' : `${row.submission.score}/${row.maxScore}`}</span>
         <Tag>{modeLabels[row.submission.submissionMode] || row.submission.submissionMode}</Tag>
+        {row.submission.status === 'GRADED' && row.submission.feedback?.trim() && (
+          <span><strong>Nhận xét:</strong> {row.submission.feedback}</span>
+        )}
         {(row.submission.attachmentIds || []).map(file => <Button type="link" size="small" key={file._id} onClick={() => downloadHomeworkAttachmentApi(file._id, file.originalName)}>{file.originalName}</Button>)}
         {student && row.status === 'PUBLISHED' && row.submission.status !== 'GRADED' && <Button size="small" onClick={() => startSubmission(row)}>{row.submission.status === 'UPLOADING' ? 'Tải lại file' : 'Nộp lại'}</Button>}
       </Space> : student && row.status === 'PUBLISHED' ? <Button size="small" onClick={() => startSubmission(row)}>Nộp bài</Button> : '-',
