@@ -130,7 +130,7 @@ function createUserService(dependencies) {
     });
   };
   
-  const createUser = async (actor, data) => {
+  const createUser = async (actor, data, options = {}) => {
     const {
       name,
       email,
@@ -141,6 +141,7 @@ function createUserService(dependencies) {
       phone,
       code,
       classId,
+      dateOfBirth,
       parentOf,
     } = data;
   
@@ -193,8 +194,11 @@ function createUserService(dependencies) {
       phone,
       code,
       classId: classId || null,
+      dateOfBirth: dateOfBirth || null,
       parentOf: parentOf || [],
       status: STATUS.ACTIVE,
+      ...(options.admissionApplicationId ? { security: { mustChangePassword: true } } : {}),
+      ...(options.admissionApplicationId ? { admissionApplicationId: options.admissionApplicationId } : {}),
     });
   
     return toSafeObject(user);

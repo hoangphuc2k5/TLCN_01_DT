@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Button, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, message } from 'antd';
+import { Button, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
 import dayjs from 'dayjs';
-import { createUserApi, getAdmissionsApi, getClassesApi, reviewAdmissionApi } from '../../services/api.service';
+import { enrollAdmissionApi, getAdmissionsApi, getClassesApi, reviewAdmissionApi } from '../../services/api.service';
 
 const STATUS_COLORS = {
   SUBMITTED: 'gold',
   UNDER_REVIEW: 'blue',
   ACCEPTED: 'green',
   REJECTED: 'red',
+  WAITLISTED: 'orange',
 };
 
 const STATUS_LABELS = {
@@ -15,6 +16,7 @@ const STATUS_LABELS = {
   UNDER_REVIEW: 'Đang xét duyệt',
   ACCEPTED: 'Nhận học',
   REJECTED: 'Từ chối',
+  WAITLISTED: 'Danh sách chờ',
 };
 
 const AdmissionsPage = () => {
@@ -24,13 +26,19 @@ const AdmissionsPage = () => {
   const [reviewStatus, setReviewStatus] = useState(null);
   const [enrollTarget, setEnrollTarget] = useState(null);
   const [enrolling, setEnrolling] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
   const [enrollForm] = Form.useForm();
 
   const load = async () => {
-    const [r, c] = await Promise.all([getAdmissionsApi(), getClassesApi()]);
-    if (r?.EC === 0) setRows(r.data || []);
-    if (c?.EC === 0) setClasses(c.data || []);
+    setLoading(true);
+    try {
+      const [r, c] = await Promise.all([getAdmissionsApi(), getClassesApi()]);
+      if (r?.EC === 0) setRows(r.data || []);
+      if (c?.EC === 0) setClasses(c.data || []);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, []);
@@ -63,7 +71,7 @@ const AdmissionsPage = () => {
       code: autoCode,
       dateOfBirth: row.dateOfBirth ? dayjs(row.dateOfBirth) : undefined,
       phone: row.guardianPhone,
-      email: `hs.${clean.toLowerCase() || Date.now()}@school.edu.vn`,
+        email: '',
       classId: gradeClasses[0]?._id || classes[0]?._id,
     });
     setEnrollTarget(row);
@@ -81,10 +89,17 @@ const AdmissionsPage = () => {
         classId: values.classId,
         dateOfBirth: values.dateOfBirth ? values.dateOfBirth.toISOString() : undefined,
       };
-      const res = await createUserApi(payload);
+      const res = await enrollAdmissionApi(enrollTarget._id, payload);
       if (res?.EC === 0) {
-        message.success(`Đã tạo học sinh "${values.name}" (Mã: ${values.code}) thành công và phân vào lớp!`);
+        const temporaryPassword = res.data?.defaultPassword;
+        if (temporaryPassword) {
+          Modal.info({
+            title: 'Đã tạo tài khoản học sinh',
+            content: <div><p>Tài khoản: {values.email}</p><p>Mật khẩu tạm (chỉ hiển thị lần này): <Typography.Text copyable code>{temporaryPassword}</Typography.Text></p><p>Hãy gửi riêng mật khẩu cho học sinh và yêu cầu đổi sau khi đăng nhập.</p></div>,
+          });
+        } else message.success(`Hồ sơ đã được liên kết với tài khoản học sinh ${values.email}.`);
         setEnrollTarget(null);
+        await load();
       } else {
         message.error(res?.EM || 'Không thể tạo tài khoản học sinh');
       }
@@ -111,6 +126,7 @@ const AdmissionsPage = () => {
             { value: 'UNDER_REVIEW', label: 'Đang xét duyệt' },
             { value: 'ACCEPTED', label: 'Nhận học' },
             { value: 'REJECTED', label: 'Từ chối' },
+            { value: 'WAITLISTED', label: 'Danh sách chờ' },
           ]}
           onChange={value =>
             getAdmissionsApi(value ? { status: value } : undefined)
@@ -137,6 +153,7 @@ const AdmissionsPage = () => {
       </Space>
       <Table
         rowKey="_id"
+        loading={loading}
         dataSource={rows}
         columns={[
           { title: 'Mã hồ sơ', dataIndex: 'trackingCode' },
@@ -167,7 +184,7 @@ const AdmissionsPage = () => {
                     </Button>
                   </>
                 )}
-                {r.status === 'ACCEPTED' && (
+                {r.status === 'ACCEPTED' && !r.enrolledStudentId && (
                   <Button
                     size="small"
                     type="primary"
@@ -177,6 +194,7 @@ const AdmissionsPage = () => {
                     Tạo tài khoản học sinh
                   </Button>
                 )}
+                {r.enrolledStudentId && <Tag color="green">Đã tạo: {r.enrolledStudentId.code || r.enrolledStudentId.email}</Tag>}
               </Space>
             ),
           },
@@ -223,8 +241,8 @@ const AdmissionsPage = () => {
           <Form.Item name="code" label="Mã số học sinh (Tự động sinh)" rules={[{ required: true, message: 'Nhập mã học sinh' }]}>
             <Input placeholder="HS2026-XXXX" />
           </Form.Item>
-          <Form.Item name="email" label="Email đăng nhập" rules={[{ required: true, type: 'email' }]}>
-            <Input placeholder="hs.xxx@school.edu.vn" />
+          <Form.Item name="email" label="Email đăng nhập của học sinh" rules={[{ required: true, type: 'email' }]} extra="Nhập email học sinh thực sự sử dụng để đăng nhập.">
+            <Input placeholder="hoc.sinh@gmail.com" />
           </Form.Item>
           <Form.Item name="phone" label="Số điện thoại liên hệ">
             <Input placeholder="Số điện thoại phụ huynh" />

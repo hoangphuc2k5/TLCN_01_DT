@@ -23,10 +23,23 @@ function createFileService(dependencies) {
     if (!Number.isSafeInteger(bytes) || bytes < 0) throw new ApiError(503, 'Hạn mức dung lượng của trường không hợp lệ');
     return bytes;
   };
+  const persistedUsage = async (schoolId, session = null) => {
+    const rows = await persistence.assetUsageAggregate(schoolId, session);
+    return rows[0]?.usedBytes || 0;
+  };
+  const reconcileUsage = async (schoolId, session) => {
+    const school = await persistence.itemFindById(schoolId, session);
+    if (!school) throw new ApiError(404, 'Không tìm thấy trường lưu trữ');
+    if (school.storageUsageReconciledAt) return school.storageUsedBytes || 0;
+    const usedBytes = await persistedUsage(schoolId, session);
+    const result = await persistence.storageUsageUpdateOne({ _id: schoolId }, { $set: { storageUsedBytes: usedBytes, storageUsageReconciledAt: new Date() } }, { session });
+    if (result.matchedCount !== 1) throw new ApiError(404, 'Không tìm thấy trường lưu trữ');
+    return usedBytes;
+  };
   const usage = async (actor, school) => {
     const schoolId = await targetSchool(actor, school);
-    const item = await persistence.itemFindById(schoolId);
-    return { schoolId, usedBytes: item.storageUsedBytes || 0, quotaBytes: await quotaBytes(schoolId), maxFileBytes: config().maxBytes };
+    const usedBytes = await persistedUsage(schoolId);
+    return { schoolId, usedBytes, quotaBytes: await quotaBytes(schoolId), maxFileBytes: config().maxBytes };
   };
   
   // Storage is external to MongoDB. Keep the reservation until physical deletion succeeds.
@@ -38,6 +51,7 @@ function createFileService(dependencies) {
     await transaction(async session => {
       const current = await persistence.currentFindOne({ _id: asset._id, status: 'DELETING' }, session);
       if (!current) return;
+      await reconcileUsage(current.schoolId, session);
       const released = await persistence.releasedUpdateOne({ _id: current.schoolId, storageUsedBytes: { $gte: current.sizeBytes } }, { $inc: { storageUsedBytes: -current.sizeBytes } }, { session });
       if (released.modifiedCount !== 1) throw new ApiError(409, 'Bộ đếm dung lượng cần được kiểm tra');
       await persistence.purgeAssetDeleteMany({ fileAssetId: current._id, schoolId: current.schoolId }, session);
@@ -65,6 +79,7 @@ function createFileService(dependencies) {
     const material = persistence.materialNewDocument({ ...payload, fileAssetId: asset._id });
     await persistence.uploadMaterialValidate(material);
     await transaction(async session => {
+      await reconcileUsage(payload.schoolId, session);
       const quota = await quotaBytes(payload.schoolId, session);
       const reserved = await persistence.reservedUpdateOne({ _id: payload.schoolId, $expr: { $lte: [{ $add: [{ $ifNull: ['$storageUsedBytes', 0] }, asset.sizeBytes] }, quota] } }, { $inc: { storageUsedBytes: asset.sizeBytes } }, { session });
       if (reserved.modifiedCount !== 1) throw new ApiError(409, 'Trường đã hết dung lượng lưu trữ');
@@ -113,6 +128,7 @@ function createFileService(dependencies) {
     const document = persistence.documentNewDocument({ schoolId: student.schoolId, studentId, documentType, title: String(data.title).trim(), fileAssetId: asset._id, uploadedBy: actor._id });
     await persistence.uploadStudentDocumentValidate(document);
     await transaction(async session => {
+      await reconcileUsage(student.schoolId, session);
       const quota = await quotaBytes(student.schoolId, session);
       const reserved = await persistence.reservedUpdateOne2({ _id: student.schoolId, $expr: { $lte: [{ $add: [{ $ifNull: ['$storageUsedBytes', 0] }, asset.sizeBytes] }, quota] } }, { $inc: { storageUsedBytes: asset.sizeBytes } }, { session });
       if (reserved.modifiedCount !== 1) throw new ApiError(409, 'TrÆ°á»ng Ä‘Ã£ háº¿t dung lÆ°u trá»¯');
@@ -156,6 +172,7 @@ function createFileService(dependencies) {
       if (!submission) throw new ApiError(409, 'Cần chọn hình thức nộp bài trước khi thêm file');
       if (!['UPLOADING', 'SUBMITTED'].includes(submission.status)) throw new ApiError(409, 'Bài đã được chấm, không thể đổi file');
       if (submission.attachmentIds.length >= 5) throw new ApiError(409, 'Bài nộp có tối đa 5 file');
+      await reconcileUsage(homework.schoolId, session);
       const quota = await quotaBytes(homework.schoolId, session);
       const reserved = await persistence.reservedUpdateOne3({ _id: homework.schoolId, $expr: { $lte: [{ $add: [{ $ifNull: ['$storageUsedBytes', 0] }, asset.sizeBytes] }, quota] } }, { $inc: { storageUsedBytes: asset.sizeBytes } }, { session });
       if (reserved.modifiedCount !== 1) throw new ApiError(409, 'Trường đã hết dung lượng lưu trữ');

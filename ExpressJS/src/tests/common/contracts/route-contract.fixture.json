@@ -113,6 +113,7 @@
   "router.get('/admissions/public/:code', admissions.getPublic);\r",
   "router.get('/admissions', authorizePermissionAction('view', PERMISSIONS.MANAGE_ADMISSIONS), admissions.list);\r",
   "router.patch('/admissions/:id/review', authorizePermissionAction('execute', PERMISSIONS.MANAGE_ADMISSIONS), admissions.review);\r",
+  "router.post('/admissions/:id/enroll', authorizePermissionAction('execute', PERMISSIONS.MANAGE_ADMISSIONS), admissions.enroll);\r",
   "router.get('/announcements', listAnnouncements);\r",
   "router.post('/announcements', authorizePermissionAction('create', PERMISSIONS.MANAGE_ANNOUNCEMENTS), audit('CREATE', 'Announcement'), createAnnouncement);\r",
   "router.delete('/announcements/:id', authorizePermissionAction('delete', PERMISSIONS.MANAGE_ANNOUNCEMENTS), deleteAnnouncement);\r",

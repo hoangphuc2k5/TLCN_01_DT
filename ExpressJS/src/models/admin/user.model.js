@@ -37,6 +37,7 @@ const userSchema = new mongoose.Schema(
     parentOf: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     code: { type: String, default: '' },
     classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', default: null },
+    admissionApplicationId: { type: mongoose.Schema.Types.ObjectId, ref: 'AdmissionApplication', default: undefined, select: false },
     academicRevision: { type: Number, default: 0, select: false },
     classHistory: [{
       fromClassId: mongoose.Schema.Types.ObjectId,
@@ -57,5 +58,6 @@ const userSchema = new mongoose.Schema(
 userSchema.index({ schoolId: 1, role: 1 });
 userSchema.index({ clusterId: 1 });
 userSchema.index({ 'security.challenge.hash': 1 }, { sparse: true });
+userSchema.index({ admissionApplicationId: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model('User', userSchema);
