@@ -72,6 +72,9 @@ body {
 }
 
 .app-content-panel {
+  width: 100%;
+  max-width: 1680px;
+  margin-inline: auto;
   min-width: 0;
   overflow: hidden;
   min-height: 360px;
@@ -82,11 +85,19 @@ body {
 }
 
 .app-page-shell,
-.app-page-content {
+.app-page-content,
+.app-route-frame,
+.app-route-content {
   min-width: 0;
 }
 
 .app-page-shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-xl, 24px);
+}
+
+.app-route-frame {
   display: flex;
   flex-direction: column;
   gap: var(--ui-space-xl, 24px);
@@ -125,6 +136,15 @@ body {
   align-items: center;
   justify-content: flex-end;
   gap: var(--ui-space-sm, 8px);
+}
+
+.app-content-panel .ant-btn {
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.app-content-panel :is(.ant-btn, .ant-input, .ant-select-selector):focus-visible {
+  outline: 2px solid var(--ui-color-primary, #0f4c5c);
+  outline-offset: 2px;
 }
 
 .app-content-panel .ant-table-wrapper {
