@@ -1,4 +1,4 @@
-function createPasswordPolicyService(dependencies) {
+function createPasswordPolicyService(_dependencies) {
   const bcrypt = require('bcrypt');
   const { randomBytes } = require('node:crypto');
   const ApiError = require("../../../utils/common/http/api-error.util");

@@ -8,7 +8,6 @@ function createAuthService(dependencies) {
   const ApiError = require("../../../utils/common/http/api-error.util");
   const { isGmailAddress } = require("../../../utils/common/communication/gmail.util");
   const { toSafeObject } = require("../../../utils/common/identity/user-sanitizer.util");
-  const { userRepo } = dependencies.repositories["shared"];
   const { ROLE_LABELS } = require("../../../config/constants/roles.config");
   const { STATUS } = require("../../../config/constants/status.config");
   const roleCache = dependencies.services["role-permission-cache"];

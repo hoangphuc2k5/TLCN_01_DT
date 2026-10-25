@@ -1,4 +1,4 @@
-function createFileStorageService(dependencies) {
+function createFileStorageService(_dependencies) {
   const fs = require('node:fs/promises');
   const path = require('node:path');
   const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');

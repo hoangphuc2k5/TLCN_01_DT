@@ -1,6 +1,5 @@
 function createFileService(dependencies) {
   const persistence = dependencies.persistence;
-  const mongoose = require('mongoose');
   const { randomUUID, createHash } = require('node:crypto');
   const ApiError = require("../../../utils/common/http/api-error.util");
   const config = require("../../../config/file-storage/file-storage.config");

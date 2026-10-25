@@ -10,11 +10,11 @@ const GRADE_WEIGHTS = {
 };
 
 class GradeStrategy {
-  calculateAverage(scores = []) {
+  calculateAverage(_scores = []) {
     throw new Error('Not implemented');
   }
 
-  classify(average) {
+  classify(_average) {
     throw new Error('Not implemented');
   }
 }

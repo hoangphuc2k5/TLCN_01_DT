@@ -1,7 +1,6 @@
 function createSubscriptionService(dependencies) {
   const persistence = dependencies.persistence;
   const ApiError = require("../../utils/common/http/api-error.util");
-  const Subscription = "subscription";
   const { ROLES } = require("../../config/constants/roles.config");
   const { schoolScope, objectId } = dependencies.services["data-scope"];
   const { targetSchool } = dependencies.services["write-scope"];

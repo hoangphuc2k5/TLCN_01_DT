@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Button, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
+import { Button, Form, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
 import dayjs from 'dayjs';
 import { enrollAdmissionApi, getAdmissionsApi, getClassesApi, reviewAdmissionApi } from '../../services/api.service';
+import PageShell from '../../components/layout/PageShell';
+import AdmissionDialogs from './AdmissionDialogs';
 
 const STATUS_COLORS = {
   SUBMITTED: 'gold',
@@ -115,7 +117,10 @@ const AdmissionsPage = () => {
   }[reviewStatus] || 'Xét duyệt';
 
   return (
-    <div>
+    <PageShell
+      title="Tuyển sinh"
+      description="Theo dõi hồ sơ, lọc theo trạng thái và xử lý kết quả tuyển sinh."
+    >
       <Space style={{ marginBottom: 16 }} wrap>
         <Select
           style={{ width: 180 }}
@@ -200,68 +205,8 @@ const AdmissionsPage = () => {
           },
         ]}
       />
-      <Modal
-        open={!!reviewTarget}
-        title={reviewModalTitle}
-        okText="Xác nhận"
-        cancelText="Hủy"
-        okButtonProps={{ danger: reviewStatus === 'REJECTED' }}
-        onCancel={() => setReviewTarget(null)}
-        onOk={() => form.submit()}
-      >
-        <Form form={form} layout="vertical" onFinish={submitReview}>
-          <Form.Item
-            name="reviewNote"
-            label="Ghi chú kết quả xét tuyển"
-            rules={reviewStatus === 'REJECTED' ? [{ required: true, whitespace: true, message: 'Vui lòng nhập lý do từ chối' }] : []}
-          >
-            <Input.TextArea
-              rows={3}
-              maxLength={500}
-              placeholder={reviewStatus === 'REJECTED' ? 'Bắt buộc nhập lý do từ chối...' : 'Ghi chú thêm (không bắt buộc)'}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      <Modal
-        open={!!enrollTarget}
-        title="Tiếp nhận học sinh mới & Phân lớp"
-        okText="Tạo tài khoản"
-        cancelText="Hủy"
-        confirmLoading={enrolling}
-        onCancel={() => setEnrollTarget(null)}
-        onOk={() => enrollForm.submit()}
-        width={560}
-      >
-        <Form form={enrollForm} layout="vertical" onFinish={submitEnroll}>
-          <Form.Item name="name" label="Họ và tên học sinh" rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="code" label="Mã số học sinh (Tự động sinh)" rules={[{ required: true, message: 'Nhập mã học sinh' }]}>
-            <Input placeholder="HS2026-XXXX" />
-          </Form.Item>
-          <Form.Item name="email" label="Email đăng nhập của học sinh" rules={[{ required: true, type: 'email' }]} extra="Nhập email học sinh thực sự sử dụng để đăng nhập.">
-            <Input placeholder="hoc.sinh@gmail.com" />
-          </Form.Item>
-          <Form.Item name="phone" label="Số điện thoại liên hệ">
-            <Input placeholder="Số điện thoại phụ huynh" />
-          </Form.Item>
-          <Form.Item name="dateOfBirth" label="Ngày sinh">
-            <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
-          </Form.Item>
-          <Form.Item name="classId" label="Lớp biên chế" rules={[{ required: true, message: 'Vui lòng chọn lớp học' }]}>
-            <Select
-              placeholder="Chọn lớp học"
-              options={classes.map((c) => ({
-                value: c._id,
-                label: `${c.name} (Khối ${c.gradeLevel || '—'})`,
-              }))}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
-    </div>
+      <AdmissionDialogs reviewTarget={reviewTarget} reviewModalTitle={reviewModalTitle} reviewStatus={reviewStatus} setReviewTarget={setReviewTarget} form={form} submitReview={submitReview} enrollTarget={enrollTarget} setEnrollTarget={setEnrollTarget} enrolling={enrolling} enrollForm={enrollForm} submitEnroll={submitEnroll} classes={classes} />
+    </PageShell>
   );
 };
 

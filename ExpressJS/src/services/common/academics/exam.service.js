@@ -111,7 +111,7 @@ function createExamService(dependencies) {
     if (personalActor(actor) || !(await cache.canAccess(actor.role, 'exams', 'update'))) {
       const obj = exam.toObject();
       obj.questions = (obj.questions || []).map((q) => {
-        const { correctKey, ...rest } = q;
+        const { correctKey: _correctKey, ...rest } = q;
         return rest;
       });
       return obj;

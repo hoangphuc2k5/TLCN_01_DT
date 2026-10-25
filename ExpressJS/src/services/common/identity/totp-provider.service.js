@@ -1,4 +1,4 @@
-function createTotpProviderService(dependencies) {
+function createTotpProviderService(_dependencies) {
   const OTPAuth = require('otpauth');
   const { randomBytes, createCipheriv, createDecipheriv, createHash } = require('node:crypto');
   const ApiError = require("../../../utils/common/http/api-error.util");

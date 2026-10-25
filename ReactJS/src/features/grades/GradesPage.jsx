@@ -1,19 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button, Card, Col, Form, InputNumber, Modal, Row, Select, Space, Statistic, Table, Tabs, Tag, message } from 'antd';
-import { FileExcelOutlined } from '@ant-design/icons';
+import { Form, Tabs, Tag, message } from 'antd';
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
 import {
   getAcademicYearsApi,
   getClassesApi,
-  getClassStudentsApi,
   getGradesApi,
   getSubjectsApi,
-  upsertGradeApi,
   downloadExport,
 } from '../../services/api.service';
-import ImportExcelButton from '../../components/ImportExcelButton';
 import { can, canExport } from '../../utils/permissions';
+import GradebookPanel from './GradebookPanel';
+import GradeEntryModal from './GradeEntryModal';
+import GradeSummaryPanel from './GradeSummaryPanel';
 
 const GradesPage = () => {
   const { user } = useSelector((s) => s.auth);
@@ -126,31 +125,6 @@ const GradesPage = () => {
     return { students: stuList, subjects: subList, stats };
   }, [rows, summaryClassId, summarySemester]);
 
-  const summaryColumns = [
-    { title: 'Học sinh', dataIndex: 'name', key: 'name', fixed: 'left', width: 160 },
-    { title: 'Mã HS', dataIndex: 'code', key: 'code', width: 100 },
-    ...summaryData.subjects.map((sub) => ({
-      title: sub.name,
-      key: String(sub.id),
-      width: 100,
-      render: (_, r) => (r.scores[String(sub.id)] != null ? r.scores[String(sub.id)] : '—'),
-    })),
-    {
-      title: 'ĐTB Chung',
-      dataIndex: 'gpa',
-      key: 'gpa',
-      width: 110,
-      render: (v) => (v != null ? <strong style={{ color: '#0f4c5c', fontSize: 15 }}>{v}</strong> : '—'),
-    },
-    {
-      title: 'Học lực',
-      dataIndex: 'classification',
-      key: 'classification',
-      width: 120,
-      render: (v) => getClassificationTag(v),
-    },
-  ];
-
   const exportClassGradeSummary = () => {
     if (!summaryData.students.length) {
       message.warning('Không có dữ liệu điểm để xuất');
@@ -210,237 +184,29 @@ const GradesPage = () => {
             key: 'details',
             label: 'Sổ điểm chi tiết các môn',
             children: (
-              <>
-                {(canEnter || canExport(user, 'grades')) && (
-                  <Space style={{ marginBottom: 16 }} wrap>
-                    {canEnter && (
-                      <Button type="primary" onClick={() => setOpen(true)}>
-                        Nhập / cập nhật điểm
-                      </Button>
-                    )}
-                    {canEnter && <ImportExcelButton type="grades" onDone={load} />}
-                    {canExport(user, 'grades') && (
-                      <Button
-                        onClick={async () => {
-                          try {
-                            await downloadExport('grades');
-                          } catch {
-                            message.error('Xuất Excel thất bại');
-                          }
-                        }}
-                      >
-                        Xuất Excel
-                      </Button>
-                    )}
-                  </Space>
-                )}
-
-                <Space wrap style={{ marginBottom: 16 }}>
-                  <Select
-                    allowClear
-                    placeholder="Lọc theo Lớp"
-                    style={{ width: 160 }}
-                    value={filterClass}
-                    onChange={setFilterClass}
-                    options={classes.map((c) => ({ value: c._id, label: c.name }))}
-                  />
-                  <Select
-                    allowClear
-                    placeholder="Lọc theo Môn"
-                    style={{ width: 160 }}
-                    value={filterSubject}
-                    onChange={setFilterSubject}
-                    options={subjects.map((s) => ({ value: s._id, label: s.name }))}
-                  />
-                  <Select
-                    allowClear
-                    placeholder="Lọc theo Học kỳ"
-                    style={{ width: 140 }}
-                    value={filterSemester}
-                    onChange={setFilterSemester}
-                    options={[
-                      { value: 1, label: 'Học kỳ 1' },
-                      { value: 2, label: 'Học kỳ 2' },
-                    ]}
-                  />
-                  {(filterClass || filterSubject || filterSemester) && (
-                    <Button
-                      onClick={() => {
-                        setFilterClass(null);
-                        setFilterSubject(null);
-                        setFilterSemester(null);
-                      }}
-                    >
-                      Xóa bộ lọc
-                    </Button>
-                  )}
-                </Space>
-
-                <Table
-                  rowKey="_id"
-                  dataSource={displayRows}
-                  columns={[
-                    { title: 'Học sinh', render: (_, r) => r.studentId?.name },
-                    { title: 'Lớp', render: (_, r) => r.classId?.name },
-                    { title: 'Môn', render: (_, r) => r.subjectId?.name },
-                    { title: 'HK', dataIndex: 'semester' },
-                    { title: 'ĐTB', dataIndex: 'average' },
-                    { title: 'Xếp loại', dataIndex: 'classification', render: (v) => getClassificationTag(v) },
-                    {
-                      title: 'Chi tiết',
-                      render: (_, r) =>
-                        (r.scores || []).map((s) => `${s.type}:${s.score}`).join(' | '),
-                    },
-                  ]}
-                />
-              </>
+              <GradebookPanel canEnter={canEnter} canExportGrades={canExport(user, 'grades')} onOpenEntry={() => setOpen(true)} onImportDone={load} onExport={() => downloadExport('grades')} classes={classes} subjects={subjects} displayRows={displayRows} getClassificationTag={getClassificationTag} filterClass={filterClass} setFilterClass={setFilterClass} filterSubject={filterSubject} setFilterSubject={setFilterSubject} filterSemester={filterSemester} setFilterSemester={setFilterSemester} />
             ),
           },
           {
             key: 'summary',
             label: 'Bảng tổng kết ĐTB & Học lực cả lớp',
             children: (
-              <div>
-                <Space wrap style={{ marginBottom: 16 }}>
-                  <Select
-                    placeholder="Chọn Lớp"
-                    style={{ width: 180 }}
-                    value={summaryClassId}
-                    onChange={setSummaryClassId}
-                    options={classes.map((c) => ({ value: c._id, label: c.name }))}
-                  />
-                  <Select
-                    style={{ width: 140 }}
-                    value={summarySemester}
-                    onChange={setSummarySemester}
-                    options={[
-                      { value: 1, label: 'Học kỳ 1' },
-                      { value: 2, label: 'Học kỳ 2' },
-                    ]}
-                  />
-                  {canExport(user, 'grades') && (
-                    <Button
-                      icon={<FileExcelOutlined />}
-                      onClick={exportClassGradeSummary}
-                    >
-                      Xuất bảng điểm lớp (Excel)
-                    </Button>
-                  )}
-                </Space>
-
-                <Row gutter={16} style={{ marginBottom: 16 }}>
-                  <Col span={6}>
-                    <Card size="small">
-                      <Statistic title="Học sinh Giỏi" value={summaryData.stats.excellent} valueStyle={{ color: '#2e7d32' }} />
-                    </Card>
-                  </Col>
-                  <Col span={6}>
-                    <Card size="small">
-                      <Statistic title="Học sinh Khá" value={summaryData.stats.good} valueStyle={{ color: '#1565c0' }} />
-                    </Card>
-                  </Col>
-                  <Col span={6}>
-                    <Card size="small">
-                      <Statistic title="Học sinh Trung bình" value={summaryData.stats.average} valueStyle={{ color: '#e65100' }} />
-                    </Card>
-                  </Col>
-                  <Col span={6}>
-                    <Card size="small">
-                      <Statistic title="Học sinh Yếu" value={summaryData.stats.weak} valueStyle={{ color: '#c62828' }} />
-                    </Card>
-                  </Col>
-                </Row>
-
-                <Table
-                  rowKey="id"
-                  dataSource={summaryData.students}
-                  columns={summaryColumns}
-                  scroll={{ x: 'max-content' }}
-                  pagination={{ pageSize: 20 }}
-                />
-              </div>
+<GradeSummaryPanel summaryData={summaryData} classes={classes} summaryClassId={summaryClassId} setSummaryClassId={setSummaryClassId} summarySemester={summarySemester} setSummarySemester={setSummarySemester} canExport={canExport(user, 'grades')} onExport={exportClassGradeSummary} getClassificationTag={getClassificationTag} />
             ),
           },
         ]}
       />
-      <Modal
+      <GradeEntryModal
         open={open}
-        title="Nhập điểm"
-        onCancel={() => setOpen(false)}
-        onOk={() => form.submit()}
-        width={640}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={async (v) => {
-            const scores = [
-              { type: 'ORAL', score: v.oral, weight: 1 },
-              { type: 'QUIZ_15', score: v.quiz, weight: 1 },
-              { type: 'MIDTERM', score: v.midterm, weight: 2 },
-              { type: 'FINAL', score: v.final, weight: 3 },
-            ].filter((s) => s.score != null);
-            const res = await upsertGradeApi({
-              academicYearId: v.academicYearId,
-              classId: v.classId,
-              subjectId: v.subjectId,
-              studentId: v.studentId,
-              semester: v.semester || 1,
-              scores,
-              strategy: 'weighted',
-            });
-            if (res?.EC === 0) {
-              message.success(res.EM);
-              setOpen(false);
-              form.resetFields();
-              load();
-            } else message.error(res?.EM);
-          }}
-        >
-          <Form.Item name="academicYearId" label="Năm học" rules={[{ required: true }]}>
-            <Select options={years.map((y) => ({ value: y._id, label: y.name }))} />
-          </Form.Item>
-          <Form.Item name="classId" label="Lớp" rules={[{ required: true }]}>
-            <Select
-              options={classes.map((c) => ({ value: c._id, label: c.name }))}
-              onChange={async (id) => {
-                form.setFieldValue('studentId', undefined);
-                setStudents([]);
-                const res = await getClassStudentsApi(id);
-                if (res?.EC === 0) setStudents(res.data || []);
-              }}
-            />
-          </Form.Item>
-          <Form.Item name="studentId" label="Học sinh" rules={[{ required: true }]}>
-            <Select options={students.map((s) => ({ value: s._id, label: s.name }))} />
-          </Form.Item>
-          <Form.Item name="subjectId" label="Môn" rules={[{ required: true }]}>
-            <Select options={subjects.map((s) => ({ value: s._id, label: s.name }))} />
-          </Form.Item>
-          <Form.Item name="semester" label="Học kỳ" initialValue={1}>
-            <Select
-              options={[
-                { value: 1, label: 'HK1' },
-                { value: 2, label: 'HK2' },
-              ]}
-            />
-          </Form.Item>
-          <Space wrap>
-            <Form.Item name="oral" label="Miệng">
-              <InputNumber min={0} max={10} step={0.1} />
-            </Form.Item>
-            <Form.Item name="quiz" label="15 phút">
-              <InputNumber min={0} max={10} step={0.1} />
-            </Form.Item>
-            <Form.Item name="midterm" label="Giữa kỳ">
-              <InputNumber min={0} max={10} step={0.1} />
-            </Form.Item>
-            <Form.Item name="final" label="Cuối kỳ">
-              <InputNumber min={0} max={10} step={0.1} />
-            </Form.Item>
-          </Space>
-        </Form>
-      </Modal>
+        setOpen={setOpen}
+        form={form}
+        years={years}
+        classes={classes}
+        students={students}
+        setStudents={setStudents}
+        subjects={subjects}
+        load={load}
+      />
     </div>
   );
 };

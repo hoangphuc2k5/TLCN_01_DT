@@ -1,7 +1,6 @@
 function createDashboardService(dependencies) {
   const persistence = dependencies.persistence;
   const dashboardFactory = dependencies.services["dashboard-factory"];
-  const { notificationRepo } = dependencies.repositories["shared"];
   const ApiError = require("../../../utils/common/http/api-error.util");
   const cache = dependencies.services["role-permission-cache"];
   const { ROLES } = require("../../../config/constants/roles.config");

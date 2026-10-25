@@ -1,6 +1,5 @@
-const { authorizeRoles, authorizePermissionAction, authorizeRead } = require("../../middleware/common/security/rbac.middleware");
+const { authorizePermissionAction } = require("../../middleware/common/security/rbac.middleware");
 const { PERMISSIONS } = require("../../config/constants/permissions.config");
-const audit = require("../../middleware/common/security/audit.middleware");
 const controller = require('../../controllers/admin/audit.controller');
 
 const register1 = router => {

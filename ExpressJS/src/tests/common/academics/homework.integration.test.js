@@ -23,7 +23,6 @@ const Submission = require("../../../models/common/academics/homework-submission
 const FileAsset = require("../../../models/common/files/file-asset.model");
 
 let mongo, server, origin, school, foreignSchool, year, foreignYear, cls, foreignClass, subject, actors, storageRoot;
-const id = () => new mongoose.Types.ObjectId();
 const listenOnFetchSafePort = async application => {
   for (let port = 22000; port < 22100; port += 1) {
     const candidate = application.listen(port, '127.0.0.1');

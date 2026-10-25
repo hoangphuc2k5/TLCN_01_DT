@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button, Form, Input, Modal, Select, Table, Tag, message } from 'antd';
 import { useSelector } from 'react-redux';
 import {
@@ -27,10 +27,10 @@ const ConductPage = () => {
   const [open, setOpen] = useState(false);
   const [form] = Form.useForm();
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const res = await getConductApi();
     if (res?.EC === 0) setRows(res.data || []);
-  };
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -41,7 +41,7 @@ const ConductPage = () => {
       }
       load();
     })();
-  }, []);
+  }, [canManage, load]);
 
   return (
     <div>

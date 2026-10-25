@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button, Form, Input, Modal, Select, Space, Table, Tag, message } from 'antd';
 import { useSelector } from 'react-redux';
 import {
@@ -22,10 +22,10 @@ const TemplatesPage = () => {
   const [form] = Form.useForm();
   const [applyForm] = Form.useForm();
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const res = await getTemplatesApi();
     if (res?.EC === 0) setRows(res.data || []);
-  };
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -35,7 +35,7 @@ const TemplatesPage = () => {
       }
       load();
     })();
-  }, []);
+  }, [canApply, load]);
 
   return (
     <div>

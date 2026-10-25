@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button, Form, Input, InputNumber, Modal, Select, Table, Tabs, Tag, message } from 'antd';
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
@@ -25,11 +25,11 @@ const LibraryPage = () => {
   const [bookForm] = Form.useForm();
   const [loanForm] = Form.useForm();
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const [b, l] = await Promise.all([getBooksApi(), getLoansApi()]);
     if (b?.EC === 0) setBooks(b.data || []);
     if (l?.EC === 0) setLoans(l.data || []);
-  };
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -39,7 +39,7 @@ const LibraryPage = () => {
       }
       load();
     })();
-  }, []);
+  }, [canManage, load]);
 
   return (
     <div>
