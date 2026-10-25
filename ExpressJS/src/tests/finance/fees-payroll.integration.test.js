@@ -15,6 +15,34 @@ after(async () => { if (server) await new Promise(resolve => server.close(resolv
 
 test('lists detailed other fees and sends idempotent debt reminders to student and parent', async () => { const debtors = await request('GET', '/fees/debtors', accountant); assert.equal(debtors.status, 200); assert.equal(debtors.data.data[0].category, 'OTHER'); assert.equal(debtors.data.data[0].outstanding, 700000); const first = await request('POST', '/fees/reminders/run', accountant, { minDaysOverdue: 1 }); assert.equal(first.status, 200); assert.equal(first.data.data.notifications, 2); assert.equal(await Notification.countDocuments({ type: 'FEE_REMINDER' }), 2); const second = await request('POST', '/fees/reminders/run', accountant, { minDaysOverdue: 1 }); assert.equal(second.status, 200); assert.equal(second.data.data.notifications, 0); assert.equal(await Notification.countDocuments({ type: 'FEE_REMINDER' }), 2); assert.equal((await FeeInvoice.findById(invoice._id)).status, 'OVERDUE'); });
 
+test('classifies partially paid past-due invoices as overdue in lists and accountant dashboard', async () => {
+  const partial = await FeeInvoice.create({
+    schoolId: school._id,
+    studentId: student._id,
+    academicYearId: year._id,
+    title: 'Past-due partial invoice',
+    amount: 500000,
+    paidAmount: 150000,
+    dueDate: new Date(Date.now() - 86400000),
+    status: 'PARTIAL',
+  });
+
+  const overdue = await request('GET', '/fees?status=OVERDUE', accountant);
+  assert.equal(overdue.status, 200);
+  const row = overdue.data.data.find(item => item._id === String(partial._id));
+  assert.equal(row?.status, 'OVERDUE');
+  assert.equal(overdue.data.data.some(item => item._id === String(partial._id) && item.status === 'PARTIAL'), false);
+
+  const dashboard = await request('GET', '/dashboard', accountant);
+  assert.equal(dashboard.status, 200);
+  const expectedOverdue = await FeeInvoice.countDocuments({
+    schoolId: school._id,
+    dueDate: { $lt: new Date() },
+    $expr: { $lt: [{ $ifNull: ['$paidAmount', 0] }, '$amount'] },
+  });
+  assert.equal(dashboard.data.data.stats.find(item => item.key === 'overdue').value, expectedOverdue);
+});
+
 test('creates a server-calculated multi-item invoice and allocates partial payment by item', async () => {
   const created = await request('POST', '/fees', accountant, {
     studentId: student._id, academicYearId: year._id, title: 'September fees', amount: 1,

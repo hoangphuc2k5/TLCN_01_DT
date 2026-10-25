@@ -145,7 +145,11 @@ class AccountantDashboard extends BaseDashboard {
     const [unpaid, paid, overdue] = await Promise.all([
       this.persistence.count('fee-invoice', { schoolId, status: FEE_STATUS.UNPAID }),
       this.persistence.count('fee-invoice', { schoolId, status: FEE_STATUS.PAID }),
-      this.persistence.count('fee-invoice', { schoolId, status: FEE_STATUS.OVERDUE }),
+      this.persistence.count('fee-invoice', {
+        schoolId,
+        dueDate: { $lt: new Date() },
+        $expr: { $lt: [{ $ifNull: ['$paidAmount', 0] }, '$amount'] },
+      }),
     ]);
     return {
       title: 'Bảng điều khiển Kế toán',

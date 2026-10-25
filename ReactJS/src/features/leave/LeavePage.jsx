@@ -6,6 +6,7 @@ import { useSelector } from 'react-redux';
 import { createLeaveApi, getLeavesApi, reviewLeaveApi, cancelMakeupApi } from '../../services/api.service';
 import { ROLES } from '../../constants/roles';
 import { can } from '../../utils/permissions';
+import { enumLabel } from '../../utils/enum-labels';
 
 const TYPE_LABELS = {
   STUDENT_ABSENCE: 'Xin nghỉ học',
@@ -116,7 +117,7 @@ const LeavePage = () => {
             title: 'TT',
             dataIndex: 'status',
             render: (v) => (
-              <Tag color={v === 'APPROVED' ? 'green' : v === 'REJECTED' ? 'red' : 'gold'}>{v}</Tag>
+              <Tag color={v === 'APPROVED' ? 'green' : v === 'REJECTED' ? 'red' : 'gold'}>{enumLabel(v)}</Tag>
             ),
           },
           canReview

@@ -12,6 +12,7 @@ import {
 } from '../../services/api.service';
 import { ROLES } from '../../constants/roles';
 import { can } from '../../utils/permissions';
+import { enumLabel } from '../../utils/enum-labels';
 
 const LibraryPage = () => {
   const { user } = useSelector((s) => s.auth);
@@ -92,7 +93,7 @@ const LibraryPage = () => {
                     {
                       title: 'TT',
                       dataIndex: 'status',
-                      render: (v) => <Tag color={v === 'RETURNED' ? 'green' : 'blue'}>{v}</Tag>,
+                      render: (v) => <Tag color={v === 'RETURNED' ? 'green' : 'blue'}>{enumLabel(v)}</Tag>,
                     },
                     can(user, 'library', 'execute')
                       ? {

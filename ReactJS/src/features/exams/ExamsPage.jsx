@@ -432,7 +432,7 @@ const ExamsPage = () => {
         okText="Tạo đề thi"
         cancelText="Hủy"
         width={840}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form
           form={form}

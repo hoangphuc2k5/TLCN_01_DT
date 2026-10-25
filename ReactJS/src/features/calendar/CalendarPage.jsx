@@ -5,6 +5,7 @@ import { createCalendarApi, deleteCalendarApi, downloadExport, getCalendarApi } 
 import { useSelector } from 'react-redux';
 import { can, canExport } from '../../utils/permissions';
 import { ROLES } from '../../constants/roles';
+import { enumLabel } from '../../utils/enum-labels';
 
 const CalendarPage = () => {
   const { user } = useSelector((s) => s.auth);
@@ -48,7 +49,7 @@ const CalendarPage = () => {
           {
             title: 'Loại',
             dataIndex: 'type',
-            render: (v) => <Tag>{v}</Tag>,
+            render: (v) => <Tag>{enumLabel(v)}</Tag>,
           },
           {
             title: 'Bắt đầu',

@@ -19,6 +19,7 @@ import { Radio } from 'antd';
 import ImportExcelButton from '../../components/ImportExcelButton';
 import { ROLES } from '../../constants/roles';
 import { can, canExport } from '../../utils/permissions';
+import { enumLabel } from '../../utils/enum-labels';
 
 const statusColor = {
   UNPAID: 'red',
@@ -120,7 +121,7 @@ const FeesPage = () => {
               { title: 'Đơn giá', dataIndex: 'unitAmount', render: money },
               { title: 'Thành tiền', dataIndex: 'amount', render: money },
               { title: 'Đã thu', dataIndex: 'paidAmount', render: money },
-              { title: 'Trạng thái', dataIndex: 'status', render: value => <Tag color={statusColor[value]}>{value}</Tag> },
+              { title: 'Trạng thái', dataIndex: 'status', render: value => <Tag color={statusColor[value]}>{enumLabel(value)}</Tag> },
             ]}
           />,
         }}
@@ -146,7 +147,7 @@ const FeesPage = () => {
           {
             title: 'TT',
             dataIndex: 'status',
-            render: (v) => <Tag color={statusColor[v]}>{v}</Tag>,
+            render: (v) => <Tag color={statusColor[v]}>{enumLabel(v)}</Tag>,
           },
           (canManage || canOnline)
             ? {
@@ -384,7 +385,7 @@ const FeesPage = () => {
                 </Col>
                 <Col span={10}>
                   <div>Nội dung thu: <strong>{receiptModal.invoice.title}</strong></div>
-                  <div>Trạng thái: <Tag color={statusColor[receiptModal.invoice.status]}>{receiptModal.invoice.status}</Tag></div>
+                  <div>Trạng thái: <Tag color={statusColor[receiptModal.invoice.status]}>{enumLabel(receiptModal.invoice.status)}</Tag></div>
                 </Col>
               </Row>
             </div>

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Button, Card, Form, Input, InputNumber, Modal, Table, message } from 'antd';
+import { Button, Card, Form, Input, InputNumber, Modal, Table, Tag, message } from 'antd';
 import { useSelector } from 'react-redux';
 import { createClubApi, getClubRegistrationsApi, getClubsApi, registerClubApi } from '../../services/api.service';
 import { can } from '../../utils/permissions';
+import { enumLabel } from '../../utils/enum-labels';
 
 export default function ActivitiesPage() {
   const { user } = useSelector(state => state.auth);
@@ -27,7 +28,7 @@ export default function ActivitiesPage() {
       { title: 'Tên', dataIndex: 'name' },
       { title: 'Mô tả', dataIndex: 'description' },
       { title: 'Sức chứa', dataIndex: 'capacity' },
-      { title: 'Trạng thái', dataIndex: 'status' },
+      { title: 'Trạng thái', dataIndex: 'status', render: value => <Tag>{enumLabel(value)}</Tag> },
       { title: 'Đăng ký', render: (_, row) => student && row.status === 'OPEN' && !joined.has(row._id) && <Button size="small" onClick={async () => { const result = await registerClubApi(row._id); if (result?.EC === 0) load(); else message.error(result?.EM); }}>Đăng ký</Button> },
     ]} />
     <Modal open={clubOpen} title="Tạo CLB" onCancel={() => setClubOpen(false)} onOk={() => clubForm.submit()}>

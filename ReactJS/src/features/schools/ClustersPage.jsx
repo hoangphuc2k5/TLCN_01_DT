@@ -100,7 +100,7 @@ const ClustersPage = () => {
         title={editing ? 'Sửa cụm' : 'Thêm cụm'}
         onCancel={() => setOpen(false)}
         onOk={() => form.submit()}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" onFinish={onSubmit}>
           <Form.Item name="code" label="Mã" rules={[{ required: true }]}>

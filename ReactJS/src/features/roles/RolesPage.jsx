@@ -209,7 +209,7 @@ const RolesPage = () => {
         onCancel={() => setOpen(false)}
         onOk={() => form.submit()}
         width={900}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" onFinish={onSubmit}>
           <Form.Item

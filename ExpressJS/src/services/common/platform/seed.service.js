@@ -99,8 +99,21 @@ async function seed() {
     maxStudents: 500,
     maxTeachers: 50,
     storageGb: 20,
-    expiresAt: new Date('2026-06-30'),
+    expiresAt: new Date('2026-12-31'),
     status: 'ACTIVE',
+  });
+
+  const sub2 = await seedRepository.findOne('subscription', { schoolId: school2._id });
+  await seedRepository.create('subscription-invoice', {
+    schoolId: school2._id,
+    subscriptionId: sub2._id,
+    plan: 'BASIC',
+    amount: 2000000,
+    periodStart: new Date('2026-01-01'),
+    periodEnd: new Date('2026-12-31'),
+    status: 'PAID',
+    paidAt: new Date('2026-01-02'),
+    note: 'Gia hạn năm 2026',
   });
 
   const superAdmin = await seedRepository.create('user', {

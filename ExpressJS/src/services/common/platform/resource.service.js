@@ -167,6 +167,7 @@ function createResourceService(dependencies) {
     item.reviewedBy = actor._id;
     item.reviewNote = data.reviewNote || '';
     if (data.status === 'RETURNED') {
+      if (new Date(item.from) > new Date()) throw new ApiError(409, 'Chưa đến thời gian mượn');
       item.returnedAt = new Date();
       item.conditionOnReturn = data.conditionOnReturn || '';
     }

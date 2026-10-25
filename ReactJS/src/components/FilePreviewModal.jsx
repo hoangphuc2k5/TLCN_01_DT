@@ -96,7 +96,7 @@ const FilePreviewModal = ({
         ) : null,
       ]}
       onCancel={onClose}
-      destroyOnClose
+      destroyOnHidden
     >
       {loading ? (
         <div style={{ textAlign: 'center', padding: '80px 0' }}>

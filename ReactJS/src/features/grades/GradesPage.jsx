@@ -64,15 +64,15 @@ const GradesPage = () => {
     if (!cls) return '—';
     const upper = String(cls).toUpperCase();
     if (['GIỎI', 'XUẤT SẮC', 'GIOI', 'EXCELLENT'].includes(upper)) {
-      return <Tag color="green">{cls}</Tag>;
+      return <Tag color="green">{upper === 'EXCELLENT' ? 'Xuất sắc' : cls}</Tag>;
     }
     if (['KHÁ', 'KHA', 'GOOD'].includes(upper)) {
-      return <Tag color="blue">{cls}</Tag>;
+      return <Tag color="blue">{upper === 'GOOD' ? 'Tốt' : cls}</Tag>;
     }
     if (['TRUNG BÌNH', 'TB', 'AVERAGE'].includes(upper)) {
-      return <Tag color="orange">{cls}</Tag>;
+      return <Tag color="orange">{upper === 'AVERAGE' ? 'Trung bình' : cls}</Tag>;
     }
-    return <Tag color="red">{cls}</Tag>;
+    return <Tag color="red">{upper === 'WEAK' ? 'Yếu' : cls}</Tag>;
   };
 
   const summaryData = useMemo(() => {

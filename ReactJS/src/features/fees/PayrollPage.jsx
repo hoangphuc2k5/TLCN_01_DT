@@ -3,6 +3,7 @@ import { Button, Card, Form, Input, InputNumber, Modal, Select, Space, Table, Ta
 import { useSelector } from 'react-redux';
 import { createPayrollApi, getPayrollApi, getUserDirectoryApi, updatePayrollStatusApi } from '../../services/api.service';
 import { can } from '../../utils/permissions';
+import { enumLabel } from '../../utils/enum-labels';
 
 const PayrollPage = () => {
   const { user } = useSelector(s => s.auth); const manage = can(user, 'fees', 'create'); const execute = can(user, 'fees', 'execute');
@@ -11,7 +12,7 @@ const PayrollPage = () => {
   useEffect(() => { load(); if (manage) getUserDirectoryApi({ limit: 300 }).then(result => result?.EC === 0 && setEmployees((result.data || []).filter(item => !['STUDENT', 'PARENT'].includes(item.role)))); }, []);
   const update = async (row, status) => { const result = await updatePayrollStatusApi(row._id, status); if (result?.EC === 0) { message.success(result.EM); load(); } else message.error(result?.EM); };
   return <Card title="Payroll" extra={manage && <Button type="primary" onClick={() => setOpen(true)}>New payroll</Button>}>
-    <Table rowKey="_id" dataSource={rows} columns={[{ title: 'Employee', render: (_, row) => row.employeeId?.name || row.employeeId?.email }, { title: 'Period', dataIndex: 'period' }, { title: 'Net amount', dataIndex: 'netAmount', render: value => Number(value).toLocaleString('vi-VN') }, { title: 'Status', dataIndex: 'status', render: value => <Tag>{value}</Tag> }, execute ? { title: 'Actions', render: (_, row) => <Space>{row.status === 'DRAFT' && <Button size="small" onClick={() => update(row, 'APPROVED')}>Approve</Button>}{row.status === 'APPROVED' && <Button size="small" type="primary" onClick={() => update(row, 'PAID')}>Mark paid</Button>}</Space> } : {}].filter(item => item.title)} />
+    <Table rowKey="_id" dataSource={rows} columns={[{ title: 'Employee', render: (_, row) => row.employeeId?.name || row.employeeId?.email }, { title: 'Period', dataIndex: 'period' }, { title: 'Net amount', dataIndex: 'netAmount', render: value => Number(value).toLocaleString('vi-VN') }, { title: 'Status', dataIndex: 'status', render: value => <Tag>{enumLabel(value)}</Tag> }, execute ? { title: 'Actions', render: (_, row) => <Space>{row.status === 'DRAFT' && <Button size="small" onClick={() => update(row, 'APPROVED')}>Approve</Button>}{row.status === 'APPROVED' && <Button size="small" type="primary" onClick={() => update(row, 'PAID')}>Mark paid</Button>}</Space> } : {}].filter(item => item.title)} />
     <Modal open={open} title="New payroll" confirmLoading={saving} onCancel={() => !saving && setOpen(false)} onOk={() => form.submit()}>
       <Form form={form} layout="vertical" onFinish={async values => { setSaving(true); try { const result = await createPayrollApi(values); if (result?.EC !== 0) return message.error(result?.EM); message.success(result.EM || 'Created'); setOpen(false); form.resetFields(); load(); } catch (error) { message.error(error.message); } finally { setSaving(false); } }}>
         <Form.Item name="employeeId" label="Employee" rules={[{ required: true }]}><Select showSearch optionFilterProp="label" options={employees.map(item => ({ value: item._id, label: `${item.name} (${item.role})` }))} /></Form.Item>
