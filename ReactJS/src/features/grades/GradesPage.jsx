@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button, Form, Select, Space, Table, Tabs, Tag, message } from 'antd';
+import { Form, Tabs, Tag, message } from 'antd';
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
 import {
@@ -9,8 +9,8 @@ import {
   getSubjectsApi,
   downloadExport,
 } from '../../services/api.service';
-import ImportExcelButton from '../../components/ImportExcelButton';
 import { can, canExport } from '../../utils/permissions';
+import GradebookPanel from './GradebookPanel';
 import GradeEntryModal from './GradeEntryModal';
 import GradeSummaryPanel from './GradeSummaryPanel';
 
@@ -184,90 +184,7 @@ const GradesPage = () => {
             key: 'details',
             label: 'Sổ điểm chi tiết các môn',
             children: (
-              <>
-                {(canEnter || canExport(user, 'grades')) && (
-                  <Space style={{ marginBottom: 16 }} wrap>
-                    {canEnter && (
-                      <Button type="primary" onClick={() => setOpen(true)}>
-                        Nhập / cập nhật điểm
-                      </Button>
-                    )}
-                    {canEnter && <ImportExcelButton type="grades" onDone={load} />}
-                    {canExport(user, 'grades') && (
-                      <Button
-                        onClick={async () => {
-                          try {
-                            await downloadExport('grades');
-                          } catch {
-                            message.error('Xuất Excel thất bại');
-                          }
-                        }}
-                      >
-                        Xuất Excel
-                      </Button>
-                    )}
-                  </Space>
-                )}
-
-                <Space wrap style={{ marginBottom: 16 }}>
-                  <Select
-                    allowClear
-                    placeholder="Lọc theo Lớp"
-                    style={{ width: 160 }}
-                    value={filterClass}
-                    onChange={setFilterClass}
-                    options={classes.map((c) => ({ value: c._id, label: c.name }))}
-                  />
-                  <Select
-                    allowClear
-                    placeholder="Lọc theo Môn"
-                    style={{ width: 160 }}
-                    value={filterSubject}
-                    onChange={setFilterSubject}
-                    options={subjects.map((s) => ({ value: s._id, label: s.name }))}
-                  />
-                  <Select
-                    allowClear
-                    placeholder="Lọc theo Học kỳ"
-                    style={{ width: 140 }}
-                    value={filterSemester}
-                    onChange={setFilterSemester}
-                    options={[
-                      { value: 1, label: 'Học kỳ 1' },
-                      { value: 2, label: 'Học kỳ 2' },
-                    ]}
-                  />
-                  {(filterClass || filterSubject || filterSemester) && (
-                    <Button
-                      onClick={() => {
-                        setFilterClass(null);
-                        setFilterSubject(null);
-                        setFilterSemester(null);
-                      }}
-                    >
-                      Xóa bộ lọc
-                    </Button>
-                  )}
-                </Space>
-
-                <Table
-                  rowKey="_id"
-                  dataSource={displayRows}
-                  columns={[
-                    { title: 'Học sinh', render: (_, r) => r.studentId?.name },
-                    { title: 'Lớp', render: (_, r) => r.classId?.name },
-                    { title: 'Môn', render: (_, r) => r.subjectId?.name },
-                    { title: 'HK', dataIndex: 'semester' },
-                    { title: 'ĐTB', dataIndex: 'average' },
-                    { title: 'Xếp loại', dataIndex: 'classification', render: (v) => getClassificationTag(v) },
-                    {
-                      title: 'Chi tiết',
-                      render: (_, r) =>
-                        (r.scores || []).map((s) => `${s.type}:${s.score}`).join(' | '),
-                    },
-                  ]}
-                />
-              </>
+              <GradebookPanel canEnter={canEnter} canExportGrades={canExport(user, 'grades')} onOpenEntry={() => setOpen(true)} onImportDone={load} onExport={() => downloadExport('grades')} classes={classes} subjects={subjects} displayRows={displayRows} getClassificationTag={getClassificationTag} filterClass={filterClass} setFilterClass={setFilterClass} filterSubject={filterSubject} setFilterSubject={setFilterSubject} filterSemester={filterSemester} setFilterSemester={setFilterSemester} />
             ),
           },
           {

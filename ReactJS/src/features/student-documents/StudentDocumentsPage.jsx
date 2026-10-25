@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Card, Form, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
+import { Button, Card, Form, Select, Space, Table, Tag, Typography, message } from 'antd';
 import { EyeOutlined, DownloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
@@ -10,11 +10,11 @@ import {
   getTranscriptHistoryApi,
   getStudentDocumentsApi,
   getUserDirectoryApi,
-  uploadStudentDocumentApi,
   fetchStudentDocumentBlobApi,
 } from '../../services/api.service';
 import { can } from '../../utils/permissions';
 import FilePreviewModal from '../../components/FilePreviewModal';
+import DocumentUploadModal from './DocumentUploadModal';
 
 const TYPE_LABELS = {
   IDENTITY: 'Giấy tờ tùy thân',
@@ -240,54 +240,7 @@ const StudentDocumentsPage = () => {
           />
         </Card>
       )}
-      <Modal
-        open={open}
-        title="Tải lên hồ sơ học sinh"
-        confirmLoading={saving}
-        onCancel={() => !saving && setOpen(false)}
-        onOk={() => form.submit()}
-        okText="Tải lên"
-        cancelText="Hủy"
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={async (values) => {
-            if (!file) return message.error('Vui lòng chọn tệp cần tải lên');
-            setSaving(true);
-            try {
-              const result = await uploadStudentDocumentApi(values, file);
-              if (result?.EC !== 0) return message.error(result?.EM);
-              message.success(result.EM || 'Tải lên thành công');
-              setOpen(false);
-              form.resetFields();
-              setFile(null);
-              load();
-            } catch (error) {
-              message.error(error.message || 'Tải lên thất bại');
-            } finally {
-              setSaving(false);
-            }
-          }}
-        >
-          <Form.Item name="studentId" label="Học sinh" rules={[{ required: true }]}>
-            <Select showSearch optionFilterProp="label" options={students.map(s => ({ value: s._id, label: `${s.name}${s.code ? ` (${s.code})` : ''}` }))} />
-          </Form.Item>
-          <Form.Item name="documentType" label="Loại hồ sơ" initialValue="OTHER" rules={[{ required: true }]}>
-            <Select options={Object.entries(TYPE_LABELS).map(([value, label]) => ({ value, label }))} />
-          </Form.Item>
-          <Form.Item name="title" label="Tiêu đề hồ sơ" rules={[{ required: true }]}>
-            <Input maxLength={180} />
-          </Form.Item>
-          <Form.Item label="Tệp đính kèm" extra="PDF, PNG/JPG, TXT, DOCX, XLSX hoặc PPTX – tối đa 10 MB">
-            <input
-              type="file"
-              accept=".pdf,.png,.jpg,.jpeg,.txt,.docx,.xlsx,.pptx"
-              onChange={handleFileChange}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
+      <DocumentUploadModal open={open} setOpen={setOpen} saving={saving} setSaving={setSaving} form={form} file={file} setFile={setFile} load={load} students={students} handleFileChange={handleFileChange} TYPE_LABELS={TYPE_LABELS} />
       <FilePreviewModal {...preview} onClose={closePreview} />
     </Space>
   );
