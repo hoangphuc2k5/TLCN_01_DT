@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button, Card, Input, Select, Space, Table, Tag, message } from 'antd';
 import dayjs from 'dayjs';
 import { getAcademicYearsApi, getDatedScheduleApi } from '../../services/api.service';
@@ -41,6 +41,7 @@ export default function DatedSchedulePanel() {
   const [selectedYearId, setSelectedYearId] = useState(null);
   const [weeks, setWeeks] = useState([]);
   const [selectedWeek, setSelectedWeek] = useState(null);
+  const dateRangeEdited = useRef(false);
 
   const loadSchedule = async (from = fromDate, to = toDate) => {
     setLoading(true);
@@ -60,6 +61,7 @@ export default function DatedSchedulePanel() {
         setSelectedYearId(active._id);
         const wList = generateWeeks(active);
         setWeeks(wList);
+        if (dateRangeEdited.current) return;
         const curWeek = wList.find(w => w.isCurrent) || wList[0];
         if (curWeek) {
           setSelectedWeek(curWeek.value);
@@ -69,8 +71,10 @@ export default function DatedSchedulePanel() {
           return;
         }
       }
-      loadSchedule();
-    }).catch(() => loadSchedule());
+      if (!dateRangeEdited.current) loadSchedule();
+    }).catch(() => {
+      if (!dateRangeEdited.current) loadSchedule();
+    });
   }, []);
 
   const handleYearChange = (yearId) => {
@@ -121,8 +125,8 @@ export default function DatedSchedulePanel() {
             options={weeks.map(w => ({ value: w.value, label: w.label }))}
           />
         )}
-        <label>Từ ngày <Input type="date" aria-label="Lịch từ ngày" value={fromDate} onChange={e => { setFrom(e.target.value); setSelectedWeek(null); }} /></label>
-        <label>Đến ngày <Input type="date" aria-label="Lịch đến ngày" value={toDate} onChange={e => { setTo(e.target.value); setSelectedWeek(null); }} /></label>
+        <label>Từ ngày <Input type="date" aria-label="Lịch từ ngày" value={fromDate} onChange={e => { dateRangeEdited.current = true; setFrom(e.target.value); setSelectedWeek(null); }} /></label>
+        <label>Đến ngày <Input type="date" aria-label="Lịch đến ngày" value={toDate} onChange={e => { dateRangeEdited.current = true; setTo(e.target.value); setSelectedWeek(null); }} /></label>
         <Button aria-label="Xem lịch" onClick={() => loadSchedule(fromDate, toDate)} loading={loading}>Xem lịch</Button>
         <Button onClick={() => {
           const start = dayjs().startOf('week').format('YYYY-MM-DD');

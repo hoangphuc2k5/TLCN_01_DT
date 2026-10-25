@@ -7,7 +7,9 @@ async function login(page, account) {
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 async function showSchedule(page) {
+  const initialSchedule = page.waitForResponse(r => r.url().includes('/timetables/schedule?'));
   await page.getByRole('link', { name: 'Thời khóa biểu', exact: true }).click();
+  await initialSchedule;
   const loadButton = page.getByRole('button', { name: 'Xem lịch', exact: true });
   await expect(loadButton).toBeEnabled();
   await page.getByLabel('Lịch từ ngày').fill('2026-09-07');
@@ -91,4 +93,33 @@ test('student sees own dated timetable and rejects an excessive date range', asy
   await page.getByRole('button', { name: 'Xem lịch', exact: true }).click();
   expect((await rejected).status()).toBe(400);
   await expect(page.getByText('Khoảng ngày phải từ 1 đến 31 ngày', { exact: true }).first()).toBeVisible();
+});
+
+test('manual date range is preserved while academic years load', async ({ page }) => {
+  await login(page, 'student1');
+  let releaseAcademicYears;
+  const academicYearsGate = new Promise(resolve => { releaseAcademicYears = resolve; });
+  await page.route('**/v1/api/academic-years', async route => {
+    await academicYearsGate;
+    await route.continue();
+  });
+
+  await page.getByRole('link', { name: 'Thời khóa biểu', exact: true }).click();
+  await page.waitForRequest(request => request.url().includes('/v1/api/academic-years'));
+  await page.getByLabel('Lịch từ ngày').fill('2026-09-07');
+  await page.getByLabel('Lịch đến ngày').fill('2026-09-08');
+  const selectedSchedule = page.waitForResponse(response => {
+    const url = new URL(response.url());
+    return url.pathname.endsWith('/timetables/schedule')
+      && url.searchParams.get('fromDate') === '2026-09-07'
+      && url.searchParams.get('toDate') === '2026-09-08';
+  });
+  await page.getByRole('button', { name: 'Xem lịch', exact: true }).click();
+  expect((await selectedSchedule).status()).toBe(200);
+
+  const academicYearsResponse = page.waitForResponse(response => response.url().includes('/v1/api/academic-years'));
+  releaseAcademicYears();
+  expect((await academicYearsResponse).status()).toBe(200);
+  await expect(page.getByLabel('Lịch từ ngày')).toHaveValue('2026-09-07');
+  await expect(page.getByLabel('Lịch đến ngày')).toHaveValue('2026-09-08');
 });
