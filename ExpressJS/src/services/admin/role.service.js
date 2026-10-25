@@ -149,13 +149,14 @@ function createRoleService(dependencies) {
     const role = await persistence.roleFindById(objectId(id));
     if (!role) throw new ApiError(404, 'Không tìm thấy vai trò');
     assertRoleOwnership(actor, role);
+    if (role.isSystem) throw new ApiError(400, 'Vai trò hệ thống không thể chỉnh sửa');
   
     await assertCanManageLevel(actor, role.level);
   
     if (!(await roleCache.canAccess(actor.role, 'roles', 'update')) && actor.role !== ROLES.SUPER_ADMIN) {
       throw new ApiError(403, 'Không có quyền sửa vai trò');
     }
-  
+
     const actorLevel = await getActorLevel(actor);
   
     if (data.name !== undefined) role.name = String(data.name).trim();

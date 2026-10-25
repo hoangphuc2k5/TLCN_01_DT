@@ -11,7 +11,7 @@ const Role = require("../../models/admin/role.model");
 const User = require("../../models/admin/user.model");
 const cache = require("../../config/container").services["role-permission-cache"];
 const { authorizePermissionAction } = require("../../middleware/common/security/rbac.middleware");
-let mongo, server, origin, reader, inactive, schoolId;
+let mongo, server, origin, reader, inactive, superAdmin, systemRole, schoolId;
 
 before(async () => {
   mongo = await MongoMemoryServer.create();
@@ -20,9 +20,12 @@ before(async () => {
   await Role.create([
     { code: 'READ_USERS', name: 'Reader', level: 20, permissions: [{ resource: 'users', actions: ['view'] }] },
     { code: 'SCHOOL_ADMIN', name: 'Disabled admin', level: 20, status: 'INACTIVE', permissions: [{ resource: 'users', actions: ['view', 'create', 'update', 'delete'] }] },
+    { code: 'SUPER_ADMIN', name: 'System administrator', level: 0, isSystem: true, permissions: [{ resource: 'roles', actions: ['view', 'update'] }] },
   ]);
   reader = await User.create({ name: 'Reader', email: 'reader@test.invalid', role: 'READ_USERS', schoolId });
   inactive = await User.create({ name: 'Disabled', email: 'disabled@test.invalid', role: 'SCHOOL_ADMIN', schoolId });
+  superAdmin = await User.create({ name: 'System administrator', email: 'super@test.invalid', role: 'SUPER_ADMIN' });
+  systemRole = await Role.findOne({ code: 'SUPER_ADMIN' });
   await cache.reload();
   server = app.listen(0, '127.0.0.1');
   await new Promise(resolve => server.once('listening', resolve));
@@ -59,6 +62,14 @@ test('unauthenticated request is rejected', async () => {
 test('disabled system role does not regain static permissions', async () => {
   assert.equal((await request('/users', inactive)).status, 403);
   assert.equal(cache.hasPermissionLegacySync('SCHOOL_ADMIN', 'MANAGE_USERS'), false);
+});
+
+test('system roles cannot be edited even by a super admin', async () => {
+  const response = await request(`/roles/${systemRole._id}`, superAdmin, 'PUT', { name: 'Changed', permissions: [] });
+  assert.equal(response.status, 400);
+  const stored = await Role.findById(systemRole._id);
+  assert.equal(stored.name, 'System administrator');
+  assert.equal(stored.permissions[0].actions[0], 'view');
 });
 
 test('empty active role collection fails closed', async () => {

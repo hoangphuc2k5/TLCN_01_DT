@@ -334,7 +334,7 @@ test('audit: parent dashboard rejects stale foreign-school child links', async (
   assert.equal(data.stats.find(s => s.key === 'children').value, 1);
   assert.ok(data.grades.length > 0);
   assert.ok(data.grades.every(g => String(g.studentId._id) === String(students[0]._id)));
-  assert.ok(data.invoices.every(i => String(i.studentId) === String(students[0]._id)));
+  assert.ok(data.invoices.every(i => String(i.studentId?._id || i.studentId) === String(students[0]._id)));
 });
 
 test('audit: teacher dashboard uses current class/subject/year scope', async () => {

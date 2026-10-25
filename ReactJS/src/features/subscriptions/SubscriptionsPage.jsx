@@ -173,15 +173,20 @@ const SubscriptionsPage = () => {
             } else message.error(res?.EM);
           }}
         >
-          <Form.Item name="subscriptionId" label="Subscription" rules={[{ required: true }]}>
+          <Form.Item name="subscriptionId" label="Gói dịch vụ" rules={[{ required: true }]}>
             <Select
               options={subs.map((s) => ({
                 value: s._id,
                 label: `${s.schoolId?.name || s.schoolId} — ${s.plan}`,
               }))}
+              onChange={(id) => {
+                const selected = subs.find((subscription) => subscription._id === id);
+                const defaults = { FREE: 0, BASIC: 2000000, PREMIUM: 5000000 };
+                invForm.setFieldValue('amount', defaults[selected?.plan] ?? 0);
+              }}
             />
           </Form.Item>
-          <Form.Item name="amount" label="Số tiền">
+          <Form.Item name="amount" label="Số tiền (VNĐ)" rules={[{ required: true, message: 'Chọn gói để điền mức phí mặc định hoặc nhập số tiền' }]}>
             <InputNumber style={{ width: '100%' }} min={0} />
           </Form.Item>
         </Form>

@@ -49,7 +49,7 @@ const AttendancePage = () => {
   const canSubmitAttendance = Boolean(classId && subjectId && attendanceDate)
     && !studentsLoading
     && students.length > 0
-    && Object.keys(records).length === students.length;
+    && students.every((student) => Boolean(records[student._id]));
 
   const loadHistory = async () => {
     const res = await getAttendanceApi();
@@ -120,7 +120,7 @@ const AttendancePage = () => {
         const init = {};
         studentList.forEach((st) => {
           const lv = getLeaveForStudent(st._id, date);
-          init[st._id] = lv ? 'ABSENT_EXCUSED' : 'PRESENT';
+          init[st._id] = lv ? 'ABSENT_EXCUSED' : undefined;
         });
         setRecords(init);
       } else {
@@ -158,6 +158,11 @@ const AttendancePage = () => {
   };
 
   const submit = async (values) => {
+    const unmarked = students.filter((student) => !records[student._id]);
+    if (unmarked.length) {
+      message.error(`Còn ${unmarked.length} học sinh chưa được điểm danh`);
+      return;
+    }
     const payload = {
       classId: values.classId,
       subjectId: values.subjectId,
@@ -306,6 +311,7 @@ const AttendancePage = () => {
                   <Select
                     style={{ width: 180 }}
                     value={records[r._id]}
+                    placeholder="Chưa điểm danh"
                     options={statusOptions}
                     onChange={(v) => setRecords((prev) => ({ ...prev, [r._id]: v }))}
                   />

@@ -61,8 +61,42 @@ function createAdmissionService(dependencies) {
     row.status = status; row.reviewNote = String(data.reviewNote || '').trim(); row.reviewedBy = actor._id; row.reviewedAt = new Date();
     return persistence.reviewSave(row);
   };
+
+  const enroll = async (actor, id, data = {}) => {
+    if (![ROLES.SUPER_ADMIN, ROLES.CLUSTER_ADMIN, ROLES.SCHOOL_ADMIN, ROLES.ACADEMIC_AFFAIRS].includes(actor.role)) throw new ApiError(403, 'Không có quyền tiếp nhận học sinh');
+    const row = await persistence.rowFindOne2({ _id: objectId(id), ...(await schoolScope(actor)) });
+    if (!row) throw new ApiError(404, 'Không tìm thấy hồ sơ trong phạm vi');
+    if (row.status !== 'ACCEPTED') throw new ApiError(409, 'Chỉ hồ sơ đã được nhận học mới tạo tài khoản');
+    if (row.enrolledStudentId) return { student: await persistence.studentFindByAdmissionId(row._id), defaultPassword: null, alreadyEnrolled: true };
+
+    const userService = dependencies.services.user;
+    const defaultPassword = userService.getDefaultPassword();
+    let student;
+    let created = false;
+    try {
+      student = await userService.createUser(actor, {
+        name: data.name || row.applicantName,
+        email: data.email,
+        password: defaultPassword,
+        role: ROLES.STUDENT,
+        schoolId: row.schoolId,
+        phone: data.phone || row.guardianPhone,
+        code: data.code,
+        classId: data.classId,
+        dateOfBirth: data.dateOfBirth || row.dateOfBirth,
+      }, { admissionApplicationId: row._id });
+      created = true;
+    } catch (error) {
+      if (error.code !== 11000) throw error;
+      student = await persistence.studentFindByAdmissionId(row._id);
+      if (!student) throw error;
+    }
+    row.enrolledStudentId = student._id;
+    await persistence.reviewSave(row);
+    return { student, defaultPassword: created ? defaultPassword : null, alreadyEnrolled: !created };
+  };
   
-  return { createPublic, getPublic, list, review };
+  return { createPublic, getPublic, list, review, enroll };
   
 }
 

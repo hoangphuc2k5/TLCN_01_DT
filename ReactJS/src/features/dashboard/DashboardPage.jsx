@@ -132,8 +132,8 @@ const DashboardPage = () => {
     },
     {
       title: 'ĐTB môn',
-      dataIndex: 'finalScore',
-      key: 'finalScore',
+      dataIndex: 'average',
+      key: 'average',
       render: (fs) =>
         fs != null ? (
           <Typography.Text strong style={{ color: fs >= 8 ? '#52c41a' : fs >= 6.5 ? '#1890ff' : '#faad14' }}>

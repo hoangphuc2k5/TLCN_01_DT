@@ -7,5 +7,6 @@ const createPublic = asyncHandler(async (req, res) => success(res, responseDto.f
 const getPublic = asyncHandler(async (req, res) => success(res, responseDto.fromService(await service.getPublic(requestDto.params(req).code))));
 const list = asyncHandler(async (req, res) => success(res, responseDto.fromService(await service.list(req.user, requestDto.query(req)))));
 const review = asyncHandler(async (req, res) => success(res, responseDto.fromService(await service.review(req.user, requestDto.params(req).id, requestDto.body(req))), 'Cập nhật hồ sơ thành công'));
+const enroll = asyncHandler(async (req, res) => success(res, responseDto.fromService(await service.enroll(req.user, requestDto.params(req).id, requestDto.body(req))), 'Đã tạo và liên kết tài khoản học sinh'));
 
-module.exports = { createPublic, getPublic, list, review };
+module.exports = { createPublic, getPublic, list, review, enroll };

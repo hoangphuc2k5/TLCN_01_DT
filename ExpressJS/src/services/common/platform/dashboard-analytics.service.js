@@ -114,7 +114,14 @@ function createDashboardAnalyticsService(dependencies) {
   
   const buildGrades = async (actor) => {
     const rows = await persistence.rowsFind(await gradeFilter(actor));
-    const scores = rows.map(row => row.average).filter(score => typeof score === 'number');
+    const scores = rows.map(row => {
+      if (typeof row.average === 'number') return row.average;
+      const items = row.scores || [];
+      const totalWeight = items.reduce((sum, item) => sum + (item.weight || ({ ORAL: 1, QUIZ_15: 1, MIDTERM: 2, FINAL: 3 }[item.type] || 1)), 0);
+      if (!items.length || !totalWeight) return null;
+      const weighted = items.reduce((sum, item) => sum + item.score * (item.weight || ({ ORAL: 1, QUIZ_15: 1, MIDTERM: 2, FINAL: 3 }[item.type] || 1)), 0);
+      return Math.round((weighted / totalWeight) * 100) / 100;
+    }).filter(score => typeof score === 'number');
     const distribution = [
       { key: 'excellent', label: 'Từ 8.0', value: scores.filter(score => score >= 8).length },
       { key: 'good', label: '6.5–7.9', value: scores.filter(score => score >= 6.5 && score < 8).length },

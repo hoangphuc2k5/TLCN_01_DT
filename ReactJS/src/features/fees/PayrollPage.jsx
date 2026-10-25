@@ -7,20 +7,20 @@ import { enumLabel } from '../../utils/enum-labels';
 
 const PayrollPage = () => {
   const { user } = useSelector(s => s.auth); const manage = can(user, 'fees', 'create'); const execute = can(user, 'fees', 'execute');
-  const [rows, setRows] = useState([]); const [employees, setEmployees] = useState([]); const [open, setOpen] = useState(false); const [saving, setSaving] = useState(false); const [form] = Form.useForm();
-  const load = async () => { const result = await getPayrollApi(); if (result?.EC === 0) setRows(result.data || []); };
+  const [rows, setRows] = useState([]); const [employees, setEmployees] = useState([]); const [open, setOpen] = useState(false); const [saving, setSaving] = useState(false); const [loading, setLoading] = useState(false); const [form] = Form.useForm();
+  const load = async () => { setLoading(true); try { const result = await getPayrollApi(); if (result?.EC === 0) setRows(result.data || []); } finally { setLoading(false); } };
   useEffect(() => { load(); if (manage) getUserDirectoryApi({ limit: 300 }).then(result => result?.EC === 0 && setEmployees((result.data || []).filter(item => !['STUDENT', 'PARENT'].includes(item.role)))); }, []);
   const update = async (row, status) => { const result = await updatePayrollStatusApi(row._id, status); if (result?.EC === 0) { message.success(result.EM); load(); } else message.error(result?.EM); };
-  return <Card title="Payroll" extra={manage && <Button type="primary" onClick={() => setOpen(true)}>New payroll</Button>}>
-    <Table rowKey="_id" dataSource={rows} columns={[{ title: 'Employee', render: (_, row) => row.employeeId?.name || row.employeeId?.email }, { title: 'Period', dataIndex: 'period' }, { title: 'Net amount', dataIndex: 'netAmount', render: value => Number(value).toLocaleString('vi-VN') }, { title: 'Status', dataIndex: 'status', render: value => <Tag>{enumLabel(value)}</Tag> }, execute ? { title: 'Actions', render: (_, row) => <Space>{row.status === 'DRAFT' && <Button size="small" onClick={() => update(row, 'APPROVED')}>Approve</Button>}{row.status === 'APPROVED' && <Button size="small" type="primary" onClick={() => update(row, 'PAID')}>Mark paid</Button>}</Space> } : {}].filter(item => item.title)} />
-    <Modal open={open} title="New payroll" confirmLoading={saving} onCancel={() => !saving && setOpen(false)} onOk={() => form.submit()}>
+  return <Card title="Bảng lương" extra={manage && <Button type="primary" onClick={() => setOpen(true)}>Tạo bảng lương</Button>}>
+    <Table loading={loading} rowKey="_id" dataSource={rows} columns={[{ title: 'Nhân viên', render: (_, row) => row.employeeId?.name || row.employeeId?.email }, { title: 'Kỳ lương', dataIndex: 'period' }, { title: 'Thực lĩnh', dataIndex: 'netAmount', render: value => `${Number(value).toLocaleString('vi-VN')} ₫` }, { title: 'Trạng thái', dataIndex: 'status', render: value => <Tag color={value === 'PAID' ? 'green' : value === 'APPROVED' ? 'blue' : 'default'}>{enumLabel(value)}</Tag> }, execute ? { title: 'Thao tác', render: (_, row) => <Space>{row.status === 'DRAFT' && String(row.createdBy?._id || row.createdBy) !== String(user?._id) && <Button size="small" onClick={() => update(row, 'APPROVED')}>Duyệt</Button>}{row.status === 'APPROVED' && <Button size="small" type="primary" onClick={() => update(row, 'PAID')}>Đánh dấu đã thanh toán</Button>}</Space> } : {}].filter(item => item.title)} />
+    <Modal open={open} title="Tạo bảng lương" confirmLoading={saving} onCancel={() => !saving && setOpen(false)} onOk={() => form.submit()}>
       <Form form={form} layout="vertical" onFinish={async values => { setSaving(true); try { const result = await createPayrollApi(values); if (result?.EC !== 0) return message.error(result?.EM); message.success(result.EM || 'Created'); setOpen(false); form.resetFields(); load(); } catch (error) { message.error(error.message); } finally { setSaving(false); } }}>
-        <Form.Item name="employeeId" label="Employee" rules={[{ required: true }]}><Select showSearch optionFilterProp="label" options={employees.map(item => ({ value: item._id, label: `${item.name} (${item.role})` }))} /></Form.Item>
-        <Form.Item name="period" label="Period" rules={[{ required: true }]}><Input type="month" /></Form.Item>
-        <Form.Item name="baseSalary" label="Base salary" rules={[{ required: true }]}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item>
-        <Form.Item name="allowances" label="Allowances" initialValue={0}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item>
-        <Form.Item name="deductions" label="Deductions" initialValue={0}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item>
-        <Form.Item name="note" label="Note"><Input.TextArea maxLength={1000} /></Form.Item>
+        <Form.Item name="employeeId" label="Nhân viên" rules={[{ required: true }]}><Select showSearch optionFilterProp="label" options={employees.map(item => ({ value: item._id, label: `${item.name} (${item.role})` }))} /></Form.Item>
+        <Form.Item name="period" label="Kỳ lương" rules={[{ required: true }]}><Input type="month" /></Form.Item>
+        <Form.Item name="baseSalary" label="Lương cơ bản" rules={[{ required: true }]}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item>
+        <Form.Item name="allowances" label="Phụ cấp" initialValue={0}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item>
+        <Form.Item name="deductions" label="Khấu trừ" initialValue={0}><InputNumber min={0} style={{ width: '100%' }} /></Form.Item>
+        <Form.Item name="note" label="Ghi chú"><Input.TextArea maxLength={1000} /></Form.Item>
       </Form>
     </Modal>
   </Card>;

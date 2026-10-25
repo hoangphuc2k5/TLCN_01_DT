@@ -37,7 +37,7 @@ class DashboardRepository {
   }
 
   findInvoices(filter, options = {}) {
-    let query = this.models['fee-invoice'].find(filter);
+    let query = this.models['fee-invoice'].find(filter).populate('studentId', 'name code');
     if (options.sort) query = query.sort(options.sort);
     if (options.limit) query = query.limit(options.limit);
     return query;

@@ -7,6 +7,7 @@ const register1 = router => {
   router.get('/admissions/public/:code', admissions.getPublic);
   router.get('/admissions', authorizePermissionAction('view', PERMISSIONS.MANAGE_ADMISSIONS), admissions.list);
   router.patch('/admissions/:id/review', authorizePermissionAction('execute', PERMISSIONS.MANAGE_ADMISSIONS), admissions.review);
+  router.post('/admissions/:id/enroll', authorizePermissionAction('execute', PERMISSIONS.MANAGE_ADMISSIONS), admissions.enroll);
 };
 
 module.exports = { register1 };

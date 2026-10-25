@@ -23,11 +23,15 @@ class AdmissionRepository {
   }
 
   listFind(arg1, arg2) {
-    return this.models["admission-application"].find(arg1).populate('schoolId', 'name code').populate('reviewedBy', 'name email').sort(arg2).limit(500);
+    return this.models["admission-application"].find(arg1).populate('schoolId', 'name code').populate('reviewedBy', 'name email').populate('enrolledStudentId', 'name email code').sort(arg2).limit(500);
   }
 
   rowFindOne2(arg1) {
     return this.models["admission-application"].findOne(arg1);
+  }
+
+  studentFindByAdmissionId(arg1) {
+    return this.models.user.findOne({ admissionApplicationId: arg1 }).select('+admissionApplicationId');
   }
 
   reviewSave(document) {

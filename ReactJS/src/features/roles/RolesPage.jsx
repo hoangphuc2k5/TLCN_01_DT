@@ -160,7 +160,7 @@ const RolesPage = () => {
         width: 180,
         render: (_, r) => (
           <Space>
-            {canManage(r) && can(me, 'roles', 'update') && (
+            {canManage(r) && can(me, 'roles', 'update') && !r.isSystem && (
               <Button size="small" onClick={() => openEdit(r)}>
                 Sửa
               </Button>
@@ -255,10 +255,11 @@ const RolesPage = () => {
                 : `Chỉ thấp hơn (level > ${myLevel}; số càng lớn càng thấp quyền)`
             }
           >
-            <InputNumber min={minLevel} style={{ width: '100%' }} />
+            <InputNumber min={minLevel} disabled={!!editing?.isSystem} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="status" label="Trạng thái">
             <Select
+              disabled={!!editing?.isSystem}
               options={[
                 { value: 'ACTIVE', label: 'ACTIVE' },
                 { value: 'INACTIVE', label: 'INACTIVE' },
@@ -282,6 +283,7 @@ const RolesPage = () => {
                 render: (_, res) => (
                   <Checkbox
                     checked={(matrix[res.key] || []).includes(action)}
+                    disabled={!!editing?.isSystem}
                     onChange={(e) => toggleAction(res.key, action, e.target.checked)}
                   />
                 ),
