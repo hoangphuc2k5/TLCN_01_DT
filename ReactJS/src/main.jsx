@@ -8,7 +8,6 @@ import App from './App.jsx';
 import store from './store/store.js';
 import { PrivateRoute } from './components/guards/AuthGuards.jsx';
 import AppLayout from './layouts/AppLayout.jsx';
-import { ROLES } from './constants/roles.js';
 import { ANT_DESIGN_THEME, applyUiCssVariables } from './constants/ui-tokens.js';
 import './styles/global.css';
 

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Button, Card, Modal, Space, Spin, Tag, Typography, Alert } from 'antd';
 import {
   DownloadOutlined,
-  EyeOutlined,
   FilePdfOutlined,
   FileImageOutlined,
   FileTextOutlined,

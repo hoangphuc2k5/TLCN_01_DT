@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button, Form, Input, Modal, Popconfirm, Select, Space, Table, Radio, Switch, Typography, message } from 'antd';
-import { EyeOutlined, DownloadOutlined } from '@ant-design/icons';
+import { EyeOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
 import {
