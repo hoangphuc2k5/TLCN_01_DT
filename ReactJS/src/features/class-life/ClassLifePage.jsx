@@ -21,12 +21,6 @@ const RSVP_STATUS_LABELS = {
   DECLINED: 'Không thể tham gia',
 };
 
-const RSVP_STATUS_COLORS = {
-  GOING: 'green',
-  MAYBE: 'orange',
-  DECLINED: 'red',
-};
-
 export default function ClassLifePage() {
   const { user } = useSelector((s) => s.auth);
   const manage = can(user, 'class_activities', 'execute');

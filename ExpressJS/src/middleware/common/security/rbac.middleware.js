@@ -18,7 +18,6 @@ const authorizePermission = (...permissions) => async (req, res, next) => {
     }
     let ok = false;
     for (const p of permissions) {
-      // eslint-disable-next-line no-await-in-loop
       if (await roleCache.hasPermissionLegacy(req.user.role, p)) {
         ok = true;
         break;

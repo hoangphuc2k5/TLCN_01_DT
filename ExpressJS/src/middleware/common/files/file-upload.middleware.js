@@ -32,13 +32,21 @@ const validateFile = file => {
   else if (ext === '.png') valid = b.subarray(0, 8).equals(Buffer.from('89504e470d0a1a0a', 'hex'));
   else if (['.jpg', '.jpeg'].includes(ext)) valid = b.subarray(0, 3).equals(Buffer.from('ffd8ff', 'hex'));
   else if (['.docx', '.xlsx', '.pptx'].includes(ext)) valid = b.subarray(0, 4).equals(Buffer.from('504b0304', 'hex'));
-  else if (ext === '.txt') { try { new TextDecoder('utf-8', { fatal: true }).decode(b); valid = !b.includes(0); } catch {} }
+  else if (ext === '.txt') {
+    try {
+      new TextDecoder('utf-8', { fatal: true }).decode(b);
+      valid = !b.includes(0);
+    } catch {
+      // Invalid UTF-8 is reported as an unsupported file format below.
+    }
+  }
   if (!valid || types[ext] !== file.mimetype) throw new ApiError(415, 'Nội dung file không khớp định dạng');
   let name = file.originalname;
   // Browser multipart filenames use UTF-8; Busboy defaults to Latin-1 for header parameters.
   if ([...name].every(c => c.charCodeAt(0) <= 255)) {
     try { name = new TextDecoder('utf-8', { fatal: true }).decode(Buffer.from(name, 'latin1')); } catch { /* Preserve explicitly Latin-1 names. */ }
   }
+  // eslint-disable-next-line no-control-regex -- Remove control characters from untrusted upload filenames.
   return { originalName: [...path.basename(name.replace(/\\/g, '/')).replace(/[\x00-\x1f\x7f]/g, '')].slice(0, 180).join(''), mimeType: types[ext] };
 };
 module.exports = { upload, validateFile };
