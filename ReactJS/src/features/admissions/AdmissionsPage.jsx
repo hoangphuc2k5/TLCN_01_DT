@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Button, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
 import dayjs from 'dayjs';
 import { enrollAdmissionApi, getAdmissionsApi, getClassesApi, reviewAdmissionApi } from '../../services/api.service';
+import PageShell from '../../components/layout/PageShell';
 
 const STATUS_COLORS = {
   SUBMITTED: 'gold',
@@ -115,7 +116,10 @@ const AdmissionsPage = () => {
   }[reviewStatus] || 'Xét duyệt';
 
   return (
-    <div>
+    <PageShell
+      title="Tuyển sinh"
+      description="Theo dõi hồ sơ, lọc theo trạng thái và xử lý kết quả tuyển sinh."
+    >
       <Space style={{ marginBottom: 16 }} wrap>
         <Select
           style={{ width: 180 }}
@@ -261,7 +265,7 @@ const AdmissionsPage = () => {
           </Form.Item>
         </Form>
       </Modal>
-    </div>
+    </PageShell>
   );
 };
 

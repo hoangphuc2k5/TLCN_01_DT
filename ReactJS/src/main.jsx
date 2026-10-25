@@ -9,7 +9,10 @@ import store from './store/store.js';
 import { PrivateRoute } from './components/guards/AuthGuards.jsx';
 import AppLayout from './layouts/AppLayout.jsx';
 import { ROLES } from './constants/roles.js';
+import { ANT_DESIGN_THEME, applyUiCssVariables } from './constants/ui-tokens.js';
 import './styles/global.css';
+
+applyUiCssVariables();
 
 const LoginPage = lazy(() => import('./features/auth/LoginPage.jsx'));
 const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage.jsx'));
@@ -128,13 +131,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <Provider store={store}>
       <ConfigProvider
         locale={viVN}
-        theme={{
-          token: {
-            colorPrimary: '#0f4c5c',
-            borderRadius: 8,
-            fontFamily: "'Be Vietnam Pro', 'Segoe UI', sans-serif",
-          },
-        }}
+        theme={ANT_DESIGN_THEME}
       >
         <Suspense fallback={<div role="status" aria-live="polite">Đang tải...</div>}>
           <RouterProvider router={router} />
