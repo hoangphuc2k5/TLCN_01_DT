@@ -258,7 +258,7 @@ const AttendancePage = () => {
           <Form.Item name="period">
             <InputNumber min={1} max={10} style={{ width: '100%' }} placeholder="Tiết" />
           </Form.Item>
-          <Button type="primary" htmlType="submit" disabled={!canSubmitAttendance} loading={studentsLoading}>
+          <Button aria-label="Lưu điểm danh" type="primary" htmlType="submit" disabled={!canSubmitAttendance} loading={studentsLoading}>
             Lưu điểm danh
           </Button>
         </Form>

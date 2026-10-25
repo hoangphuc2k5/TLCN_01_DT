@@ -53,11 +53,13 @@ test('attendance save stays unavailable until class, subject, and students are r
     await login(page);
     await page.goto('/attendance');
     const saveButton = page.getByRole('button', { name: 'Lưu điểm danh', exact: true });
+    await expect(saveButton).toBeVisible();
     await expect(saveButton).toBeDisabled();
 
     await page.getByRole('combobox').nth(0).click();
     await page.locator('.ant-select-item-option:visible').filter({ hasText: 'QA Class 0' }).click();
     await expect(page.getByText('Danh sách điểm danh (2 học sinh)', { exact: true })).toBeVisible();
+    await expect(saveButton).toBeVisible();
     await expect(saveButton).toBeDisabled();
 
     await page.getByRole('combobox').nth(1).click();

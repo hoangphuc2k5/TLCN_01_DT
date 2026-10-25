@@ -8,11 +8,19 @@ async function login(page, account) {
 }
 async function showSchedule(page) {
   await page.getByRole('link', { name: 'Thời khóa biểu', exact: true }).click();
+  const loadButton = page.getByRole('button', { name: 'Xem lịch', exact: true });
+  await expect(loadButton).toBeEnabled();
   await page.getByLabel('Lịch từ ngày').fill('2026-09-07');
   await page.getByLabel('Lịch đến ngày').fill('2026-09-08');
-  const response = page.waitForResponse(r => r.url().includes('/timetables/schedule?') && r.url().includes('2026-09-07'));
-  await page.getByRole('button', { name: 'Xem lịch', exact: true }).click();
-  expect((await response).status()).toBe(200);
+  const [response] = await Promise.all([
+    page.waitForResponse(response => {
+      const url = new URL(response.url());
+      return url.pathname.endsWith('/timetables/schedule')
+        && url.searchParams.get('fromDate') === '2026-09-07';
+    }),
+    loadButton.click(),
+  ]);
+  expect(response.status()).toBe(200);
 }
 test('teacher submits absence and structured makeup; admin approval updates parent timetable', async ({ browser }) => {
   const teacherContext = await browser.newContext();

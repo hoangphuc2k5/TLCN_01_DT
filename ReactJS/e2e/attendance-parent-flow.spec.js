@@ -41,7 +41,9 @@ test('teacher records attendance and parent sees only their child status', async
 
     const saveRequest = teacherPage.waitForRequest(r => r.url().endsWith('/v1/api/attendance') && r.method() === 'POST');
     const saved = teacherPage.waitForResponse(r => r.url().endsWith('/v1/api/attendance') && r.request().method() === 'POST');
-    await teacherPage.getByRole('button', { name: 'Lưu điểm danh', exact: true }).click();
+    const saveButton = teacherPage.getByRole('button', { name: 'Lưu điểm danh', exact: true });
+    await expect(saveButton).toBeEnabled();
+    await saveButton.click();
     const saveResponse = await saved;
     const savePayload = (await saveRequest).postDataJSON();
     restoreAttendance = { classId: savePayload.classId, studentIds: savePayload.records.map(record => record.studentId) };
