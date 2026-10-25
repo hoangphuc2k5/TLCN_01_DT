@@ -13,6 +13,7 @@ import {
   downloadExport,
 } from '../../services/api.service';
 import ImportExcelButton from '../../components/ImportExcelButton';
+import PageShell from '../../components/layout/PageShell';
 import { can, canExport } from '../../utils/permissions';
 
 const statusOptions = [
@@ -178,9 +179,11 @@ const AttendancePage = () => {
   };
 
   return (
-    <div>
-      {(canTake || canExport(user, 'attendance')) && (
-        <Space style={{ marginBottom: 16 }}>
+    <PageShell
+      title="Điểm danh"
+      description="Ghi nhận chuyên cần theo lớp, môn học và ngày học; xem lại lịch sử ở bên dưới."
+      actions={(canTake || canExport(user, 'attendance')) && (
+        <Space wrap>
           {canTake && <ImportExcelButton type="attendance" onDone={loadHistory} />}
           {canExport(user, 'attendance') && (
             <Button
@@ -197,6 +200,7 @@ const AttendancePage = () => {
           )}
         </Space>
       )}
+    >
 
       {canTake && myTodaySlots.length > 0 && (
         <Alert
@@ -260,7 +264,7 @@ const AttendancePage = () => {
               }}
             />
           </Form.Item>
-          <Form.Item name="period">
+          <Form.Item name="period" label="Tiết">
             <InputNumber min={1} max={10} style={{ width: '100%' }} placeholder="Tiết" />
           </Form.Item>
           <Button aria-label="Lưu điểm danh" type="primary" htmlType="submit" disabled={!canSubmitAttendance} loading={studentsLoading}>
@@ -368,7 +372,7 @@ const AttendancePage = () => {
           ),
         }}
       />
-    </div>
+    </PageShell>
   );
 };
 

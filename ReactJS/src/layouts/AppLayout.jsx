@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Layout, Menu, Typography, Button, Avatar, Space, Badge, theme, Drawer, Grid } from 'antd';
+import { Layout, Menu, Typography, Button, Avatar, Space, Badge, Drawer, Grid } from 'antd';
 import {
   DashboardOutlined,
   BankOutlined,
@@ -213,7 +213,6 @@ const AppLayout = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-  const { token } = theme.useToken();
   const screens = useBreakpoint();
   const compactNavigation = !screens.lg;
 
@@ -241,11 +240,9 @@ const AppLayout = () => {
           onCollapse={setCollapsed}
           theme="light"
           width={240}
-          style={{ borderRight: `1px solid ${token.colorBorderSecondary}` }}
         >
           <div
             className="app-brand"
-            style={{ cursor: 'pointer' }}
             onClick={() => navigate('/profile')}
             role="button"
             tabIndex={0}
@@ -264,7 +261,7 @@ const AppLayout = () => {
                 marginBottom: collapsed ? 0 : 8,
               }}
             />
-            <Typography.Title level={collapsed ? 5 : 4} style={{ margin: 0, color: '#0f4c5c' }}>
+            <Typography.Title level={collapsed ? 5 : 4} className="app-brand-title" style={{ margin: 0 }}>
               {collapsed ? shortName : appName}
             </Typography.Title>
             {!collapsed && (
@@ -290,14 +287,6 @@ const AppLayout = () => {
       <Layout className="app-main-layout">
         <Header
           className="app-header"
-          style={{
-            background: '#fff',
-            padding: compactNavigation ? '0 12px' : '0 24px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            borderBottom: `1px solid ${token.colorBorderSecondary}`,
-          }}
         >
           <Space size={compactNavigation ? 8 : 16} className="app-header-leading">
             {compactNavigation && (
@@ -340,18 +329,8 @@ const AppLayout = () => {
         <Content
           ref={contentRef}
           className="app-content"
-          style={{ margin: compactNavigation ? 12 : 24 }}
         >
-          <div
-            className="app-content-panel"
-            style={{
-              background: '#fff',
-              padding: compactNavigation ? 12 : 24,
-              minHeight: 360,
-              borderRadius: 12,
-              border: `1px solid ${token.colorBorderSecondary}`,
-            }}
-          >
+          <div className="app-content-panel">
             <Outlet />
           </div>
         </Content>
