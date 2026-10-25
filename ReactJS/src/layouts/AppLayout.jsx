@@ -28,6 +28,8 @@ import {
 } from '@ant-design/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import PageHeader from '../components/layout/PageHeader';
+import { getPageMetadata } from '../constants/page-metadata';
 import { logout } from '../store/auth.slice';
 import { ROLES, ROLE_LABELS } from '../constants/roles';
 import { canVisit } from '../utils/permissions';
@@ -219,6 +221,7 @@ const AppLayout = () => {
   const items = useMemo(() => menuByRole(user?.role, user), [user]);
 
   const selected = items.find((i) => location.pathname.startsWith(i.key))?.key || '/dashboard';
+  const pageMetadata = getPageMetadata(location.pathname);
 
   useLayoutEffect(() => {
     contentRef.current?.scrollTo({ top: 0, left: 0 });
@@ -331,7 +334,12 @@ const AppLayout = () => {
           className="app-content"
         >
           <div className="app-content-panel">
-            <Outlet />
+            <div className="app-route-frame">
+              {pageMetadata && <PageHeader title={pageMetadata.title} />}
+              <div className="app-route-content">
+                <Outlet />
+              </div>
+            </div>
           </div>
         </Content>
       </Layout>
