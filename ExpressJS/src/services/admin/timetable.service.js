@@ -1,7 +1,6 @@
 function createTimetableService(dependencies) {
   const persistence = dependencies.persistence;
   const ApiError = require("../../utils/common/http/api-error.util");
-  const { timetableRepo } = dependencies.repositories["shared"];
   const { ROLES } = require("../../config/constants/roles.config");
   const { schoolScope, personalStudentIds, objectId } = dependencies.services["data-scope"];
   const scopeFor = dependencies.services["timetable-scope"];

@@ -1,4 +1,4 @@
-function createVnpayGatewayService(dependencies) {
+function createVnpayGatewayService(_dependencies) {
   const crypto = require('node:crypto');
   const net = require('node:net');
   const ApiError = require("../../../utils/common/http/api-error.util");

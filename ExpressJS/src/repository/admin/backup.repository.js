@@ -74,7 +74,7 @@ class BackupRepository {
         options,
         indexes: indexes
           .filter(index => index.name !== '_id_')
-          .map(({ v, ns, background, ...index }) => index),
+          .map(({ v: _v, ns: _ns, background: _background, ...index }) => index),
       });
     }
     return {

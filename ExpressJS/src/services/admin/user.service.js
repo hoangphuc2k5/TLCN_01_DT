@@ -1,7 +1,6 @@
 function createUserService(dependencies) {
   const persistence = dependencies.persistence;
   const ApiError = require("../../utils/common/http/api-error.util");
-  const { userRepo, schoolRepo } = dependencies.repositories["shared"];
   const { hash: hashPassword } = dependencies.services["password-policy"];
   const { isGmailAddress } = require("../../utils/common/communication/gmail.util");
   const { toSafeObject } = require("../../utils/common/identity/user-sanitizer.util");
@@ -12,7 +11,6 @@ function createUserService(dependencies) {
   const { visibleRole } = dependencies.services["role"];
   const { targetSchool, reference } = dependencies.services["write-scope"];
   const Class = "class";
-  const Cluster = "cluster";
   const User = "user";
   const { objectId } = dependencies.services["data-scope"];
   const { assertWithinLimits } = dependencies.services["subscription"];

@@ -1,4 +1,4 @@
-function createFeeInvoiceAccountingService(dependencies) {
+function createFeeInvoiceAccountingService(_dependencies) {
   const ApiError = require("../../utils/common/http/api-error.util");
   
   const categories = new Set(['TUITION', 'OTHER', 'BOARDING', 'TRANSPORT', 'ACTIVITY']);

@@ -1,7 +1,6 @@
 function createAttendanceService(dependencies) {
   const persistence = dependencies.persistence;
   const ApiError = require("../../utils/common/http/api-error.util");
-  const { attendanceRepo } = dependencies.repositories["shared"];
   const eventBus = dependencies.eventBus;
   const { ROLES } = require("../../config/constants/roles.config");
   const { buildExportScope } = dependencies.services["export-scope"];

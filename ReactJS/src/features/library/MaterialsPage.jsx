@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button, Form, Input, Modal, Popconfirm, Select, Space, Table, Radio, Switch, Typography, message } from 'antd';
 import { EyeOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -98,14 +98,14 @@ const MaterialsPage = () => {
   };
 
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const res = await getMaterialsApi();
     if (res?.EC === 0) setRows(res.data || []);
     if (canManage && user?.schoolId) {
       const storage = await getFileUsageApi();
       if (storage?.EC === 0) setUsage(storage.data);
     }
-  };
+  }, [canManage, user?.schoolId]);
 
   useEffect(() => {
     (async () => {
@@ -116,7 +116,7 @@ const MaterialsPage = () => {
       }
       load();
     })();
-  }, []);
+  }, [canManage, load]);
 
   return (
     <div>

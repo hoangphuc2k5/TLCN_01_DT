@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Card, Form, Input, InputNumber, Modal, Popconfirm, Radio, Select, Space, Table, Tag, message } from 'antd';
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
@@ -45,15 +45,15 @@ export default function AssignmentsPage() {
   const [retakeForm] = Form.useForm();
   const submissionMode = Form.useWatch('submissionMode', submitForm) || 'WEB';
 
-  const loadHomeworks = async () => {
+  const loadHomeworks = useCallback(async () => {
     const result = await getHomeworksApi();
     if (result?.EC === 0) setRows(result.data || []);
-  };
-  const loadRetakes = async () => {
+  }, []);
+  const loadRetakes = useCallback(async () => {
     if (!seeRetakes) return;
     const result = await getRetakeRequestsApi();
     if (result?.EC === 0) setRetakes(result.data || []);
-  };
+  }, [seeRetakes]);
 
   useEffect(() => {
     (async () => {
@@ -76,7 +76,7 @@ export default function AssignmentsPage() {
       await Promise.all(requests);
       await Promise.all([loadHomeworks(), loadRetakes()]);
     })();
-  }, []);
+  }, [isTeacher, loadHomeworks, loadRetakes, manage, seeRetakes]);
 
   const startSubmission = row => {
     const mode = row.submission?.status === 'UPLOADING' ? 'FILE' : 'WEB';

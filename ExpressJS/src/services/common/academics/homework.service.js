@@ -41,7 +41,7 @@ function createHomeworkService(dependencies) {
     await reference("class", classId, schoolId, { academicYearId });
     await reference("subject", subjectId, schoolId);
     const year = await reference("academic-year", academicYearId, schoolId);
-    const teacher = await reference(User, teacherId, schoolId, { role: { $in: teachers }, status: 'ACTIVE' });
+    await reference(User, teacherId, schoolId, { role: { $in: teachers }, status: 'ACTIVE' });
     if (!await persistence.validateReferencesExists({ schoolId, classId, subjectId, academicYearId, teacherId })) {
       throw new ApiError(403, 'Giáo viên chưa được phân công lớp/môn/năm học này');
     }

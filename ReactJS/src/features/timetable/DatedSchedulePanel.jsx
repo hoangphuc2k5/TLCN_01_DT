@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button, Card, Input, Select, Space, Table, Tag, message } from 'antd';
 import dayjs from 'dayjs';
 import { getAcademicYearsApi, getDatedScheduleApi } from '../../services/api.service';
@@ -42,8 +42,9 @@ export default function DatedSchedulePanel() {
   const [weeks, setWeeks] = useState([]);
   const [selectedWeek, setSelectedWeek] = useState(null);
   const dateRangeEdited = useRef(false);
+  const initialDateRange = useRef({ fromDate, toDate });
 
-  const loadSchedule = async (from = fromDate, to = toDate) => {
+  const loadSchedule = useCallback(async (from, to) => {
     setLoading(true);
     try {
       const res = await getDatedScheduleApi({ fromDate: from, toDate: to });
@@ -51,7 +52,7 @@ export default function DatedSchedulePanel() {
       else { setRows([]); message.error(res?.EM || 'Không tải được lịch'); }
     } catch { setRows([]); message.error('Không tải được lịch'); }
     finally { setLoading(false); }
-  };
+  }, []);
 
   useEffect(() => {
     getAcademicYearsApi().then(res => {
@@ -71,11 +72,11 @@ export default function DatedSchedulePanel() {
           return;
         }
       }
-      if (!dateRangeEdited.current) loadSchedule();
+      if (!dateRangeEdited.current) loadSchedule(initialDateRange.current.fromDate, initialDateRange.current.toDate);
     }).catch(() => {
-      if (!dateRangeEdited.current) loadSchedule();
+      if (!dateRangeEdited.current) loadSchedule(initialDateRange.current.fromDate, initialDateRange.current.toDate);
     });
-  }, []);
+  }, [loadSchedule]);
 
   const handleYearChange = (yearId) => {
     setSelectedYearId(yearId);

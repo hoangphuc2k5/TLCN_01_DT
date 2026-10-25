@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Button,
   Card,
@@ -71,11 +71,11 @@ const ExamsPage = () => {
   const [manualForm] = Form.useForm();
   const [manualType, setManualType] = useState('MCQ');
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const [e, a] = await Promise.all([getExamsApi(), getAttemptsApi()]);
     if (e?.EC === 0) setExams(e.data || []);
     if (a?.EC === 0) setAttempts(a.data || []);
-  };
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -86,7 +86,7 @@ const ExamsPage = () => {
       }
       load();
     })();
-  }, []);
+  }, [canManage, load]);
 
   const startExam = async (examId) => {
     const start = await startAttemptApi(examId);

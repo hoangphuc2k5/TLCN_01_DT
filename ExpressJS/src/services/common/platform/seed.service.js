@@ -124,7 +124,7 @@ async function seed() {
     code: 'SA001',
   });
 
-  const clusterAdmin = await seedRepository.create('user', {
+  await seedRepository.create('user', {
     name: 'Quản lý cụm Ánh Sáng',
     email: 'cluster@anhsang.edu.vn',
     password,
@@ -143,7 +143,7 @@ async function seed() {
     code: 'HT001',
   });
 
-  const academic = await seedRepository.create('user', {
+  await seedRepository.create('user', {
     name: 'Giáo vụ Trần Thị B',
     email: 'giaovu@as1.edu.vn',
     password,
@@ -173,7 +173,7 @@ async function seed() {
     code: 'CN001',
   });
 
-  const accountant = await seedRepository.create('user', {
+  await seedRepository.create('user', {
     name: 'Kế toán Hoàng E',
     email: 'ketoan@as1.edu.vn',
     password,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button, Card, Form, Input, Modal, Select, Space, Table, Tag, message } from 'antd';
 import { useSelector } from 'react-redux';
 import {
@@ -32,11 +32,11 @@ export default function ContactBookPage() {
   const [form] = Form.useForm();
   const [replyForm] = Form.useForm();
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const r = await getContactBooksApi();
     if (r?.EC === 0) setRows(r.data || []);
     else message.error(r?.EM || 'Không thể tải sổ liên lạc');
-  };
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -47,7 +47,7 @@ export default function ContactBookPage() {
       }
       await load();
     })();
-  }, []);
+  }, [load, manage]);
 
   const handleClassChange = async (classId) => {
     form.setFieldValue('studentId', undefined);

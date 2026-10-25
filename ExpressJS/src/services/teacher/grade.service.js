@@ -1,12 +1,10 @@
 function createGradeService(dependencies) {
   const persistence = dependencies.persistence;
   const ApiError = require("../../utils/common/http/api-error.util");
-  const { gradeRepo } = dependencies.repositories["shared"];
   const { getGradeStrategy } = dependencies.services["grade-strategy"];
   const { ROLES } = require("../../config/constants/roles.config");
   const { buildExportScope } = dependencies.services["export-scope"];
   const { academicReferences } = dependencies.services["write-scope"];
-  const mongoose = require('mongoose');
   const withStudentLock = async (studentId, work) => {
     try {
       return await persistence.withStudentLockTransaction(async session => {
@@ -70,7 +68,7 @@ function createGradeService(dependencies) {
       return updated;
     }
   
-    const { classId: ignoredClass, ...identity } = filter;
+    const { classId: _classId, ...identity } = filter;
     if (await persistence.writeGradeFindOne(identity, session)) throw new ApiError(409, 'Bảng điểm môn/học kỳ đang thuộc lớp khác; mở bảng điểm tại lớp đã tiếp nhận');
     const student = await persistence.studentFindById(studentId, session);
     const lastTransfer = [...(student.classHistory || [])].reverse().find(item => String(item.academicYearId) === String(academicYearId) && item.semester === Number(semester));

@@ -2,7 +2,6 @@ function createOnlinePaymentService(dependencies) {
   const persistence = dependencies.persistence;
   const ApiError = require("../../../utils/common/http/api-error.util");
   const { FEE_STATUS } = require("../../../config/constants/status.config");
-  const { ROLES } = require("../../../config/constants/roles.config");
   const { objectId, schoolScope, personalStudentIds } = dependencies.services["data-scope"];
   const { getGateway } = dependencies.services["payment-gateway"];
   const { allocatePayment, recalculateLineItems } = dependencies.services["fee-invoice-accounting"];
