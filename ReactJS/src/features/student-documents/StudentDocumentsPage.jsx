@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Card, Form, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
 import { EyeOutlined, DownloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -99,10 +99,10 @@ const StudentDocumentsPage = () => {
   };
 
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const result = await getStudentDocumentsApi();
     if (result?.EC === 0) setRows(result.data || []);
-  };
+  }, []);
 
   useEffect(() => {
     load();
@@ -110,7 +110,7 @@ const StudentDocumentsPage = () => {
       getUserDirectoryApi({ role: 'STUDENT', limit: 300 })
         .then(result => result?.EC === 0 && setStudents(result.data || []));
     }
-  }, []);
+  }, [canManage, load]);
 
   const personalStudents = useMemo(() => {
     const map = new Map();

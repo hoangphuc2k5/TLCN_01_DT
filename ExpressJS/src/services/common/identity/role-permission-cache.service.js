@@ -3,19 +3,14 @@ function createRolePermissionCacheService(dependencies) {
   const { STATUS } = require("../../../config/constants/status.config");
   const {
     DEFAULT_ROLE_LEVELS,
-    legacyPermissionsToEntries,
     hasResourceAction,
     entriesSatisfyLegacy,
   } = require("../../../config/constants/permission-catalog.config");
-  const { ROLE_LABELS, ROLES } = require("../../../config/constants/roles.config");
+  const { ROLES } = require("../../../config/constants/roles.config");
   
   let cacheByCode = new Map();
   let loaded = false;
   
-  const getStaticRolePermissions = () => {
-    // lazy to avoid circular require with permissions.js
-    return require("../../../config/constants/permissions.config").ROLE_PERMISSIONS;
-  };
   
   const normalizeRoleDoc = (doc) => {
     if (!doc) return null;

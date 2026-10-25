@@ -1,6 +1,5 @@
 function createMonitoringService(dependencies) {
   const persistence = dependencies.persistence;
-  const mongoose = require('mongoose');
   const { schoolScope } = dependencies.services["data-scope"];
   
   const getSystemMetrics = async actor => {

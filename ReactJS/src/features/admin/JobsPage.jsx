@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button, DatePicker, Form, Modal, Popconfirm, Select, Space, Table, Tag, Typography, message } from 'antd';
 import { useSelector } from 'react-redux';
 import dayjs from 'dayjs';
@@ -17,7 +17,7 @@ export default function JobsPage() {
   const [retry, setRetry] = useState(null);
   const [saving, setSaving] = useState(false);
   const [form] = Form.useForm();
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const result = await getJobsApi({ page, limit: 25, status });
@@ -25,8 +25,8 @@ export default function JobsPage() {
       else message.error(result?.EM || 'Không tải được tác vụ');
     } catch { message.error('Không kết nối được máy chủ'); }
     finally { setLoading(false); }
-  };
-  useEffect(() => { load(); }, [page, status]);
+  }, [page, status]);
+  useEffect(() => { load(); }, [load]);
   const execute = can(user, 'jobs', 'execute');
   return <div>
     <Typography.Title level={3}>Tác vụ nền</Typography.Title>

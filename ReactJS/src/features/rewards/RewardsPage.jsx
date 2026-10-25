@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, message } from 'antd';
 import { useSelector } from 'react-redux';
 import {
@@ -29,10 +29,10 @@ const RewardsPage = () => {
   const [open, setOpen] = useState(false);
   const [form] = Form.useForm();
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const r = await getRewardsApi();
     if (r?.EC === 0) setRows(r.data || []);
-  };
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -43,7 +43,7 @@ const RewardsPage = () => {
       }
       load();
     })();
-  }, []);
+  }, [canManage, load]);
 
   return (
     <div>

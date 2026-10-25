@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button, Card, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, message } from 'antd';
 import { useSelector } from 'react-redux';
 import { createPayrollApi, getPayrollApi, getUserDirectoryApi, updatePayrollStatusApi } from '../../services/api.service';
@@ -8,8 +8,8 @@ import { enumLabel } from '../../utils/enum-labels';
 const PayrollPage = () => {
   const { user } = useSelector(s => s.auth); const manage = can(user, 'fees', 'create'); const execute = can(user, 'fees', 'execute');
   const [rows, setRows] = useState([]); const [employees, setEmployees] = useState([]); const [open, setOpen] = useState(false); const [saving, setSaving] = useState(false); const [loading, setLoading] = useState(false); const [form] = Form.useForm();
-  const load = async () => { setLoading(true); try { const result = await getPayrollApi(); if (result?.EC === 0) setRows(result.data || []); } finally { setLoading(false); } };
-  useEffect(() => { load(); if (manage) getUserDirectoryApi({ limit: 300 }).then(result => result?.EC === 0 && setEmployees((result.data || []).filter(item => !['STUDENT', 'PARENT'].includes(item.role)))); }, []);
+  const load = useCallback(async () => { setLoading(true); try { const result = await getPayrollApi(); if (result?.EC === 0) setRows(result.data || []); } finally { setLoading(false); } }, []);
+  useEffect(() => { load(); if (manage) getUserDirectoryApi({ limit: 300 }).then(result => result?.EC === 0 && setEmployees((result.data || []).filter(item => !['STUDENT', 'PARENT'].includes(item.role)))); }, [load, manage]);
   const update = async (row, status) => { const result = await updatePayrollStatusApi(row._id, status); if (result?.EC === 0) { message.success(result.EM); load(); } else message.error(result?.EM); };
   return <Card title="Bảng lương" extra={manage && <Button type="primary" onClick={() => setOpen(true)}>Tạo bảng lương</Button>}>
     <Table loading={loading} rowKey="_id" dataSource={rows} columns={[{ title: 'Nhân viên', render: (_, row) => row.employeeId?.name || row.employeeId?.email }, { title: 'Kỳ lương', dataIndex: 'period' }, { title: 'Thực lĩnh', dataIndex: 'netAmount', render: value => `${Number(value).toLocaleString('vi-VN')} ₫` }, { title: 'Trạng thái', dataIndex: 'status', render: value => <Tag color={value === 'PAID' ? 'green' : value === 'APPROVED' ? 'blue' : 'default'}>{enumLabel(value)}</Tag> }, execute ? { title: 'Thao tác', render: (_, row) => <Space>{row.status === 'DRAFT' && String(row.createdBy?._id || row.createdBy) !== String(user?._id) && <Button size="small" onClick={() => update(row, 'APPROVED')}>Duyệt</Button>}{row.status === 'APPROVED' && <Button size="small" type="primary" onClick={() => update(row, 'PAID')}>Đánh dấu đã thanh toán</Button>}</Space> } : {}].filter(item => item.title)} />

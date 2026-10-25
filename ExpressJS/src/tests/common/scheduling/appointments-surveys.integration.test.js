@@ -16,7 +16,7 @@ const Year = require("../../../models/admin/academic-year.model");
 const TeacherAppointment = require("../../../models/common/scheduling/teacher-appointment.model");
 const SatisfactionSurvey = require("../../../models/common/campus/satisfaction-survey.model");
 
-let mongo; let server; let origin; let school; let year; let student; let parent; let parent2; let teacher; let admin;
+let mongo; let server; let origin; let school; let student; let parent; let parent2; let teacher; let admin;
 const request = async (method, path, actor, body) => {
   const headers = { 'Content-Type': 'application/json' };
   if (actor) headers.Authorization = `Bearer ${jwt.sign({ _id: actor._id }, process.env.JWT_SECRET)}`;
@@ -29,7 +29,7 @@ before(async () => {
   await Role.create(Object.entries(ROLE_PERMISSIONS).map(([code, keys]) => ({ code, name: code, level: DEFAULT_ROLE_LEVELS[code], permissions: legacyPermissionsToEntries(keys) })));
   await cache.reload();
   school = await School.create({ name: 'Appointment School', code: 'APS', subdomain: 'aps' });
-  year = await Year.create({ schoolId: school._id, name: '2026', startDate: '2026-08-01', endDate: '2027-06-30' });
+  await Year.create({ schoolId: school._id, name: '2026', startDate: '2026-08-01', endDate: '2027-06-30' });
   teacher = await User.create({ name: 'teacher', email: 'teacher@app.invalid', role: 'SUBJECT_TEACHER', schoolId: school._id });
   admin = await User.create({ name: 'admin', email: 'admin@app.invalid', role: 'SCHOOL_ADMIN', schoolId: school._id });
   student = await User.create({ name: 'student', email: 'student@app.invalid', role: 'STUDENT', schoolId: school._id });

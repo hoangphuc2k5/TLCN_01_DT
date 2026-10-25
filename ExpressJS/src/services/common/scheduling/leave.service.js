@@ -1,7 +1,6 @@
 function createLeaveService(dependencies) {
   const persistence = dependencies.persistence;
   const ApiError = require("../../../utils/common/http/api-error.util");
-  const { leaveRepo } = dependencies.repositories["shared"];
   const eventBus = dependencies.eventBus;
   const { LEAVE_STATUS, LEAVE_TYPES } = require("../../../config/constants/status.config");
   const { ROLES } = require("../../../config/constants/roles.config");

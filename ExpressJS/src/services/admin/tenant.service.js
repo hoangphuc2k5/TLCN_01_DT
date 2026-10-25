@@ -1,7 +1,6 @@
 function createTenantService(dependencies) {
   const persistence = dependencies.persistence;
   const ApiError = require("../../utils/common/http/api-error.util");
-  const { clusterRepo, schoolRepo } = dependencies.repositories["shared"];
   const { ROLES } = require("../../config/constants/roles.config");
   const { pick } = dependencies.services["write-scope"];
   const { objectId } = dependencies.services["data-scope"];

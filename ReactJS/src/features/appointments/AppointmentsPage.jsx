@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, message } from 'antd';
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
@@ -43,10 +43,10 @@ const AppointmentsPage = () => {
   const [form] = Form.useForm();
   const [surveyForm] = Form.useForm();
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const res = await getAppointmentsApi();
     if (res?.EC === 0) setRows(res.data || []);
-  };
+  }, []);
 
   useEffect(() => {
     load();
@@ -64,7 +64,7 @@ const AppointmentsPage = () => {
         }
       });
     }
-  }, []);
+  }, [canRequest, isParent, load, user?.parentOf]);
 
   const review = async (row, status) => {
     const res = await reviewAppointmentApi(row._id, { status });

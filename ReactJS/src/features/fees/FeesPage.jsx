@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button, Card, Col, Form, Input, InputNumber, Modal, Row, Select, Space, Table, Tag, message } from 'antd';
 import { PrinterOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -56,10 +56,10 @@ const FeesPage = () => {
   const [feeForm] = Form.useForm();
   const [payForm] = Form.useForm();
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const res = await getFeesApi();
     if (res?.EC === 0) setRows(res.data || []);
-  };
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -75,7 +75,7 @@ const FeesPage = () => {
       }
       load();
     })();
-  }, []);
+  }, [canManage, load]);
 
   return (
     <div>

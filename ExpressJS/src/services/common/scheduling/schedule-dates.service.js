@@ -1,4 +1,4 @@
-function createScheduleDatesService(dependencies) {
+function createScheduleDatesService(_dependencies) {
   const ApiError = require("../../../utils/common/http/api-error.util");
   const DAY = 86400000;
   // School calendar dates are date-only (not instants); no server timezone conversion.

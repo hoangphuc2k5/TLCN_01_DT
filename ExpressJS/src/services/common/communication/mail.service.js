@@ -1,4 +1,4 @@
-function createMailService(dependencies) {
+function createMailService(_dependencies) {
   const nodemailer = require('nodemailer');
   const { isGmailAddress } = require("../../../utils/common/communication/gmail.util");
   

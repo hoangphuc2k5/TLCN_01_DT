@@ -1,4 +1,4 @@
-const { authorizeRoles, authorizePermissionAction, authorizeRead } = require("../../../middleware/common/security/rbac.middleware");
+const { authorizePermissionAction } = require("../../../middleware/common/security/rbac.middleware");
 const { PERMISSIONS } = require("../../../config/constants/permissions.config");
 const platformController = require("../../../controllers/common/platform/platform.controller");
 

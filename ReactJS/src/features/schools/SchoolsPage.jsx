@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button, Form, Input, Modal, Select, Space, Table, message, Popconfirm } from 'antd';
 import { useSelector } from 'react-redux';
 import {
@@ -21,7 +21,7 @@ const SchoolsPage = () => {
   const canEdit = [ROLES.SUPER_ADMIN, ROLES.CLUSTER_ADMIN, ROLES.SCHOOL_ADMIN].includes(user?.role);
   const canDelete = user?.role === ROLES.SUPER_ADMIN;
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const res = await getSchoolsApi();
     if (res?.EC === 0) setRows(res.data || []);
     else message.error(res?.EM);
@@ -29,11 +29,11 @@ const SchoolsPage = () => {
       const c = await getClustersApi();
       if (c?.EC === 0) setClusters(c.data || []);
     }
-  };
+  }, [user?.role]);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   const onSubmit = async (values) => {
     const res = editing

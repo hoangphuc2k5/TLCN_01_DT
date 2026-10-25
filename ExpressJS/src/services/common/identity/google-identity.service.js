@@ -1,4 +1,4 @@
-function createGoogleIdentityService(dependencies) {
+function createGoogleIdentityService(_dependencies) {
   const { OAuth2Client } = require('google-auth-library');
   const ApiError = require("../../../utils/common/http/api-error.util");
   const { assertGmailOnly } = require("../../../utils/common/communication/gmail.util");
