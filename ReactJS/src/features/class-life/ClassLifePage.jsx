@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button, Card, Form, Input, Modal, Select, Space, Table, Tag, message } from 'antd';
 import { useSelector } from 'react-redux';
 import {
@@ -37,11 +37,11 @@ export default function ClassLifePage() {
   const [meetingForm] = Form.useForm();
   const [rsvpForm] = Form.useForm();
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const [a, m] = await Promise.all([getClassActivitiesApi(), getParentMeetingsApi()]);
     if (a?.EC === 0) setActivities(a.data || []);
     if (m?.EC === 0) setMeetings(m.data || []);
-  };
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -52,7 +52,7 @@ export default function ClassLifePage() {
       }
       await load();
     })();
-  }, []);
+  }, [load, manage]);
 
   const activityColumns = [
     { title: 'Tiêu đề hoạt động', dataIndex: 'title' },

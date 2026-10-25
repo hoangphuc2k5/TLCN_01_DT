@@ -26,5 +26,5 @@ These conventions keep the API and browser app maintainable without changing the
 - Backend: `npm run lint`, `npm test`, and the CI coverage job `npm run test:coverage`.
 - Frontend: `npm run lint`, `npm test`, `npm run build`, and `npm run test:e2e` for user-visible changes.
 - Do not weaken authorization tests to make UI tests pass. Test role boundaries at the API as well as in the UI.
-- CI lint currently uses warning ceilings as a ratchet for the existing codebase: 120 backend warnings and 18 frontend warnings. Reduce these ceilings as warnings are fixed; do not raise them to accommodate new warnings.
+- CI lint rejects warnings in both backend and frontend. Keep the rule sets clean; do not raise warning limits to accommodate new warnings.
 - Keep access tokens and other credentials out of frontend-readable storage. Any auth-storage change must include the browser, API, CORS, and CSRF contract tests.

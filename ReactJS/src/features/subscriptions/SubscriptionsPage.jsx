@@ -1,7 +1,7 @@
 import { useSelector } from 'react-redux';
 import { can } from '../../utils/permissions';
 import { enumLabel } from '../../utils/enum-labels';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button, Form, Input, InputNumber, Modal, Select, Table, Tabs, Tag, message } from 'antd';
 import dayjs from 'dayjs';
 import {
@@ -16,6 +16,7 @@ import {
 const SubscriptionsPage = () => {
   const { user } = useSelector(s => s.auth);
   const isSuper = user?.role === 'SUPER_ADMIN';
+  const canViewInvoices = can(user, 'subscriptions');
   const [subs, setSubs] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [schools, setSchools] = useState([]);
@@ -24,20 +25,20 @@ const SubscriptionsPage = () => {
   const [form] = Form.useForm();
   const [invForm] = Form.useForm();
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const [s, i, sc] = await Promise.all([
       getSubscriptionsApi(),
-      can(user, 'subscriptions') ? getSubInvoicesApi() : Promise.resolve(null),
+      canViewInvoices ? getSubInvoicesApi() : Promise.resolve(null),
       getSchoolsApi(),
     ]);
     if (s?.EC === 0) setSubs(s.data || []);
     if (i?.EC === 0) setInvoices(i.data || []);
     if (sc?.EC === 0) setSchools(sc.data || []);
-  };
+  }, [canViewInvoices]);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   return (
     <div>

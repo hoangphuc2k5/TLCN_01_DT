@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Alert, Button, Form, Select, Space, Table, Tag, message, DatePicker, InputNumber } from 'antd';
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
@@ -52,10 +52,10 @@ const AttendancePage = () => {
     && students.length > 0
     && students.every((student) => Boolean(records[student._id]));
 
-  const loadHistory = async () => {
+  const loadHistory = useCallback(async () => {
     const res = await getAttendanceApi();
     if (res?.EC === 0) setRows(res.data || []);
-  };
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -90,7 +90,7 @@ const AttendancePage = () => {
       }
       loadHistory();
     })();
-  }, []);
+  }, [loadHistory, user?._id]);
 
   const getLeaveForStudent = (studentId, date = selectedDate) => {
     if (!date) return null;

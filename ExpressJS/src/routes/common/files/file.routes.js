@@ -1,9 +1,7 @@
-const { authorizeRoles, authorizePermissionAction, authorizeRead } = require("../../../middleware/common/security/rbac.middleware");
+const { authorizePermissionAction, authorizeRead } = require("../../../middleware/common/security/rbac.middleware");
 const { PERMISSIONS } = require("../../../config/constants/permissions.config");
 const audit = require("../../../middleware/common/security/audit.middleware");
 const files = require("../../../controllers/common/files/file.controller");
-const homework = require("../../../controllers/common/academics/homework.controller");
-const upload = require("../../../middleware/common/files/upload.middleware");
 
 const register1 = router => {
   router.post('/materials/upload', authorizePermissionAction('create', PERMISSIONS.MANAGE_MATERIALS), require("../../../middleware/common/files/file-upload.middleware").upload, audit('CREATE', 'FileAsset'), files.upload);

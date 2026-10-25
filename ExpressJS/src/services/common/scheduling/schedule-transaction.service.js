@@ -1,6 +1,5 @@
 function createScheduleTransactionService(dependencies) {
   const persistence = dependencies.persistence;
-  const mongoose = require('mongoose');
   const ApiError = require("../../../utils/common/http/api-error.util");
   
   // All timetable writes and teacher leave approvals serialize on the same school.
