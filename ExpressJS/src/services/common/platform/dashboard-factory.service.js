@@ -64,7 +64,7 @@ class SuperAdminDashboard extends BaseDashboard {
         { key: 'schools', label: 'Số trường', value: schools },
         { key: 'users', label: 'Người dùng', value: users },
         { key: 'clusters', label: 'Cụm trường', value: clusters },
-        { key: 'systemAnnouncements', label: 'TB hệ thống', value: announcements },
+        { key: 'systemAnnouncements', label: 'Thông báo hệ thống', value: announcements },
       ],
     };
   }
