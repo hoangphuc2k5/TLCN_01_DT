@@ -44,8 +44,11 @@ test('teacher submits absence and structured makeup; admin approval updates pare
     await login(admin, 'admin0');
     await admin.getByRole('link', { name: 'Đơn từ', exact: true }).click();
     let row = admin.getByRole('row').filter({ hasText: 'QA teaching absence' });
+    const absenceReview = admin.waitForResponse(r => r.url().endsWith('/review') && r.request().method() === 'PATCH');
     await row.getByRole('button', { name: 'Duyệt', exact: true }).click();
-    await expect(row.getByText('APPROVED', { exact: true })).toBeVisible();
+    const absenceReviewResponse = await absenceReview;
+    expect(absenceReviewResponse.status()).toBe(200);
+    await expect(row.getByText('Đã duyệt', { exact: true })).toBeVisible();
     await teacher.getByRole('button', { name: 'Gửi đơn', exact: true }).click();
     dialog = teacher.getByRole('dialog');
     await dialog.getByLabel('Loại đơn', { exact: true }).press('ArrowDown');
@@ -65,7 +68,7 @@ test('teacher submits absence and structured makeup; admin approval updates pare
     row = admin.getByRole('row').filter({ hasText: 'QA makeup lesson' });
     await expect(row.getByText('QA Makeup Room', { exact: false })).toBeVisible();
     await row.getByRole('button', { name: 'Duyệt', exact: true }).click();
-    await expect(row.getByText('APPROVED', { exact: true })).toBeVisible();
+    await expect(row.getByText('Đã duyệt', { exact: true })).toBeVisible();
     await login(parent, 'parent0');
     await showSchedule(parent);
     await expect(parent.getByText('Nghỉ dạy', { exact: true })).toBeVisible();
@@ -76,7 +79,7 @@ test('teacher submits absence and structured makeup; admin approval updates pare
     await row.getByRole('button', { name: 'Hủy lịch bù', exact: true }).click();
     await admin.getByRole('dialog').getByLabel('Lý do hủy lịch', { exact: true }).fill('QA room unavailable');
     await admin.getByRole('dialog').getByRole('button', { name: 'Đồng ý', exact: true }).click();
-    await expect(row.getByText('CANCELLED', { exact: true })).toBeVisible();
+    await expect(row.getByText('Đã hủy', { exact: true })).toBeVisible();
     await parent.getByRole('button', { name: 'Xem lịch', exact: true }).click();
     await expect(parent.getByText('Dạy bù', { exact: true })).toHaveCount(0);
     await expect(parent.getByText('Nghỉ dạy', { exact: true })).toBeVisible();

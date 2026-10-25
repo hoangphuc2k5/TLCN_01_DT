@@ -45,7 +45,7 @@ test('layout resets route scroll and works at laptop and phone widths', async ({
   }
 });
 
-test('attendance save stays unavailable until class, subject, and students are ready', async ({ browser }) => {
+test('attendance save stays unavailable until each student has a status', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
 
@@ -64,6 +64,8 @@ test('attendance save stays unavailable until class, subject, and students are r
 
     await page.getByRole('combobox').nth(1).click();
     await page.locator('.ant-select-item-option:visible').filter({ hasText: 'QA Math' }).click();
+    await expect(saveButton).toBeDisabled();
+    await page.getByRole('button', { name: 'Tất cả có mặt', exact: true }).click();
     await expect(saveButton).toBeEnabled();
   } finally {
     await context.close();

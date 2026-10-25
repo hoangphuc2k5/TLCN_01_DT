@@ -127,7 +127,7 @@ test('librarian can choose scoped student, and cannot approve own request', asyn
   const approved = page.waitForResponse(r => r.url().includes('/review') && r.request().method() === 'PATCH');
   await other.getByRole('button', { name: 'Duyệt', exact: true }).click();
   expect((await approved).status()).toBe(200);
-  await expect(other.getByText('APPROVED', { exact: true })).toBeVisible();
+  await expect(other.getByText('Đã duyệt', { exact: true })).toBeVisible();
 });
 
 test('teacher updates a grade for an assigned class using the UI', async ({ page }) => {

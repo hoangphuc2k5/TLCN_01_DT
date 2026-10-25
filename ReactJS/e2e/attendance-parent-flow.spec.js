@@ -36,8 +36,11 @@ test('teacher records attendance and parent sees only their child status', async
     await teacherPage.getByPlaceholder('Chọn thời điểm').press('Enter');
     await teacherPage.getByPlaceholder('Tiết').fill('1');
     const studentRow = teacherPage.getByRole('row').filter({ hasText: 'student 0' });
-    await studentRow.getByText('Có mặt', { exact: true }).click();
-    await teacherPage.getByText('Vắng không phép', { exact: true }).click();
+    const peerRow = teacherPage.getByRole('row').filter({ hasText: 'peer 0' });
+    await studentRow.getByRole('combobox').click();
+    await teacherPage.getByText('Vắng không phép', { exact: true }).last().click();
+    await peerRow.getByRole('combobox').click();
+    await teacherPage.getByText('Có mặt', { exact: true }).last().click();
 
     const saveRequest = teacherPage.waitForRequest(r => r.url().endsWith('/v1/api/attendance') && r.method() === 'POST');
     const saved = teacherPage.waitForResponse(r => r.url().endsWith('/v1/api/attendance') && r.request().method() === 'POST');
