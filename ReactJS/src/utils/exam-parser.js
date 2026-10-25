@@ -21,7 +21,7 @@ export const parseTextExam = (text) => {
       current.correctKey = '';
       current.points = current.explicitPoints !== undefined ? current.explicitPoints : 2;
     }
-    const { explicitPoints, ...clean } = current;
+    const { explicitPoints: _explicitPoints, ...clean } = current;
     result.push({
       ...clean,
       _tempId: `txt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,

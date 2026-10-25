@@ -197,7 +197,7 @@ const LeavePage = () => {
           form={form}
           layout="vertical"
           onFinish={async (v) => {
-            const { makeupSource, ...payload } = v;
+            const { makeupSource: _makeupSource, ...payload } = v;
             if (v.type === 'MAKEUP_CLASS') { payload.fromDate = v.makeup?.date; payload.toDate = v.makeup?.date; }
             const res = await createLeaveApi(payload);
             if (res?.EC === 0) {
