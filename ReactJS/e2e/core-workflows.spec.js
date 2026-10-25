@@ -158,3 +158,23 @@ test('school admin sees edit only for owned roles after reloading account data',
   await openPage(page, '/announcements');
   await expect(page.getByRole('row').filter({ hasText: 'QA Notice 0' }).getByRole('button', { name: 'Xóa', exact: true })).toBeVisible();
 });
+
+test('pilot modules use the shared page heading', async ({ page }) => {
+  await login(page, 'admin0');
+  const pilotPages = [
+    ['/attendance', '/attendance', 'Điểm danh'],
+    ['/timetable', '/timetables', 'Thời khóa biểu'],
+    ['/admissions', '/admissions', 'Tuyển sinh'],
+  ];
+  for (const [path, endpoint, title] of pilotPages) {
+    await openPage(page, path, endpoint);
+    await expect(page.getByRole('heading', { level: 1, name: title, exact: true })).toBeVisible();
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  for (const [path, endpoint, title] of pilotPages) {
+    await openPage(page, path, endpoint);
+    await expect(page.getByRole('heading', { level: 1, name: title, exact: true })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  }
+});
