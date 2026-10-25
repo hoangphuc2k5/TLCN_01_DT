@@ -9,6 +9,7 @@ import {
   reviewRetakeRequestApi, submitHomeworkApi, uploadHomeworkAttachmentApi, upsertGradeApi,
 } from '../../services/api.service';
 import { ROLES } from '../../constants/roles';
+import { enumLabel } from '../../utils/enum-labels';
 import { can } from '../../utils/permissions';
 
 const teacherRoles = [ROLES.SUBJECT_TEACHER, ROLES.HOMEROOM_TEACHER];
@@ -105,7 +106,7 @@ export default function AssignmentsPage() {
     { title: 'Môn', render: (_, row) => row.subjectId?.name },
     { title: 'Hạn nộp', dataIndex: 'dueAt', render: formatDate },
     { title: 'Điểm tối đa', dataIndex: 'maxScore' },
-    { title: 'Trạng thái', dataIndex: 'status', render: value => <Tag color={value === 'PUBLISHED' ? 'green' : value === 'CLOSED' ? 'default' : 'gold'}>{value}</Tag> },
+    { title: 'Trạng thái', dataIndex: 'status', render: value => <Tag color={value === 'PUBLISHED' ? 'green' : value === 'CLOSED' ? 'default' : 'gold'}>{enumLabel(value)}</Tag> },
     {
       title: 'Bài của em',
       render: (_, row) => row.submission ? <Space direction="vertical" size={2}>
@@ -140,7 +141,7 @@ export default function AssignmentsPage() {
         { title: 'Môn', render: (_, row) => row.subjectId?.name },
         { title: 'Năm học', render: (_, row) => row.academicYearId?.name },
         { title: 'Lý do', dataIndex: 'reason' },
-        { title: 'Trạng thái', dataIndex: 'status', render: value => <Tag>{value}</Tag> },
+        { title: 'Trạng thái', dataIndex: 'status', render: value => <Tag>{enumLabel(value)}</Tag> },
         { title: 'Xử lý', render: (_, row) => reviewRetake && row.status === 'REQUESTED' ? <Space><Button size="small" onClick={() => reviewRequest(row, 'APPROVED')}>Duyệt</Button><Button size="small" danger onClick={() => reviewRequest(row, 'REJECTED')}>Từ chối</Button></Space> : '-' },
       ]} />
     </Card>}

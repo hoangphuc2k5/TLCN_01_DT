@@ -13,6 +13,7 @@ import {
 } from '../../services/api.service';
 import { ROLES } from '../../constants/roles';
 import { can } from '../../utils/permissions';
+import { enumLabel } from '../../utils/enum-labels';
 
 const dayLabels = { 1: 'T2', 2: 'T3', 3: 'T4', 4: 'T5', 5: 'T6', 6: 'T7', 7: 'CN' };
 
@@ -77,7 +78,7 @@ const TimetablePage = () => {
           {
             title: 'Trạng thái',
             dataIndex: 'status',
-            render: (v) => <Tag color={v === 'APPROVED' ? 'green' : 'default'}>{v}</Tag>,
+            render: (v) => <Tag color={v === 'APPROVED' ? 'green' : 'default'}>{enumLabel(v)}</Tag>,
           },
           { title: 'Số tiết', render: (_, r) => r.slots?.length || 0 },
           canApprove

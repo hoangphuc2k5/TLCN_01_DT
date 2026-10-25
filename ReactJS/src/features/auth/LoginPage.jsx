@@ -135,7 +135,7 @@ const LoginPage = () => {
         padding: 24,
       }}
     >
-      <Card style={{ width: 420, borderRadius: 16 }} bordered={false}>
+      <Card style={{ width: 420, borderRadius: 16 }} variant="borderless">
         <div style={{ textAlign: 'center' }}>
           <img
             src={logo}

@@ -1,5 +1,6 @@
 import { useSelector } from 'react-redux';
 import { can } from '../../utils/permissions';
+import { enumLabel } from '../../utils/enum-labels';
 import { useEffect, useState } from 'react';
 import { Button, Form, Input, InputNumber, Modal, Select, Table, Tabs, Tag, message } from 'antd';
 import dayjs from 'dayjs';
@@ -55,7 +56,7 @@ const SubscriptionsPage = () => {
                   dataSource={subs}
                   columns={[
                     { title: 'Trường', render: (_, r) => r.schoolId?.name },
-                    { title: 'Gói', dataIndex: 'plan', render: (v) => <Tag color="blue">{v}</Tag> },
+                    { title: 'Gói', dataIndex: 'plan', render: (v) => <Tag color="blue">{enumLabel(v)}</Tag> },
                     { title: 'HS tối đa', dataIndex: 'maxStudents' },
                     { title: 'GV tối đa', dataIndex: 'maxTeachers' },
                     { title: 'Storage (GB)', dataIndex: 'storageGb' },
@@ -64,7 +65,7 @@ const SubscriptionsPage = () => {
                       dataIndex: 'expiresAt',
                       render: (v) => (v ? dayjs(v).format('DD/MM/YYYY') : '—'),
                     },
-                    { title: 'TT', dataIndex: 'status' },
+                    { title: 'TT', dataIndex: 'status', render: enumLabel },
                   ]}
                 />
               </>
@@ -84,7 +85,7 @@ const SubscriptionsPage = () => {
                   dataSource={invoices}
                   columns={[
                     { title: 'Trường', render: (_, r) => r.schoolId?.name },
-                    { title: 'Gói', dataIndex: 'plan' },
+                    { title: 'Gói', dataIndex: 'plan', render: enumLabel },
                     {
                       title: 'Số tiền',
                       dataIndex: 'amount',
@@ -98,7 +99,7 @@ const SubscriptionsPage = () => {
                     {
                       title: 'TT',
                       dataIndex: 'status',
-                      render: (v) => <Tag color={v === 'PAID' ? 'green' : 'orange'}>{v}</Tag>,
+                      render: (v) => <Tag color={v === 'PAID' ? 'green' : 'orange'}>{enumLabel(v)}</Tag>,
                     },
                     {
                       title: 'Thao tác',
