@@ -1,19 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button, Card, Col, Form, InputNumber, Modal, Row, Select, Space, Statistic, Table, Tabs, Tag, message } from 'antd';
+import { Button, Card, Col, Form, Row, Select, Space, Statistic, Table, Tabs, Tag, message } from 'antd';
 import { FileExcelOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
 import {
   getAcademicYearsApi,
   getClassesApi,
-  getClassStudentsApi,
   getGradesApi,
   getSubjectsApi,
-  upsertGradeApi,
   downloadExport,
 } from '../../services/api.service';
 import ImportExcelButton from '../../components/ImportExcelButton';
 import { can, canExport } from '../../utils/permissions';
+import GradeEntryModal from './GradeEntryModal';
 
 const GradesPage = () => {
   const { user } = useSelector((s) => s.auth);
@@ -363,84 +362,17 @@ const GradesPage = () => {
           },
         ]}
       />
-      <Modal
+      <GradeEntryModal
         open={open}
-        title="Nhập điểm"
-        onCancel={() => setOpen(false)}
-        onOk={() => form.submit()}
-        width={640}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={async (v) => {
-            const scores = [
-              { type: 'ORAL', score: v.oral, weight: 1 },
-              { type: 'QUIZ_15', score: v.quiz, weight: 1 },
-              { type: 'MIDTERM', score: v.midterm, weight: 2 },
-              { type: 'FINAL', score: v.final, weight: 3 },
-            ].filter((s) => s.score != null);
-            const res = await upsertGradeApi({
-              academicYearId: v.academicYearId,
-              classId: v.classId,
-              subjectId: v.subjectId,
-              studentId: v.studentId,
-              semester: v.semester || 1,
-              scores,
-              strategy: 'weighted',
-            });
-            if (res?.EC === 0) {
-              message.success(res.EM);
-              setOpen(false);
-              form.resetFields();
-              load();
-            } else message.error(res?.EM);
-          }}
-        >
-          <Form.Item name="academicYearId" label="Năm học" rules={[{ required: true }]}>
-            <Select options={years.map((y) => ({ value: y._id, label: y.name }))} />
-          </Form.Item>
-          <Form.Item name="classId" label="Lớp" rules={[{ required: true }]}>
-            <Select
-              options={classes.map((c) => ({ value: c._id, label: c.name }))}
-              onChange={async (id) => {
-                form.setFieldValue('studentId', undefined);
-                setStudents([]);
-                const res = await getClassStudentsApi(id);
-                if (res?.EC === 0) setStudents(res.data || []);
-              }}
-            />
-          </Form.Item>
-          <Form.Item name="studentId" label="Học sinh" rules={[{ required: true }]}>
-            <Select options={students.map((s) => ({ value: s._id, label: s.name }))} />
-          </Form.Item>
-          <Form.Item name="subjectId" label="Môn" rules={[{ required: true }]}>
-            <Select options={subjects.map((s) => ({ value: s._id, label: s.name }))} />
-          </Form.Item>
-          <Form.Item name="semester" label="Học kỳ" initialValue={1}>
-            <Select
-              options={[
-                { value: 1, label: 'HK1' },
-                { value: 2, label: 'HK2' },
-              ]}
-            />
-          </Form.Item>
-          <Space wrap>
-            <Form.Item name="oral" label="Miệng">
-              <InputNumber min={0} max={10} step={0.1} />
-            </Form.Item>
-            <Form.Item name="quiz" label="15 phút">
-              <InputNumber min={0} max={10} step={0.1} />
-            </Form.Item>
-            <Form.Item name="midterm" label="Giữa kỳ">
-              <InputNumber min={0} max={10} step={0.1} />
-            </Form.Item>
-            <Form.Item name="final" label="Cuối kỳ">
-              <InputNumber min={0} max={10} step={0.1} />
-            </Form.Item>
-          </Space>
-        </Form>
-      </Modal>
+        setOpen={setOpen}
+        form={form}
+        years={years}
+        classes={classes}
+        students={students}
+        setStudents={setStudents}
+        subjects={subjects}
+        load={load}
+      />
     </div>
   );
 };
