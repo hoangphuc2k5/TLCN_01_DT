@@ -37,11 +37,19 @@ const AttendancePage = () => {
   const [classes, setClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [students, setStudents] = useState([]);
+  const [studentsLoading, setStudentsLoading] = useState(false);
   const [records, setRecords] = useState({});
   const [leaves, setLeaves] = useState([]);
   const [selectedDate, setSelectedDate] = useState(dayjs());
   const [myTodaySlots, setMyTodaySlots] = useState([]);
   const [form] = Form.useForm();
+  const classId = Form.useWatch('classId', form);
+  const subjectId = Form.useWatch('subjectId', form);
+  const attendanceDate = Form.useWatch('date', form);
+  const canSubmitAttendance = Boolean(classId && subjectId && attendanceDate)
+    && !studentsLoading
+    && students.length > 0
+    && Object.keys(records).length === students.length;
 
   const loadHistory = async () => {
     const res = await getAttendanceApi();
@@ -97,16 +105,35 @@ const AttendancePage = () => {
   };
 
   const onClassChange = async (classId, date = selectedDate) => {
-    const res = await getClassStudentsApi(classId);
-    if (res?.EC === 0) {
-      const studentList = res.data || [];
-      setStudents(studentList);
-      const init = {};
-      studentList.forEach((st) => {
-        const lv = getLeaveForStudent(st._id, date);
-        init[st._id] = lv ? 'ABSENT_EXCUSED' : 'PRESENT';
-      });
-      setRecords(init);
+    if (!classId) {
+      setStudents([]);
+      setRecords({});
+      return;
+    }
+
+    setStudentsLoading(true);
+    try {
+      const res = await getClassStudentsApi(classId);
+      if (res?.EC === 0) {
+        const studentList = res.data || [];
+        setStudents(studentList);
+        const init = {};
+        studentList.forEach((st) => {
+          const lv = getLeaveForStudent(st._id, date);
+          init[st._id] = lv ? 'ABSENT_EXCUSED' : 'PRESENT';
+        });
+        setRecords(init);
+      } else {
+        setStudents([]);
+        setRecords({});
+        message.error(res?.EM || 'Không tải được danh sách học sinh');
+      }
+    } catch {
+      setStudents([]);
+      setRecords({});
+      message.error('Không tải được danh sách học sinh');
+    } finally {
+      setStudentsLoading(false);
     }
   };
 
@@ -193,29 +220,31 @@ const AttendancePage = () => {
       {canTake && (
         <Form
           form={form}
-          layout="inline"
-          style={{ marginBottom: 24, gap: 8, flexWrap: 'wrap' }}
+          layout="vertical"
+          className="attendance-form"
           onFinish={submit}
           initialValues={{ date: dayjs(), period: 1 }}
         >
-          <Form.Item name="classId" rules={[{ required: true, message: 'Chọn lớp' }]}>
+          <Form.Item name="classId" label="Lớp" rules={[{ required: true, message: 'Chọn lớp' }]}>
             <Select
               placeholder="Lớp"
-              style={{ width: 140 }}
+              allowClear
+              style={{ width: '100%' }}
               options={classes.map((c) => ({ value: c._id, label: c.name }))}
               onChange={onClassChange}
             />
           </Form.Item>
-          <Form.Item name="subjectId">
+          <Form.Item name="subjectId" label="Môn" rules={[{ required: true, message: 'Chọn môn' }]}>
             <Select
               allowClear
               placeholder="Môn"
-              style={{ width: 140 }}
+              style={{ width: '100%' }}
               options={subjects.map((s) => ({ value: s._id, label: s.name }))}
             />
           </Form.Item>
-          <Form.Item name="date" rules={[{ required: true }]}>
+          <Form.Item name="date" label="Ngày" rules={[{ required: true }]}>
             <DatePicker
+              style={{ width: '100%' }}
               format="DD/MM/YYYY"
               onChange={(d) => {
                 if (d) {
@@ -227,9 +256,9 @@ const AttendancePage = () => {
             />
           </Form.Item>
           <Form.Item name="period">
-            <InputNumber min={1} max={10} placeholder="Tiết" />
+            <InputNumber min={1} max={10} style={{ width: '100%' }} placeholder="Tiết" />
           </Form.Item>
-          <Button type="primary" htmlType="submit">
+          <Button type="primary" htmlType="submit" disabled={!canSubmitAttendance} loading={studentsLoading}>
             Lưu điểm danh
           </Button>
         </Form>
@@ -293,6 +322,7 @@ const AttendancePage = () => {
       <Table
         rowKey="_id"
         dataSource={rows}
+        scroll={{ x: 'max-content' }}
         columns={[
           {
             title: 'Ngày',
@@ -313,6 +343,7 @@ const AttendancePage = () => {
             <Table
               size="small"
               pagination={false}
+              scroll={{ x: 'max-content' }}
               rowKey={(x) => x.studentId?._id || x.studentId}
               dataSource={r.records || []}
               columns={[

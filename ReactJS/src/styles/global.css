@@ -8,9 +8,116 @@ html,
 body,
 #root {
   margin: 0;
+  width: 100%;
   min-height: 100%;
   font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif;
   background: #f5f7f8;
+}
+
+body {
+  min-width: 320px;
+}
+
+.app-shell {
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app-sider {
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.app-brand {
+  padding: 16px;
+  text-align: center;
+}
+
+.app-main-layout {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.app-header {
+  flex: 0 0 64px;
+  min-width: 0;
+}
+
+.app-content {
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.app-content-panel {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.app-content-panel .ant-table-wrapper {
+  max-width: 100%;
+}
+
+.app-content-panel .ant-table-content {
+  overflow-x: auto !important;
+  overscroll-behavior-x: contain;
+}
+
+.app-content-panel .ant-table-content > table {
+  min-width: max-content;
+}
+
+.app-mobile-drawer .ant-drawer-body {
+  overscroll-behavior: contain;
+}
+
+.attendance-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 8px;
+  align-items: end;
+  margin-bottom: 24px;
+}
+
+.attendance-form .ant-form-item {
+  min-width: 0;
+  margin: 0;
+}
+
+.attendance-form .ant-btn {
+  min-height: 32px;
+}
+
+@media (max-width: 767px) {
+  .app-header {
+    flex-basis: 56px;
+  }
+
+  .app-role-label,
+  .app-user-name {
+    display: none;
+  }
+
+  .app-content-panel {
+    border-radius: 8px;
+  }
+
+  .app-content-panel .ant-card {
+    max-width: 100%;
+  }
+
+  .attendance-form .ant-btn {
+    width: 100%;
+  }
 }
 
 a {
