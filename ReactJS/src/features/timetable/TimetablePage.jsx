@@ -1,6 +1,6 @@
 import DatedSchedulePanel from './DatedSchedulePanel';
 import { useEffect, useState } from 'react';
-import { Button, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, message } from 'antd';
+import { Button, Form, Input, InputNumber, Modal, Select, Table, Tag, message } from 'antd';
 import { useSelector } from 'react-redux';
 import {
   approveTimetableApi,
