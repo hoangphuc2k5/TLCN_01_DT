@@ -1,7 +1,6 @@
 function createAnnouncementService(dependencies) {
   const persistence = dependencies.persistence;
   const ApiError = require("../../../utils/common/http/api-error.util");
-  const { announcementRepo } = dependencies.repositories["shared"];
   const eventBus = dependencies.eventBus;
   const { ROLES } = require("../../../config/constants/roles.config");
   const { ANNOUNCEMENT_SCOPE } = require("../../../config/constants/status.config");
@@ -37,16 +36,13 @@ function createAnnouncementService(dependencies) {
   const createAnnouncement = async (actor, data) => {
     if (!data.title || !data.content) throw new ApiError(400, 'Thiếu title/content');
   
-    let scope = data.scope || ANNOUNCEMENT_SCOPE.SCHOOL;
-    if (actor.role === ROLES.SUPER_ADMIN) {
-      scope = data.scope || ANNOUNCEMENT_SCOPE.SYSTEM;
-    } else if (actor.role === ROLES.CLUSTER_ADMIN) {
-      scope = ANNOUNCEMENT_SCOPE.CLUSTER;
-    } else if ([ROLES.HOMEROOM_TEACHER, ROLES.SUBJECT_TEACHER].includes(actor.role) && data.classId) {
-      scope = ANNOUNCEMENT_SCOPE.CLASS;
-    } else {
-      scope = ANNOUNCEMENT_SCOPE.SCHOOL;
-    }
+    const scope = actor.role === ROLES.SUPER_ADMIN
+      ? data.scope || ANNOUNCEMENT_SCOPE.SYSTEM
+      : actor.role === ROLES.CLUSTER_ADMIN
+        ? ANNOUNCEMENT_SCOPE.CLUSTER
+        : [ROLES.HOMEROOM_TEACHER, ROLES.SUBJECT_TEACHER].includes(actor.role) && data.classId
+          ? ANNOUNCEMENT_SCOPE.CLASS
+          : ANNOUNCEMENT_SCOPE.SCHOOL;
   
     let schoolId = null, clusterId = null;
     if ([ANNOUNCEMENT_SCOPE.SCHOOL, ANNOUNCEMENT_SCOPE.CLASS].includes(scope)) {

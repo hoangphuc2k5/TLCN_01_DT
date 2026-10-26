@@ -1,6 +1,7 @@
 import { useSelector } from 'react-redux';
 import { can } from '../../utils/permissions';
-import { useEffect, useState } from 'react';
+import { enumLabel } from '../../utils/enum-labels';
+import { useCallback, useEffect, useState } from 'react';
 import { Button, Form, Input, InputNumber, Modal, Select, Table, Tabs, Tag, message } from 'antd';
 import dayjs from 'dayjs';
 import {
@@ -15,6 +16,7 @@ import {
 const SubscriptionsPage = () => {
   const { user } = useSelector(s => s.auth);
   const isSuper = user?.role === 'SUPER_ADMIN';
+  const canViewInvoices = can(user, 'subscriptions');
   const [subs, setSubs] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [schools, setSchools] = useState([]);
@@ -23,20 +25,20 @@ const SubscriptionsPage = () => {
   const [form] = Form.useForm();
   const [invForm] = Form.useForm();
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const [s, i, sc] = await Promise.all([
       getSubscriptionsApi(),
-      can(user, 'subscriptions') ? getSubInvoicesApi() : Promise.resolve(null),
+      canViewInvoices ? getSubInvoicesApi() : Promise.resolve(null),
       getSchoolsApi(),
     ]);
     if (s?.EC === 0) setSubs(s.data || []);
     if (i?.EC === 0) setInvoices(i.data || []);
     if (sc?.EC === 0) setSchools(sc.data || []);
-  };
+  }, [canViewInvoices]);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   return (
     <div>
@@ -55,7 +57,7 @@ const SubscriptionsPage = () => {
                   dataSource={subs}
                   columns={[
                     { title: 'Trường', render: (_, r) => r.schoolId?.name },
-                    { title: 'Gói', dataIndex: 'plan', render: (v) => <Tag color="blue">{v}</Tag> },
+                    { title: 'Gói', dataIndex: 'plan', render: (v) => <Tag color="blue">{enumLabel(v)}</Tag> },
                     { title: 'HS tối đa', dataIndex: 'maxStudents' },
                     { title: 'GV tối đa', dataIndex: 'maxTeachers' },
                     { title: 'Storage (GB)', dataIndex: 'storageGb' },
@@ -64,7 +66,7 @@ const SubscriptionsPage = () => {
                       dataIndex: 'expiresAt',
                       render: (v) => (v ? dayjs(v).format('DD/MM/YYYY') : '—'),
                     },
-                    { title: 'TT', dataIndex: 'status' },
+                    { title: 'TT', dataIndex: 'status', render: enumLabel },
                   ]}
                 />
               </>
@@ -84,7 +86,7 @@ const SubscriptionsPage = () => {
                   dataSource={invoices}
                   columns={[
                     { title: 'Trường', render: (_, r) => r.schoolId?.name },
-                    { title: 'Gói', dataIndex: 'plan' },
+                    { title: 'Gói', dataIndex: 'plan', render: enumLabel },
                     {
                       title: 'Số tiền',
                       dataIndex: 'amount',
@@ -98,7 +100,7 @@ const SubscriptionsPage = () => {
                     {
                       title: 'TT',
                       dataIndex: 'status',
-                      render: (v) => <Tag color={v === 'PAID' ? 'green' : 'orange'}>{v}</Tag>,
+                      render: (v) => <Tag color={v === 'PAID' ? 'green' : 'orange'}>{enumLabel(v)}</Tag>,
                     },
                     {
                       title: 'Thao tác',
@@ -172,15 +174,20 @@ const SubscriptionsPage = () => {
             } else message.error(res?.EM);
           }}
         >
-          <Form.Item name="subscriptionId" label="Subscription" rules={[{ required: true }]}>
+          <Form.Item name="subscriptionId" label="Gói dịch vụ" rules={[{ required: true }]}>
             <Select
               options={subs.map((s) => ({
                 value: s._id,
                 label: `${s.schoolId?.name || s.schoolId} — ${s.plan}`,
               }))}
+              onChange={(id) => {
+                const selected = subs.find((subscription) => subscription._id === id);
+                const defaults = { FREE: 0, BASIC: 2000000, PREMIUM: 5000000 };
+                invForm.setFieldValue('amount', defaults[selected?.plan] ?? 0);
+              }}
             />
           </Form.Item>
-          <Form.Item name="amount" label="Số tiền">
+          <Form.Item name="amount" label="Số tiền (VNĐ)" rules={[{ required: true, message: 'Chọn gói để điền mức phí mặc định hoặc nhập số tiền' }]}>
             <InputNumber style={{ width: '100%' }} min={0} />
           </Form.Item>
         </Form>

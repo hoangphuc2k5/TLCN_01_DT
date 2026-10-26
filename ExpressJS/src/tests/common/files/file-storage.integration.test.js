@@ -97,6 +97,40 @@ test('local upload stores private bytes and authenticated download returns exact
   await assert.rejects(fs.stat(storage.localPath(asset.key)), { code: 'ENOENT' });
 });
 
+test('local storage accepts migrated namespace keys but rejects path traversal', () => {
+  const id = '0123456789abcdef01234567';
+  const uuid = '12345678-1234-1234-1234-123456789abc';
+  assert.equal(storage.localPath(`${id}/local-qa/${uuid}.txt`), path.join(root, id, 'local-qa', `${uuid}.txt`));
+  assert.throws(() => storage.localPath(`${id}/../${uuid}`), /Invalid storage key/);
+  assert.throws(() => storage.localPath(`${id}/nested/other/${uuid}`), /Invalid storage key/);
+});
+
+test('usage and quota reservations reconcile seeded assets whose school counter is stale', async () => {
+  const uuid = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const key = `${schools[0]._id}/local-qa/${uuid}.txt`;
+  const bytes = Buffer.from('legacy local QA asset');
+  const asset = await FileAsset.create({ schoolId: schools[0]._id, uploadedBy: actors.teacher._id, purpose: 'MATERIAL', originalName: 'seed.txt',
+    mimeType: 'text/plain', sizeBytes: bytes.length, sha256: 'a'.repeat(64), driver: 'local', key, status: 'READY' });
+  await School.updateOne({ _id: schools[0]._id }, { $set: { storageUsedBytes: 0 }, $unset: { storageUsageReconciledAt: 1 } });
+  await fs.mkdir(path.dirname(storage.localPath(key)), { recursive: true });
+  await fs.writeFile(storage.localPath(key), bytes);
+  const material = await Material.create({ schoolId: schools[0]._id, uploadedBy: actors.teacher._id, title: 'Seeded local material', fileAssetId: asset._id, fileType: 'FILE' });
+
+  assert.equal(await used(), 0);
+  const usage = await request('/files/usage');
+  assert.equal(usage.status, 200);
+  assert.equal((await usage.json()).data.usedBytes, bytes.length);
+  const downloaded = await request(`/files/${asset._id}/download`);
+  assert.deepEqual(Buffer.from(await downloaded.arrayBuffer()), bytes);
+
+  const newMaterial = await create();
+  assert.equal(await used(), bytes.length + pdf.length);
+  assert.equal((await remove(material)).status, 200);
+  assert.equal(await used(), pdf.length);
+  assert.equal((await remove(newMaterial)).status, 200);
+  assert.equal(await used(), 0);
+});
+
 test('download and metadata enforce tenant, class, parent linkage and active view permission', async () => {
   const material = await create({ classId: classes[0]._id });
   for (const endpoint of ['', '/download']) {

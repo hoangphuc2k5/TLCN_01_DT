@@ -1,7 +1,6 @@
 function createTimetableService(dependencies) {
   const persistence = dependencies.persistence;
   const ApiError = require("../../utils/common/http/api-error.util");
-  const { timetableRepo } = dependencies.repositories["shared"];
   const { ROLES } = require("../../config/constants/roles.config");
   const { schoolScope, personalStudentIds, objectId } = dependencies.services["data-scope"];
   const scopeFor = dependencies.services["timetable-scope"];
@@ -38,7 +37,7 @@ function createTimetableService(dependencies) {
     });
   };
   const upsertTimetable = async (actor, data) => {
-    const { academicYearId, classId, status = 'DRAFT' } = data;
+    const { academicYearId, classId, status = 'DRAFT', effectiveFrom, effectiveTo } = data;
     if (!academicYearId || !classId) throw new ApiError(400, 'Thiếu academicYearId/classId');
     if (status !== 'DRAFT') throw new ApiError(400, 'Lưu bản nháp trước khi duyệt TKB');
     const slots = normalizeSlots(data.slots || []);
@@ -46,7 +45,10 @@ function createTimetableService(dependencies) {
     return transaction(actor.schoolId, async session => {
       await validateReferences(actor.schoolId, academicYearId, classId, slots, session);
       const filter = { schoolId: actor.schoolId, academicYearId, classId };
-      return persistence.upsertTimetableFindOneAndUpdate(filter, { slots, status, approvedBy: null }, { new: true, upsert: true, runValidators: true, session });
+      const updateDoc = { slots, status, approvedBy: null };
+      if (effectiveFrom !== undefined) updateDoc.effectiveFrom = effectiveFrom ? new Date(effectiveFrom) : null;
+      if (effectiveTo !== undefined) updateDoc.effectiveTo = effectiveTo ? new Date(effectiveTo) : null;
+      return persistence.upsertTimetableFindOneAndUpdate(filter, updateDoc, { new: true, upsert: true, runValidators: true, session });
     });
   };
   const approveTimetable = async (actor, id) => {

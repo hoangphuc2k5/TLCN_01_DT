@@ -7,7 +7,7 @@ class PayrollRepository {
   }
 
   listFind(arg1, arg2) {
-    return this.models["payroll-record"].find(arg1).populate('employeeId', 'name email role code').populate('approvedBy', 'name').sort(arg2).limit(300);
+    return this.models["payroll-record"].find(arg1).populate('employeeId', 'name email role code').populate('createdBy', 'name').populate('approvedBy', 'name').sort(arg2).limit(300);
   }
 
   createCreate(arg1) {

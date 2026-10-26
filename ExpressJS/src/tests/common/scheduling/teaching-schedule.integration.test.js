@@ -269,3 +269,13 @@ test('a successfully approved weekly timetable cannot be approved a second time'
   assert.equal((await call('PATCH', `/timetables/${tables[0]._id}/approve`, actors.admin, {})).status, 200);
   assert.equal((await call('PATCH', `/timetables/${tables[0]._id}/approve`, actors.admin, {})).status, 409);
 });
+
+test('timetable effectiveFrom and effectiveTo restrict projection window', async () => {
+  await Timetable.updateOne({ _id: tables[0]._id }, { effectiveFrom: new Date('2026-09-08') });
+  const before = await calendar(actors.student, '2026-09-07', '2026-09-07');
+  assert.equal(before.data.length, 0);
+  const after = await calendar(actors.student, '2026-09-14', '2026-09-14');
+  assert.equal(after.data.length, 2);
+  assert.ok(after.data.every(r => r.kind === 'REGULAR'));
+});
+

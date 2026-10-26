@@ -48,8 +48,10 @@ jobs:
           cache-dependency-path: ExpressJS/package-lock.json
       - name: Install dependencies
         run: npm ci
-      - name: Run backend test suite
-        run: npm test
+      - name: Lint backend source
+        run: npm run lint
+      - name: Run backend tests with coverage thresholds
+        run: npm run test:coverage
 
   frontend:
     name: Frontend tests and build
@@ -69,6 +71,8 @@ jobs:
           cache-dependency-path: ReactJS/package-lock.json
       - name: Install dependencies
         run: npm ci
+      - name: Lint frontend source and tests
+        run: npm run lint
       - name: Run frontend policy tests
         run: npm test
       - name: Build production bundle

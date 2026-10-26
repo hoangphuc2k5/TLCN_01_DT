@@ -6,6 +6,10 @@ class SubscriptionRepository {
     this.database = database;
   }
 
+  transactionTransaction(work) {
+    return this.database.connection.transaction(work);
+  }
+
   subscriptionFindOne(arg1) {
     return this.models["subscription"].findOne(arg1);
   }
@@ -34,8 +38,12 @@ class SubscriptionRepository {
     return this.models["subscription-invoice"].findByIdAndUpdate(arg1, arg2, arg3);
   }
 
-  markInvoicePaidFindByIdAndUpdate(arg1, arg2) {
-    return this.models["subscription"].findByIdAndUpdate(arg1, arg2);
+  invFindById(arg1, arg2) {
+    return this.models["subscription-invoice"].findById(arg1).session(arg2);
+  }
+
+  markInvoicePaidFindByIdAndUpdate(arg1, arg2, arg3) {
+    return this.models["subscription"].findByIdAndUpdate(arg1, arg2, arg3);
   }
 
   listInvoicesFind(arg1, arg2) {

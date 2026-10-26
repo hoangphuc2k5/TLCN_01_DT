@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Layout, Menu, Typography, Button, Avatar, Space, Badge, theme } from 'antd';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Layout, Menu, Typography, Button, Avatar, Space, Badge, Drawer, Grid } from 'antd';
 import {
   DashboardOutlined,
   BankOutlined,
@@ -24,15 +24,19 @@ import {
   MailOutlined,
   ScheduleOutlined,
   SafetyCertificateOutlined,
+  MenuOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import PageHeader from '../components/layout/PageHeader';
+import { getPageMetadata } from '../constants/page-metadata';
 import { logout } from '../store/auth.slice';
 import { ROLES, ROLE_LABELS } from '../constants/roles';
 import { canVisit } from '../utils/permissions';
 import logo from '../Logo/icon.png';
 
 const { Header, Sider, Content } = Layout;
+const { useBreakpoint } = Grid;
 
 const canManageRoles = (user) => {
   if (!user) return false;
@@ -76,7 +80,7 @@ const menuByRole = (role, user) => {
       { key: '/users', icon: <TeamOutlined />, label: <Link to="/users">Người dùng</Link> },
       rolesItem,
       { key: '/templates', icon: <FileDoneOutlined />, label: <Link to="/templates">Mẫu dùng chung</Link> },
-      { key: '/support', icon: <CustomerServiceOutlined />, label: <Link to="/support">Hỗ trợ</Link> },
+      { key: '/support', icon: <CustomerServiceOutlined />, label: <Link to="/support">Hỗ trợ kỹ thuật</Link> },
       { key: '/fees', icon: <DollarOutlined />, label: <Link to="/fees">Học phí (xem)</Link> },
     ],
     [ROLES.SCHOOL_ADMIN]: [
@@ -92,13 +96,13 @@ const menuByRole = (role, user) => {
       { key: '/assignments', icon: <FormOutlined />, label: <Link to="/assignments">Bài tập</Link> },
       { key: '/contact-book', icon: <FormOutlined />, label: <Link to="/contact-book">Sổ liên lạc</Link> },
       { key: '/class-life', icon: <FormOutlined />, label: <Link to="/class-life">Sinh hoạt lớp</Link> },
-      { key: '/appointments', icon: <CalendarOutlined />, label: <Link to="/appointments">Appointments</Link> },
+      { key: '/appointments', icon: <CalendarOutlined />, label: <Link to="/appointments">Lịch hẹn phụ huynh</Link> },
       { key: '/activities', icon: <FormOutlined />, label: <Link to="/activities">CLB / môn tự chọn</Link> },
       { key: '/conduct', icon: <SmileOutlined />, label: <Link to="/conduct">Hạnh kiểm</Link> },
-      { key: '/rewards', icon: <SmileOutlined />, label: <Link to="/rewards">Khen thuong/ky luat</Link> },
-      { key: '/admissions', icon: <TeamOutlined />, label: <Link to="/admissions">Tuyen sinh</Link> },
+      { key: '/rewards', icon: <SmileOutlined />, label: <Link to="/rewards">Thi đua - Khen thưởng</Link> },
+      { key: '/admissions', icon: <TeamOutlined />, label: <Link to="/admissions">Tuyển sinh</Link> },
       { key: '/templates', icon: <FileDoneOutlined />, label: <Link to="/templates">Mẫu dùng chung</Link> },
-      { key: '/support', icon: <CustomerServiceOutlined />, label: <Link to="/support">Hỗ trợ KT</Link> },
+      { key: '/support', icon: <CustomerServiceOutlined />, label: <Link to="/support">Hỗ trợ kỹ thuật</Link> },
       { key: '/audit-logs', icon: <AuditOutlined />, label: <Link to="/audit-logs">Nhật ký</Link> },
     ],
     [ROLES.ACADEMIC_AFFAIRS]: [
@@ -110,8 +114,8 @@ const menuByRole = (role, user) => {
       { key: '/assignments', icon: <FormOutlined />, label: <Link to="/assignments">Bài tập</Link> },
       { key: '/contact-book', icon: <FormOutlined />, label: <Link to="/contact-book">Sổ liên lạc</Link> },
       { key: '/class-life', icon: <FormOutlined />, label: <Link to="/class-life">Sinh hoạt lớp</Link> },
-      { key: '/appointments', icon: <CalendarOutlined />, label: <Link to="/appointments">Appointments</Link> },
-      { key: '/facilities', icon: <ToolOutlined />, label: <Link to="/facilities">Phòng/TB</Link> },
+      { key: '/appointments', icon: <CalendarOutlined />, label: <Link to="/appointments">Lịch hẹn phụ huynh</Link> },
+      { key: '/facilities', icon: <ToolOutlined />, label: <Link to="/facilities">Cơ sở vật chất</Link> },
     ],
     [ROLES.SUBJECT_TEACHER]: [
       { key: '/classes', icon: <ReadOutlined />, label: <Link to="/classes">Lớp phụ trách</Link> },
@@ -122,7 +126,7 @@ const menuByRole = (role, user) => {
       { key: '/assignments', icon: <FormOutlined />, label: <Link to="/assignments">Bài tập</Link> },
       { key: '/contact-book', icon: <FormOutlined />, label: <Link to="/contact-book">Sổ liên lạc</Link> },
       { key: '/class-life', icon: <FormOutlined />, label: <Link to="/class-life">Sinh hoạt lớp</Link> },
-      { key: '/appointments', icon: <CalendarOutlined />, label: <Link to="/appointments">Appointments</Link> },
+      { key: '/appointments', icon: <CalendarOutlined />, label: <Link to="/appointments">Lịch hẹn phụ huynh</Link> },
       { key: '/facilities', icon: <ToolOutlined />, label: <Link to="/facilities">Mượn phòng/TB</Link> },
     ],
     [ROLES.HOMEROOM_TEACHER]: [
@@ -130,14 +134,14 @@ const menuByRole = (role, user) => {
       { key: '/attendance', icon: <CheckSquareOutlined />, label: <Link to="/attendance">Điểm danh</Link> },
       { key: '/grades', icon: <FormOutlined />, label: <Link to="/grades">Điểm số</Link> },
       { key: '/conduct', icon: <SmileOutlined />, label: <Link to="/conduct">Hạnh kiểm</Link> },
-      { key: '/rewards', icon: <SmileOutlined />, label: <Link to="/rewards">Khen thuong/ky luat</Link> },
-      { key: '/admissions', icon: <TeamOutlined />, label: <Link to="/admissions">Tuyen sinh</Link> },
+      { key: '/rewards', icon: <SmileOutlined />, label: <Link to="/rewards">Thi đua - Khen thưởng</Link> },
+      { key: '/admissions', icon: <TeamOutlined />, label: <Link to="/admissions">Tuyển sinh</Link> },
       { key: '/exams', icon: <ExperimentOutlined />, label: <Link to="/exams">Thi online</Link> },
       { key: '/materials', icon: <BookOutlined />, label: <Link to="/materials">Học liệu</Link> },
       { key: '/assignments', icon: <FormOutlined />, label: <Link to="/assignments">Bài tập</Link> },
       { key: '/contact-book', icon: <FormOutlined />, label: <Link to="/contact-book">Sổ liên lạc</Link> },
       { key: '/class-life', icon: <FormOutlined />, label: <Link to="/class-life">Sinh hoạt lớp</Link> },
-      { key: '/appointments', icon: <CalendarOutlined />, label: <Link to="/appointments">Appointments</Link> },
+      { key: '/appointments', icon: <CalendarOutlined />, label: <Link to="/appointments">Lịch hẹn phụ huynh</Link> },
       { key: '/facilities', icon: <ToolOutlined />, label: <Link to="/facilities">Mượn phòng/TB</Link> },
     ],
     [ROLES.ACCOUNTANT]: [
@@ -156,12 +160,12 @@ const menuByRole = (role, user) => {
       { key: '/assignments', icon: <FormOutlined />, label: <Link to="/assignments">Bài tập</Link> },
       { key: '/contact-book', icon: <FormOutlined />, label: <Link to="/contact-book">Sổ liên lạc</Link> },
       { key: '/class-life', icon: <FormOutlined />, label: <Link to="/class-life">Sinh hoạt lớp</Link> },
-      { key: '/appointments', icon: <CalendarOutlined />, label: <Link to="/appointments">Appointments</Link> },
+      { key: '/appointments', icon: <CalendarOutlined />, label: <Link to="/appointments">Lịch hẹn phụ huynh</Link> },
       { key: '/activities', icon: <FormOutlined />, label: <Link to="/activities">CLB / môn tự chọn</Link> },
       { key: '/library', icon: <BookOutlined />, label: <Link to="/library">Thư viện</Link> },
       { key: '/conduct', icon: <SmileOutlined />, label: <Link to="/conduct">Hạnh kiểm</Link> },
-      { key: '/rewards', icon: <SmileOutlined />, label: <Link to="/rewards">Khen thuong/ky luat</Link> },
-      { key: '/admissions', icon: <TeamOutlined />, label: <Link to="/admissions">Tuyen sinh</Link> },
+      { key: '/rewards', icon: <SmileOutlined />, label: <Link to="/rewards">Thi đua - Khen thưởng</Link> },
+      { key: '/admissions', icon: <TeamOutlined />, label: <Link to="/admissions">Tuyển sinh</Link> },
     ],
     [ROLES.PARENT]: [
       { key: '/grades', icon: <FormOutlined />, label: <Link to="/grades">Điểm con</Link> },
@@ -169,12 +173,12 @@ const menuByRole = (role, user) => {
       { key: '/fees', icon: <DollarOutlined />, label: <Link to="/fees">Học phí</Link> },
       { key: '/exams', icon: <ExperimentOutlined />, label: <Link to="/exams">Kết quả thi</Link> },
       { key: '/conduct', icon: <SmileOutlined />, label: <Link to="/conduct">Hạnh kiểm</Link> },
-      { key: '/rewards', icon: <SmileOutlined />, label: <Link to="/rewards">Khen thuong/ky luat</Link> },
-      { key: '/admissions', icon: <TeamOutlined />, label: <Link to="/admissions">Tuyen sinh</Link> },
+      { key: '/rewards', icon: <SmileOutlined />, label: <Link to="/rewards">Thi đua - Khen thưởng</Link> },
+      { key: '/admissions', icon: <TeamOutlined />, label: <Link to="/admissions">Tuyển sinh</Link> },
       { key: '/assignments', icon: <FormOutlined />, label: <Link to="/assignments">Bài tập</Link> },
       { key: '/contact-book', icon: <FormOutlined />, label: <Link to="/contact-book">Sổ liên lạc</Link> },
       { key: '/class-life', icon: <FormOutlined />, label: <Link to="/class-life">Sinh hoạt lớp</Link> },
-      { key: '/appointments', icon: <CalendarOutlined />, label: <Link to="/appointments">Appointments</Link> },
+      { key: '/appointments', icon: <CalendarOutlined />, label: <Link to="/appointments">Lịch hẹn phụ huynh</Link> },
       { key: '/library', icon: <BookOutlined />, label: <Link to="/library">Mượn sách</Link> },
     ],
   };
@@ -198,6 +202,8 @@ const menuByRole = (role, user) => {
 
 const AppLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const contentRef = useRef(null);
   const { user } = useSelector((s) => s.auth);
   const appName = useSelector((s) => s.auth.appName) || 'EduMoet';
   const shortName = appName
@@ -209,70 +215,98 @@ const AppLayout = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-  const { token } = theme.useToken();
+  const screens = useBreakpoint();
+  const compactNavigation = !screens.lg;
 
   const items = useMemo(() => menuByRole(user?.role, user), [user]);
 
   const selected = items.find((i) => location.pathname.startsWith(i.key))?.key || '/dashboard';
+  const pageMetadata = getPageMetadata(location.pathname);
+
+  useLayoutEffect(() => {
+    contentRef.current?.scrollTo({ top: 0, left: 0 });
+    window.scrollTo({ top: 0, left: 0 });
+    setMobileMenuOpen(false);
+  }, [location.pathname, location.search, location.hash]);
+
+  const navigationMenu = (
+    <Menu mode="inline" selectedKeys={[selected]} items={items} onClick={() => setMobileMenuOpen(false)} />
+  );
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Sider
-        collapsible
-        collapsed={collapsed}
-        onCollapse={setCollapsed}
-        theme="light"
-        width={240}
-        style={{ borderRight: `1px solid ${token.colorBorderSecondary}` }}
-      >
-        <div
-          style={{ padding: 16, textAlign: 'center', cursor: 'pointer' }}
-          onClick={() => navigate('/profile')}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') navigate('/profile');
-          }}
-          title="Thông tin tài khoản"
+    <Layout className="app-shell">
+      {!compactNavigation && (
+        <Sider
+          className="app-sider"
+          collapsible
+          collapsed={collapsed}
+          onCollapse={setCollapsed}
+          theme="light"
+          width={240}
         >
-          <img
-            src={logo}
-            alt={`Logo ${appName}`}
-            style={{
-              width: collapsed ? 40 : 56,
-              height: collapsed ? 40 : 56,
-              objectFit: 'contain',
-              marginBottom: collapsed ? 0 : 8,
+          <div
+            className="app-brand"
+            onClick={() => navigate('/profile')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') navigate('/profile');
             }}
-          />
-          <Typography.Title level={collapsed ? 5 : 4} style={{ margin: 0, color: '#0f4c5c' }}>
-            {collapsed ? shortName : appName}
-          </Typography.Title>
-          {!collapsed && (
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              Quản lý đa trường
-            </Typography.Text>
-          )}
-        </div>
-        <Menu mode="inline" selectedKeys={[selected]} items={items} />
-      </Sider>
-      <Layout>
+            title="Thông tin tài khoản"
+          >
+            <img
+              src={logo}
+              alt={`Logo ${appName}`}
+              style={{
+                width: collapsed ? 40 : 56,
+                height: collapsed ? 40 : 56,
+                objectFit: 'contain',
+                marginBottom: collapsed ? 0 : 8,
+              }}
+            />
+            <Typography.Title level={collapsed ? 5 : 4} className="app-brand-title" style={{ margin: 0 }}>
+              {collapsed ? shortName : appName}
+            </Typography.Title>
+            {!collapsed && (
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                Quản lý đa trường
+              </Typography.Text>
+            )}
+          </div>
+          {navigationMenu}
+        </Sider>
+      )}
+      <Drawer
+        className="app-mobile-drawer"
+        title={appName}
+        placement="left"
+        width={280}
+        open={compactNavigation && mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        styles={{ body: { padding: 0, overflowY: 'auto' } }}
+      >
+        {navigationMenu}
+      </Drawer>
+      <Layout className="app-main-layout">
         <Header
-          style={{
-            background: '#fff',
-            padding: '0 24px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            borderBottom: `1px solid ${token.colorBorderSecondary}`,
-          }}
+          className="app-header"
         >
-          <Typography.Text strong>
-            {user?.roleLabel || ROLE_LABELS[user?.role] || user?.role}
-            {user?.schoolId?.name ? ` · ${user.schoolId.name}` : ''}
-          </Typography.Text>
-          <Space>
+          <Space size={compactNavigation ? 8 : 16} className="app-header-leading">
+            {compactNavigation && (
+              <Button
+                aria-label="Mở menu điều hướng"
+                icon={<MenuOutlined />}
+                onClick={() => setMobileMenuOpen(true)}
+              />
+            )}
+            <Typography.Text className="app-role-label" strong>
+              {user?.roleLabel || ROLE_LABELS[user?.role] || user?.role}
+              {user?.schoolId?.name ? ` · ${user.schoolId.name}` : ''}
+            </Typography.Text>
+          </Space>
+          <Space size={compactNavigation ? 8 : 16}>
             <span
+              className="app-user-chip"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
               onClick={() => navigate('/profile')}
               title="Thông tin tài khoản"
@@ -280,30 +314,32 @@ const AppLayout = () => {
               <Badge dot>
                 <Avatar icon={<UserOutlined />} src={user?.avatar || undefined} />
               </Badge>
-              <span>{user?.name}</span>
+              <span className="app-user-name">{user?.name}</span>
             </span>
             <Button
               icon={<LogoutOutlined />}
+              aria-label="Đăng xuất"
               onClick={() => {
                 dispatch(logout());
                 navigate('/login');
               }}
+              className="app-logout-button"
             >
-              Đăng xuất
+              <span className="app-logout-label">Đăng xuất</span>
             </Button>
           </Space>
         </Header>
-        <Content style={{ margin: 24 }}>
-          <div
-            style={{
-              background: '#fff',
-              padding: 24,
-              minHeight: 360,
-              borderRadius: 12,
-              border: `1px solid ${token.colorBorderSecondary}`,
-            }}
-          >
-            <Outlet />
+        <Content
+          ref={contentRef}
+          className="app-content"
+        >
+          <div className="app-content-panel">
+            <div className="app-route-frame">
+              {pageMetadata && <PageHeader title={pageMetadata.title} />}
+              <div className="app-route-content">
+                <Outlet />
+              </div>
+            </div>
           </div>
         </Content>
       </Layout>

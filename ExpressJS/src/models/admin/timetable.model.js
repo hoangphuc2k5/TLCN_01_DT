@@ -19,6 +19,8 @@ const timetableSchema = new mongoose.Schema(
     slots: [slotSchema],
     status: { type: String, enum: ['DRAFT', 'APPROVED'], default: 'DRAFT' },
     approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    effectiveFrom: { type: Date, default: null },
+    effectiveTo: { type: Date, default: null },
   },
   { timestamps: true }
 );

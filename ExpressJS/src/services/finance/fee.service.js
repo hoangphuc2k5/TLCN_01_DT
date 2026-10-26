@@ -1,7 +1,6 @@
 function createFeeService(dependencies) {
   const persistence = dependencies.persistence;
   const ApiError = require("../../utils/common/http/api-error.util");
-  const { feeRepo, paymentRepo } = dependencies.repositories["shared"];
   const { FEE_STATUS } = require("../../config/constants/status.config");
   const { ROLES } = require("../../config/constants/roles.config");
   const { buildExportScope } = dependencies.services["export-scope"];
@@ -12,25 +11,42 @@ function createFeeService(dependencies) {
   const { normalizeLineItems, totalOf, recalculateLineItems, allocatePayment, withLineItemStatus, money } = dependencies.services["fee-invoice-accounting"];
   
   const refreshStatus = (invoice) => {
-    if (invoice.paidAmount <= 0) {
-      invoice.status =
-        new Date(invoice.dueDate) < new Date() ? FEE_STATUS.OVERDUE : FEE_STATUS.UNPAID;
-    } else if (invoice.paidAmount >= invoice.amount) {
+    const paidAmount = Number(invoice.paidAmount || 0);
+    const amount = Number(invoice.amount || 0);
+    if (paidAmount > 0 && paidAmount >= amount) {
       invoice.status = FEE_STATUS.PAID;
-    } else {
+    } else if (new Date(invoice.dueDate) < new Date()) {
+      invoice.status = FEE_STATUS.OVERDUE;
+    } else if (paidAmount > 0) {
       invoice.status = FEE_STATUS.PARTIAL;
+    } else {
+      invoice.status = FEE_STATUS.UNPAID;
     }
     return invoice;
+  };
+
+  const statusFilter = (status, now) => {
+    const paidAmount = { $ifNull: ['$paidAmount', 0] };
+    if (status === FEE_STATUS.UNPAID) {
+      return { dueDate: { $gte: now }, $expr: { $lte: [paidAmount, 0] } };
+    }
+    if (status === FEE_STATUS.PARTIAL) {
+      return { dueDate: { $gte: now }, $expr: { $and: [{ $gt: [paidAmount, 0] }, { $lt: [paidAmount, '$amount'] }] } };
+    }
+    if (status === FEE_STATUS.PAID) {
+      return { $expr: { $and: [{ $gt: [paidAmount, 0] }, { $gte: [paidAmount, '$amount'] }] } };
+    }
+    return { dueDate: { $lt: now }, $expr: { $lt: [paidAmount, '$amount'] } };
   };
   
   const listInvoices = async (actor, query = {}) => {
     const { filter } = await buildExportScope(actor, 'fees', query);
     if (query.status) {
       if (!Object.values(FEE_STATUS).includes(query.status)) throw new ApiError(400, 'Invalid fee status');
-      filter.$and.push({ status: query.status });
+      filter.$and.push(statusFilter(query.status, new Date()));
     }
     const rows = await persistence.rowsFind(filter, { populate: 'studentId academicYearId', limit: 200 });
-    return rows.map(withLineItemStatus);
+    return rows.map((row) => withLineItemStatus(refreshStatus(row)));
   };
   
   const createInvoice = async (actor, data) => {
@@ -66,7 +82,7 @@ function createFeeService(dependencies) {
     filter.$and.push({ $expr: { $gt: [{ $subtract: ['$amount', '$paidAmount'] }, 0] } });
     const rows = await persistence.rowsFind2(filter, { populate: 'studentId academicYearId', limit: 300 });
     return rows.filter(row => new Date(row.dueDate) < new Date() || row.status !== FEE_STATUS.PAID)
-      .map(row => ({ ...withLineItemStatus(row), outstanding: Math.max(0, Number(row.amount) - Number(row.paidAmount || 0)) }));
+      .map(row => ({ ...withLineItemStatus(refreshStatus(row)), outstanding: Math.max(0, Number(row.amount) - Number(row.paidAmount || 0)) }));
   };
   
   const runDebtReminders = async (actor, { asOf = new Date(), minDaysOverdue = 0 } = {}) => {

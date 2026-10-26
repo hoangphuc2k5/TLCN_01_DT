@@ -254,6 +254,32 @@ test('material and facility mutations require both permission and tenant scope',
   assert.equal((await Facility.findById(facility._id)).status, 'PENDING');
   assert.equal((await write(`/facilities/${facility._id}/review`, actors.librarian, { status: 'APPROVED' })).status, 404);
 });
+test('facility requests cannot be returned before the booked start time', async () => {
+  const futureStart = new Date(Date.now() + 60 * 60 * 1000);
+  const future = await Facility.create({
+    schoolId: schools[0]._id,
+    requesterId: actors.teacher._id,
+    itemName: 'Future room booking',
+    from: futureStart,
+    to: new Date(futureStart.getTime() + 60 * 60 * 1000),
+  });
+  assert.equal((await write(`/facilities/${future._id}/review`, actors.school, { status: 'APPROVED' })).status, 200);
+  assert.equal((await write(`/facilities/${future._id}/review`, actors.school, { status: 'RETURNED' })).status, 409);
+  const stillApproved = await Facility.findById(future._id);
+  assert.equal(stillApproved.status, 'APPROVED');
+  assert.equal(stillApproved.returnedAt, null);
+
+  const started = await Facility.create({
+    schoolId: schools[0]._id,
+    requesterId: actors.teacher._id,
+    itemName: 'Started room booking',
+    from: new Date(Date.now() - 60 * 60 * 1000),
+    to: new Date(Date.now() + 60 * 60 * 1000),
+  });
+  assert.equal((await write(`/facilities/${started._id}/review`, actors.school, { status: 'APPROVED' })).status, 200);
+  assert.equal((await write(`/facilities/${started._id}/review`, actors.school, { status: 'RETURNED' })).status, 200);
+  assert.equal((await Facility.findById(started._id)).status, 'RETURNED');
+});
 test('template apply rejects foreign-cluster template and role owner cannot edit global template', async () => {
   const template = await Template.create({ name: 'Foreign', type: 'TRANSCRIPT', scope: 'CLUSTER', clusterId: schools[2].clusterId, createdBy: actors.global._id });
   assert.equal((await write(`/schools/${schools[0]._id}/apply-template`, actors.school, { templateId: template._id }, 'POST')).status, 403);
@@ -308,7 +334,7 @@ test('audit: parent dashboard rejects stale foreign-school child links', async (
   assert.equal(data.stats.find(s => s.key === 'children').value, 1);
   assert.ok(data.grades.length > 0);
   assert.ok(data.grades.every(g => String(g.studentId._id) === String(students[0]._id)));
-  assert.ok(data.invoices.every(i => String(i.studentId) === String(students[0]._id)));
+  assert.ok(data.invoices.every(i => String(i.studentId?._id || i.studentId) === String(students[0]._id)));
 });
 
 test('audit: teacher dashboard uses current class/subject/year scope', async () => {

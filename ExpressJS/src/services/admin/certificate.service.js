@@ -8,9 +8,6 @@ function createCertificateService(dependencies) {
   const ApiError = require("../../utils/common/http/api-error.util");
   const { schoolScope, personalStudentIds, objectId } = dependencies.services["data-scope"];
   
-  const ascii = value => String(value ?? '')
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd').replace(/Đ/g, 'D').replace(/[^\x20-\x7e]/g, '?');
   const dateText = value => {
     if (!value) return '';
     const date = new Date(value);
@@ -33,7 +30,7 @@ function createCertificateService(dependencies) {
       persistence.getTranscriptFindById(student.schoolId),
       persistence.getTranscriptFind({ schoolId: student.schoolId, studentId: student._id }, { academicYearId: 1, semester: 1, subjectId: 1 }),
       persistence.getTranscriptFind2({ schoolId: student.schoolId, studentId: student._id }, { academicYearId: 1, semester: 1 }),
-      persistence.getTranscriptFind3({ schoolId: student.schoolId, studentId: student._id, status: 'APPROVED' }, { awardedAt: 1 }),
+      persistence.getTranscriptFind3({ schoolId: student.schoolId, studentId: student._id, status: 'APPROVED' }, { awardedAt: 1, _id: 1 }),
     ]);
     return {
       school: school || {}, student, classHistory: student.classHistory || [],

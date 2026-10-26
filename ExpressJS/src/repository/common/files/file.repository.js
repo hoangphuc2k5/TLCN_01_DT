@@ -14,8 +14,20 @@ class FileRepository {
     return this.models["subscription"].findOne(arg1).session(arg2);
   }
 
-  itemFindById(arg1) {
-    return this.models["school"].findById(arg1).select('+storageUsedBytes');
+  itemFindById(arg1, arg2 = null) {
+    return this.models["school"].findById(arg1).select('+storageUsedBytes +storageUsageReconciledAt').session(arg2);
+  }
+
+  assetUsageAggregate(arg1, arg2) {
+    const aggregation = this.models['file-asset'].aggregate([
+      { $match: { schoolId: arg1, status: { $in: ['UPLOADING', 'READY', 'DELETING'] } } },
+      { $group: { _id: null, usedBytes: { $sum: '$sizeBytes' } } },
+    ]);
+    return arg2 ? aggregation.session(arg2) : aggregation;
+  }
+
+  storageUsageUpdateOne(arg1, arg2, arg3) {
+    return this.models.school.updateOne(arg1, arg2, arg3);
   }
 
   storedFindById(arg1) {

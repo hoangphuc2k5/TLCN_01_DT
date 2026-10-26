@@ -3,9 +3,17 @@ import { DownloadOutlined, UploadOutlined } from '@ant-design/icons';
 import { useState } from 'react';
 import { downloadImportTemplateApi, importExcelApi } from '../services/api.service';
 
+const TYPE_LABELS = {
+  users: 'người dùng',
+  grades: 'điểm số',
+  fees: 'học phí',
+  attendance: 'điểm danh',
+  exams: 'đề thi',
+};
+
 /**
  * Nút tải mẫu + upload Excel import
- * @param {{ type: 'users'|'grades'|'fees'|'attendance', onDone?: () => void, label?: string }} props
+ * @param {{ type: 'users'|'grades'|'fees'|'attendance'|'exams', onDone?: () => void, label?: string }} props
  */
 const ImportExcelButton = ({ type, onDone, label = 'Import Excel' }) => {
   const [open, setOpen] = useState(false);
@@ -53,7 +61,7 @@ const ImportExcelButton = ({ type, onDone, label = 'Import Excel' }) => {
       </Button>
       <Modal
         open={open}
-        title={`Import Excel — ${type}`}
+        title={`Import Excel — ${TYPE_LABELS[type] || type}`}
         onCancel={() => setOpen(false)}
         footer={null}
         width={640}

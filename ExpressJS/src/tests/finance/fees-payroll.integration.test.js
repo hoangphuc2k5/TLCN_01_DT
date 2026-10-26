@@ -8,12 +8,40 @@ const { ROLE_PERMISSIONS } = require("../../config/constants/permissions.config"
 const Role = require("../../models/admin/role.model"); const School = require("../../models/admin/school.model"); const Year = require("../../models/admin/academic-year.model");
 const User = require("../../models/admin/user.model"); const FeeInvoice = require("../../models/finance/fee-invoice.model"); const Notification = require("../../models/common/communication/notification.model"); const PayrollRecord = require("../../models/finance/payroll-record.model");
 const XLSX = require('xlsx'); const { exportFeesExcel } = require("../../config/container").services["cross"];
-let mongo; let server; let origin; let school; let year; let student; let parent; let accountant; let invoice;
+let mongo; let server; let origin; let school; let year; let student; let accountant; let approver; let invoice;
 const request = async (method, route, actor, body) => { const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${jwt.sign({ _id: actor._id }, process.env.JWT_SECRET)}` }; const response = await fetch(`${origin}/v1/api${route}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) }); return { status: response.status, data: await response.json() }; };
-before(async () => { mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 } }); await mongoose.connect(mongo.getUri()); await Role.create(Object.entries(ROLE_PERMISSIONS).map(([code, keys]) => ({ code, name: code, level: DEFAULT_ROLE_LEVELS[code], permissions: legacyPermissionsToEntries(keys) }))); await cache.reload(); school = await School.create({ name: 'Fees Payroll', code: 'FPR', subdomain: 'fpr' }); year = await Year.create({ schoolId: school._id, name: '2026', startDate: '2026-01-01', endDate: '2026-12-31' }); accountant = await User.create({ name: 'Accountant', email: 'accountant@fpr.invalid', role: 'ACCOUNTANT', schoolId: school._id }); student = await User.create({ name: 'Student', email: 'student@fpr.invalid', role: 'STUDENT', schoolId: school._id }); parent = await User.create({ name: 'Parent', email: 'parent@fpr.invalid', role: 'PARENT', schoolId: school._id, parentOf: [student._id] }); invoice = await FeeInvoice.create({ schoolId: school._id, studentId: student._id, academicYearId: year._id, title: 'Uniform fee', category: 'OTHER', description: 'Uniform and activity package', amount: 700000, dueDate: new Date(Date.now() - 86400000) }); server = app.listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve)); origin = `http://127.0.0.1:${server.address().port}`; });
+before(async () => { mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 } }); await mongoose.connect(mongo.getUri()); await Role.create(Object.entries(ROLE_PERMISSIONS).map(([code, keys]) => ({ code, name: code, level: DEFAULT_ROLE_LEVELS[code], permissions: legacyPermissionsToEntries(keys) }))); await cache.reload(); school = await School.create({ name: 'Fees Payroll', code: 'FPR', subdomain: 'fpr' }); year = await Year.create({ schoolId: school._id, name: '2026', startDate: '2026-01-01', endDate: '2026-12-31' }); accountant = await User.create({ name: 'Accountant', email: 'accountant@fpr.invalid', role: 'ACCOUNTANT', schoolId: school._id }); approver = await User.create({ name: 'Approver', email: 'approver@fpr.invalid', role: 'ACCOUNTANT', schoolId: school._id }); student = await User.create({ name: 'Student', email: 'student@fpr.invalid', role: 'STUDENT', schoolId: school._id }); await User.create({ name: 'Parent', email: 'parent@fpr.invalid', role: 'PARENT', schoolId: school._id, parentOf: [student._id] }); invoice = await FeeInvoice.create({ schoolId: school._id, studentId: student._id, academicYearId: year._id, title: 'Uniform fee', category: 'OTHER', description: 'Uniform and activity package', amount: 700000, dueDate: new Date(Date.now() - 86400000) }); server = app.listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve)); origin = `http://127.0.0.1:${server.address().port}`; });
 after(async () => { if (server) await new Promise(resolve => server.close(resolve)); await mongoose.disconnect(); if (mongo) await mongo.stop(); });
 
 test('lists detailed other fees and sends idempotent debt reminders to student and parent', async () => { const debtors = await request('GET', '/fees/debtors', accountant); assert.equal(debtors.status, 200); assert.equal(debtors.data.data[0].category, 'OTHER'); assert.equal(debtors.data.data[0].outstanding, 700000); const first = await request('POST', '/fees/reminders/run', accountant, { minDaysOverdue: 1 }); assert.equal(first.status, 200); assert.equal(first.data.data.notifications, 2); assert.equal(await Notification.countDocuments({ type: 'FEE_REMINDER' }), 2); const second = await request('POST', '/fees/reminders/run', accountant, { minDaysOverdue: 1 }); assert.equal(second.status, 200); assert.equal(second.data.data.notifications, 0); assert.equal(await Notification.countDocuments({ type: 'FEE_REMINDER' }), 2); assert.equal((await FeeInvoice.findById(invoice._id)).status, 'OVERDUE'); });
+
+test('classifies partially paid past-due invoices as overdue in lists and accountant dashboard', async () => {
+  const partial = await FeeInvoice.create({
+    schoolId: school._id,
+    studentId: student._id,
+    academicYearId: year._id,
+    title: 'Past-due partial invoice',
+    amount: 500000,
+    paidAmount: 150000,
+    dueDate: new Date(Date.now() - 86400000),
+    status: 'PARTIAL',
+  });
+
+  const overdue = await request('GET', '/fees?status=OVERDUE', accountant);
+  assert.equal(overdue.status, 200);
+  const row = overdue.data.data.find(item => item._id === String(partial._id));
+  assert.equal(row?.status, 'OVERDUE');
+  assert.equal(overdue.data.data.some(item => item._id === String(partial._id) && item.status === 'PARTIAL'), false);
+
+  const dashboard = await request('GET', '/dashboard', accountant);
+  assert.equal(dashboard.status, 200);
+  const expectedOverdue = await FeeInvoice.countDocuments({
+    schoolId: school._id,
+    dueDate: { $lt: new Date() },
+    $expr: { $lt: [{ $ifNull: ['$paidAmount', 0] }, '$amount'] },
+  });
+  assert.equal(dashboard.data.data.stats.find(item => item.key === 'overdue').value, expectedOverdue);
+});
 
 test('creates a server-calculated multi-item invoice and allocates partial payment by item', async () => {
   const created = await request('POST', '/fees', accountant, {
@@ -52,4 +80,4 @@ test('creates a server-calculated multi-item invoice and allocates partial payme
   assert.equal(invalid.status, 400);
 });
 
-test('creates, approves and pays payroll with tenant and amount validation', async () => { const created = await request('POST', '/payroll', accountant, { employeeId: accountant._id, period: '2026-09', baseSalary: 15000000, allowances: 1000000, deductions: 500000, note: 'Monthly payroll' }); assert.equal(created.status, 201); assert.equal(created.data.data.netAmount, 15500000); const id = created.data.data._id; assert.equal((await request('PATCH', `/payroll/${id}/status`, accountant, { status: 'PAID' })).status, 409); assert.equal((await request('PATCH', `/payroll/${id}/status`, accountant, { status: 'APPROVED' })).status, 200); assert.equal((await request('PATCH', `/payroll/${id}/status`, accountant, { status: 'PAID' })).status, 200); assert.equal((await PayrollRecord.findById(id)).status, 'PAID'); assert.equal((await request('POST', '/payroll', accountant, { employeeId: student._id, period: '2026-10', baseSalary: 1 })).status, 400); assert.equal((await request('POST', '/payroll', accountant, { employeeId: accountant._id, period: '2026-11', baseSalary: 10, deductions: 20 })).status, 400); });
+test('payroll requires a second person to approve and validates tenant and amounts', async () => { const created = await request('POST', '/payroll', accountant, { employeeId: accountant._id, period: '2026-09', baseSalary: 15000000, allowances: 1000000, deductions: 500000, note: 'Monthly payroll' }); assert.equal(created.status, 201); assert.equal(created.data.data.netAmount, 15500000); const id = created.data.data._id; assert.equal((await request('POST', '/payroll', accountant, { employeeId: accountant._id, period: '2026-10', baseSalary: 10, status: 'APPROVED' })).status, 400); assert.equal((await request('PATCH', `/payroll/${id}/status`, accountant, { status: 'PAID' })).status, 409); assert.equal((await request('PATCH', `/payroll/${id}/status`, accountant, { status: 'APPROVED' })).status, 403); assert.equal((await request('PATCH', `/payroll/${id}/status`, approver, { status: 'APPROVED' })).status, 200); assert.equal((await request('PATCH', `/payroll/${id}/status`, approver, { status: 'PAID' })).status, 200); assert.equal((await PayrollRecord.findById(id)).status, 'PAID'); assert.equal((await request('POST', '/payroll', accountant, { employeeId: student._id, period: '2026-11', baseSalary: 1 })).status, 400); assert.equal((await request('POST', '/payroll', accountant, { employeeId: accountant._id, period: '2026-12', baseSalary: 10, deductions: 20 })).status, 400); });

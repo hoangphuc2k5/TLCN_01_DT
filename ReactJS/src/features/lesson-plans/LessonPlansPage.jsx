@@ -7,6 +7,7 @@ import {
   getSubjectsApi, reviewLessonPlanApi, submitLessonPlanApi, updateLessonPlanApi,
 } from '../../services/api.service';
 import { can, sameId } from '../../utils/permissions';
+import { enumLabel } from '../../utils/enum-labels';
 
 const statusColor = { DRAFT: 'default', SUBMITTED: 'processing', APPROVED: 'success', REJECTED: 'error' };
 
@@ -82,7 +83,7 @@ export default function LessonPlansPage() {
     { title: 'Môn', render: (_, row) => row.subjectId?.name || '-' },
     { title: 'Ngày dạy', dataIndex: 'lessonDate', render: value => value ? dayjs(value).format('DD/MM/YYYY') : '-' },
     { title: 'Lần gửi', dataIndex: 'revision' },
-    { title: 'Trạng thái', dataIndex: 'status', render: value => <Tag color={statusColor[value]}>{value}</Tag> },
+    { title: 'Trạng thái', dataIndex: 'status', render: value => <Tag color={statusColor[value]}>{enumLabel(value)}</Tag> },
     { title: 'Phản hồi', dataIndex: 'reviewNote', ellipsis: true, render: value => value || '-' },
     {
       title: 'Thao tác',
@@ -121,7 +122,7 @@ export default function LessonPlansPage() {
       </div> }}
     />
 
-    <Modal open={!!editing} title={editing?._id ? 'Sửa giáo án' : 'Soạn giáo án'} onCancel={() => setEditing(null)} onOk={() => form.submit()} confirmLoading={saving} width={820} destroyOnClose>
+    <Modal open={!!editing} title={editing?._id ? 'Sửa giáo án' : 'Soạn giáo án'} onCancel={() => setEditing(null)} onOk={() => form.submit()} confirmLoading={saving} width={820} destroyOnHidden>
       <Form form={form} layout="vertical" onFinish={save}>
         <Form.Item name="title" label="Tiêu đề" rules={[{ required: true, whitespace: true }]}><Input maxLength={200} /></Form.Item>
         <Space align="start" wrap>

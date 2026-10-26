@@ -1,4 +1,4 @@
-function createSsoIdentityService(dependencies) {
+function createSsoIdentityService(_dependencies) {
   const crypto = require('node:crypto');
   const ApiError = require("../../../utils/common/http/api-error.util");
   

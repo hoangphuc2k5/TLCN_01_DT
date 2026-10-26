@@ -1,6 +1,6 @@
 import DatedSchedulePanel from './DatedSchedulePanel';
 import { useEffect, useState } from 'react';
-import { Button, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, message } from 'antd';
+import { Button, Form, Input, InputNumber, Modal, Select, Table, Tag, message } from 'antd';
 import { useSelector } from 'react-redux';
 import {
   approveTimetableApi,
@@ -13,6 +13,8 @@ import {
 } from '../../services/api.service';
 import { ROLES } from '../../constants/roles';
 import { can } from '../../utils/permissions';
+import { enumLabel } from '../../utils/enum-labels';
+import PageShell from '../../components/layout/PageShell';
 
 const dayLabels = { 1: 'T2', 2: 'T3', 3: 'T4', 4: 'T5', 5: 'T6', 6: 'T7', 7: 'CN' };
 
@@ -37,27 +39,28 @@ const TimetablePage = () => {
 
   useEffect(() => {
     (async () => {
-      const [c, s, y, t] = await Promise.all([
+      const [c, s, y, subT, homeT] = await Promise.all([
         getClassesApi(),
         getSubjectsApi(),
         getAcademicYearsApi(),
         getUserDirectoryApi({ role: ROLES.SUBJECT_TEACHER }),
+        getUserDirectoryApi({ role: ROLES.HOMEROOM_TEACHER }),
       ]);
       if (c?.EC === 0) setClasses(c.data || []);
       if (s?.EC === 0) setSubjects(s.data || []);
       if (y?.EC === 0) setYears(y.data || []);
-      if (t?.EC === 0) setTeachers(t.data || []);
+      setTeachers([...(subT?.data || []), ...(homeT?.data || [])]);
       load();
     })();
   }, []);
 
   return (
-    <div>
-      <DatedSchedulePanel />
-      {canEdit && (
+    <PageShell
+      title="Thời khóa biểu"
+      description="Xem lịch học theo lớp, cập nhật thời khóa biểu và theo dõi trạng thái phê duyệt."
+      actions={canEdit && (
         <Button
           type="primary"
-          style={{ marginBottom: 16 }}
           onClick={() => {
             setSlots([]);
             form.resetFields();
@@ -67,6 +70,8 @@ const TimetablePage = () => {
           Lập / cập nhật TKB
         </Button>
       )}
+    >
+      <DatedSchedulePanel />
       <Table
         rowKey="_id"
         dataSource={rows}
@@ -76,7 +81,7 @@ const TimetablePage = () => {
           {
             title: 'Trạng thái',
             dataIndex: 'status',
-            render: (v) => <Tag color={v === 'APPROVED' ? 'green' : 'default'}>{v}</Tag>,
+            render: (v) => <Tag color={v === 'APPROVED' ? 'green' : 'default'}>{enumLabel(v)}</Tag>,
           },
           { title: 'Số tiết', render: (_, r) => r.slots?.length || 0 },
           canApprove
@@ -220,7 +225,7 @@ const TimetablePage = () => {
           ]}
         />
       </Modal>
-    </div>
+    </PageShell>
   );
 };
 

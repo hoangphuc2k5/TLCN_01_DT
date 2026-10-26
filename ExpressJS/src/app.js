@@ -10,6 +10,7 @@ const tenantContext = require("./middleware/common/security/tenant.middleware");
 const { notFoundHandler, errorHandler } = require("./middleware/common/http/error-handler.middleware");
 
 const { getAppName } = require("./utils/common/platform/app-name.util");
+const crypto = require('node:crypto');
 
 const app = express();
 
@@ -21,6 +22,12 @@ const allowedOrigins = new Set(
     .map(value => value.trim().replace(/\/$/, ''))
     .filter(Boolean)
 );
+
+app.use((req, res, next) => {
+  req.id = req.headers['x-request-id'] || crypto.randomUUID();
+  res.setHeader('X-Request-Id', req.id);
+  next();
+});
 
 app.use(
   helmet({

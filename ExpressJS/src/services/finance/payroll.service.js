@@ -21,9 +21,8 @@ function createPayrollService(dependencies) {
     const schoolId = await targetSchool(actor, data.schoolId);
     const employee = await reference(User, data.employeeId, schoolId);
     if (['STUDENT', 'PARENT'].includes(employee.role)) throw new ApiError(400, 'Nhan vien khong hop le');
-    const status = data.status ? String(data.status).toUpperCase() : 'DRAFT';
-    if (!['DRAFT', 'APPROVED'].includes(status)) throw new ApiError(400, 'status khong hop le');
-    return persistence.createCreate({ schoolId, employeeId: employee._id, period, baseSalary, allowances, deductions, netAmount: baseSalary + allowances - deductions, status, approvedBy: status === 'APPROVED' ? actor._id : null, createdBy: actor._id, note: data.note || '' });
+    if (data.status && String(data.status).toUpperCase() !== 'DRAFT') throw new ApiError(400, 'Bảng lương mới phải ở trạng thái nháp');
+    return persistence.createCreate({ schoolId, employeeId: employee._id, period, baseSalary, allowances, deductions, netAmount: baseSalary + allowances - deductions, status: 'DRAFT', approvedBy: null, createdBy: actor._id, note: data.note || '' });
   };
   
   const updateStatus = async (actor, id, status) => {
@@ -32,6 +31,7 @@ function createPayrollService(dependencies) {
     const next = String(status || '').toUpperCase();
     if (!['APPROVED', 'PAID'].includes(next)) throw new ApiError(400, 'status khong hop le');
     if (next === 'APPROVED' && record.status !== 'DRAFT') throw new ApiError(409, 'Chi duyet bang luong nhap');
+    if (next === 'APPROVED' && String(record.createdBy) === String(actor._id)) throw new ApiError(403, 'Người lập bảng lương không được tự duyệt');
     if (next === 'PAID' && record.status !== 'APPROVED') throw new ApiError(409, 'Bang luong phai duoc duyet truoc');
     record.status = next; if (next === 'APPROVED') record.approvedBy = actor._id; if (next === 'PAID') record.paidAt = new Date();
     await persistence.updateStatusSave(record); return record;

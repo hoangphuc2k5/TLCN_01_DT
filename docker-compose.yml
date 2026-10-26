@@ -1,0 +1,63 @@
+services:
+  mongo:
+    image: mongo:7.0
+    container_name: edumoet-mongo
+    restart: unless-stopped
+    command: ["--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: >
+        mongosh --port 27017 --quiet --eval "
+          try {
+            var status = rs.status();
+            if (status.ok === 1) quit(0);
+          } catch (e) {}
+          rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: '127.0.0.1:27017' }] });
+          quit(0);
+        "
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  backend:
+    build:
+      context: ./ExpressJS
+      dockerfile: Dockerfile
+    container_name: edumoet-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      APP_NAME: EduMoet
+      MONGO_DB_URL: mongodb://mongo:27017/school_management?replicaSet=rs0
+      JWT_SECRET: edumoet-production-docker-secret-change-me
+      JWT_EXPIRE: 1d
+      ALLOW_PASSWORD_LOGIN: "true"
+      AUTH_GMAIL_ONLY: "false"
+      DEFAULT_PASSWORD: Password@123
+      FRONTEND_URL: http://localhost:3000
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./ReactJS
+      dockerfile: Dockerfile
+      args:
+        VITE_ALLOW_PASSWORD_LOGIN: "true"
+    container_name: edumoet-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:

@@ -1,13 +1,6 @@
 function createAcademicService(dependencies) {
   const persistence = dependencies.persistence;
   const ApiError = require("../../utils/common/http/api-error.util");
-  const {
-    academicYearRepo,
-    classRepo,
-    subjectRepo,
-    assignmentRepo,
-    userRepo,
-  } = dependencies.repositories["shared"];
   const { ROLES } = require("../../config/constants/roles.config");
   const User = "user";
   const { schoolScope, personalStudentIds, objectId } = dependencies.services["data-scope"];

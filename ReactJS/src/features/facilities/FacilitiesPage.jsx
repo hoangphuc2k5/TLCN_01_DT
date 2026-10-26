@@ -5,6 +5,7 @@ import { useSelector } from 'react-redux';
 import { createFacilityApi, getFacilitiesApi, reviewFacilityApi } from '../../services/api.service';
 import { can } from '../../utils/permissions';
 import { ROLES } from '../../constants/roles';
+import { enumLabel } from '../../utils/enum-labels';
 
 const FacilitiesPage = () => {
   const { user } = useSelector((s) => s.auth);
@@ -36,7 +37,7 @@ const FacilitiesPage = () => {
         rowKey="_id"
         dataSource={rows}
         columns={[
-          { title: 'Loại', dataIndex: 'itemType' },
+          { title: 'Loại', dataIndex: 'itemType', render: enumLabel },
           { title: 'Tên', dataIndex: 'itemName' },
           { title: 'Người mượn', render: (_, r) => r.requesterId?.name },
           {
@@ -52,7 +53,7 @@ const FacilitiesPage = () => {
           {
             title: 'TT',
             dataIndex: 'status',
-            render: (v) => <Tag>{v}</Tag>,
+            render: (v) => <Tag>{enumLabel(v)}</Tag>,
           },
           canReview
             ? {
@@ -87,7 +88,7 @@ const FacilitiesPage = () => {
                         Từ chối
                       </Button>
                     </Space>
-                  ) : r.status === 'APPROVED' ? (
+                  ) : r.status === 'APPROVED' && !dayjs().isBefore(dayjs(r.from)) ? (
                     <Button
                       size="small"
                       onClick={async () => {

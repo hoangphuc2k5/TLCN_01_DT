@@ -44,7 +44,7 @@ test('teacher submits a structured lesson plan and academic staff approves it', 
     const submitted = teacher.waitForResponse(response => response.url().includes('/lesson-plans/') && response.url().endsWith('/submit'));
     await row.getByRole('button', { name: 'Gửi duyệt', exact: true }).click();
     expect((await submitted).status()).toBe(200);
-    await expect(row.getByText('SUBMITTED', { exact: true })).toBeVisible();
+    await expect(row.getByText('Đã nộp', { exact: true })).toBeVisible();
 
     await login(academic, 'admin0');
     await academic.goto('/lesson-plans');
@@ -56,7 +56,7 @@ test('teacher submits a structured lesson plan and academic staff approves it', 
     await reviewDialog.locator('.ant-modal-footer button').last().click();
     expect((await approved).status()).toBe(200);
     await expect(reviewDialog).toBeHidden();
-    await expect(row.getByText('APPROVED', { exact: true })).toBeVisible();
+    await expect(row.getByText('Đã duyệt', { exact: true })).toBeVisible();
     await expect(row.getByText('Đạt yêu cầu chuyên môn.', { exact: true })).toBeVisible();
   } finally {
     await Promise.allSettled([teacherContext.close(), academicContext.close()]);

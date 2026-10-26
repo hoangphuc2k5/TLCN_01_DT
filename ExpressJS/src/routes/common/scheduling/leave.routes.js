@@ -1,4 +1,4 @@
-const { authorizeRoles, authorizePermissionAction, authorizeRead } = require("../../../middleware/common/security/rbac.middleware");
+const { authorizeRoles, authorizePermissionAction } = require("../../../middleware/common/security/rbac.middleware");
 const { PERMISSIONS } = require("../../../config/constants/permissions.config");
 const { ROLES } = require("../../../config/constants/roles.config");
 const audit = require("../../../middleware/common/security/audit.middleware");

@@ -113,6 +113,7 @@
   "router.get('/admissions/public/:code', admissions.getPublic);\r",
   "router.get('/admissions', authorizePermissionAction('view', PERMISSIONS.MANAGE_ADMISSIONS), admissions.list);\r",
   "router.patch('/admissions/:id/review', authorizePermissionAction('execute', PERMISSIONS.MANAGE_ADMISSIONS), admissions.review);\r",
+  "router.post('/admissions/:id/enroll', authorizePermissionAction('execute', PERMISSIONS.MANAGE_ADMISSIONS), admissions.enroll);\r",
   "router.get('/announcements', listAnnouncements);\r",
   "router.post('/announcements', authorizePermissionAction('create', PERMISSIONS.MANAGE_ANNOUNCEMENTS), audit('CREATE', 'Announcement'), createAnnouncement);\r",
   "router.delete('/announcements/:id', authorizePermissionAction('delete', PERMISSIONS.MANAGE_ANNOUNCEMENTS), deleteAnnouncement);\r",
@@ -216,5 +217,7 @@
   "router.post(\r\n  '/import/users',\r\n  authorizePermissionAction(['create', 'update'], PERMISSIONS.MANAGE_USERS),\r\n  upload.single('file'),\r\n  audit('IMPORT', 'User'),\r\n  imp.importUsers\r\n);\r",
   "router.post(\r\n  '/import/grades',\r\n  authorizePermissionAction(['create', 'update'], PERMISSIONS.ENTER_GRADES),\r\n  upload.single('file'),\r\n  audit('IMPORT', 'Grade'),\r\n  imp.importGrades\r\n);\r",
   "router.post(\r\n  '/import/fees',\r\n  authorizePermissionAction(['create', 'update'], PERMISSIONS.MANAGE_FEES),\r\n  upload.single('file'),\r\n  audit('IMPORT', 'FeeInvoice'),\r\n  imp.importFees\r\n);\r",
-  "router.post(\r\n  '/import/attendance',\r\n  authorizePermissionAction(['create', 'update'], PERMISSIONS.TAKE_ATTENDANCE),\r\n  upload.single('file'),\r\n  audit('IMPORT', 'Attendance'),\r\n  imp.importAttendance\r\n);\r"
+  "router.post(\r\n  '/import/attendance',\r\n  authorizePermissionAction(['create', 'update'], PERMISSIONS.TAKE_ATTENDANCE),\r\n  upload.single('file'),\r\n  audit('IMPORT', 'Attendance'),\r\n  imp.importAttendance\r\n);\r",
+  "router.post(\r\n  '/import/exams/parse',\r\n  authorizePermissionAction('create', PERMISSIONS.MANAGE_EXAMS),\r\n  upload.single('file'),\r\n  imp.parseExamQuestions\r\n);\r",
+  "router.post(\r\n  '/import/exams',\r\n  authorizePermissionAction('create', PERMISSIONS.MANAGE_EXAMS),\r\n  upload.single('file'),\r\n  audit('IMPORT', 'Exam'),\r\n  imp.importExam\r\n);\r"
 ]

@@ -1,35 +1,22 @@
-import { useEffect, useState } from 'react';
-import { Button, Card, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, message } from 'antd';
+import { useCallback, useEffect, useState } from 'react';
+import { Button, Form, Space, Table, Tag, message } from 'antd';
+import { PrinterOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
 import {
-  createFeeApi,
   createOnlinePaymentApi,
   getAcademicYearsApi,
+  getClassesApi,
   getFeesApi,
   getUserDirectoryApi,
-  recordPaymentApi,
   runFeeRemindersApi,
   downloadExport,
 } from '../../services/api.service';
 import ImportExcelButton from '../../components/ImportExcelButton';
 import { ROLES } from '../../constants/roles';
 import { can, canExport } from '../../utils/permissions';
-
-const statusColor = {
-  UNPAID: 'red',
-  PARTIAL: 'orange',
-  PAID: 'green',
-  OVERDUE: 'magenta',
-};
-
-const categoryOptions = [
-  { value: 'TUITION', label: 'Học phí' },
-  { value: 'OTHER', label: 'Khoản thu khác' },
-  { value: 'BOARDING', label: 'Bán trú' },
-  { value: 'TRANSPORT', label: 'Xe đưa đón' },
-  { value: 'ACTIVITY', label: 'Hoạt động' },
-];
+import { enumLabel } from '../../utils/enum-labels';
+import { FeeInvoiceModal, FeePaymentModal, FeeReceiptModal, feeCategoryOptions, feeStatusColor } from './FeeModals';
 
 const money = value => Number(value || 0).toLocaleString('vi-VN');
 
@@ -40,32 +27,37 @@ const FeesPage = () => {
   const canRemind = can(user, 'fees', 'execute');
   const [rows, setRows] = useState([]);
   const [students, setStudents] = useState([]);
+  const [classes, setClasses] = useState([]);
   const [years, setYears] = useState([]);
   const [openFee, setOpenFee] = useState(false);
+  const [targetScope, setTargetScope] = useState('STUDENT');
   const [openPay, setOpenPay] = useState(false);
   const [selected, setSelected] = useState(null);
   const [payingId, setPayingId] = useState(null);
+  const [receiptModal, setReceiptModal] = useState({ open: false, invoice: null });
   const [feeForm] = Form.useForm();
   const [payForm] = Form.useForm();
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const res = await getFeesApi();
     if (res?.EC === 0) setRows(res.data || []);
-  };
+  }, []);
 
   useEffect(() => {
     (async () => {
       if (canManage) {
-        const [u, y] = await Promise.all([
+        const [u, y, c] = await Promise.all([
           getUserDirectoryApi({ role: ROLES.STUDENT }),
           getAcademicYearsApi(),
+          getClassesApi(),
         ]);
         if (u?.EC === 0) setStudents(u.data || []);
         if (y?.EC === 0) setYears(y.data || []);
+        if (c?.EC === 0) setClasses(c.data || []);
       }
       load();
     })();
-  }, []);
+  }, [canManage, load]);
 
   return (
     <div>
@@ -106,12 +98,12 @@ const FeesPage = () => {
             columns={[
               { title: 'Mã', dataIndex: 'code', render: value => value || '-' },
               { title: 'Khoản thu', dataIndex: 'name' },
-              { title: 'Loại', dataIndex: 'category', render: value => categoryOptions.find(item => item.value === value)?.label || value },
+              { title: 'Loại', dataIndex: 'category', render: value => feeCategoryOptions.find(item => item.value === value)?.label || value },
               { title: 'SL', dataIndex: 'quantity' },
               { title: 'Đơn giá', dataIndex: 'unitAmount', render: money },
               { title: 'Thành tiền', dataIndex: 'amount', render: money },
               { title: 'Đã thu', dataIndex: 'paidAmount', render: money },
-              { title: 'Trạng thái', dataIndex: 'status', render: value => <Tag color={statusColor[value]}>{value}</Tag> },
+              { title: 'Trạng thái', dataIndex: 'status', render: value => <Tag color={feeStatusColor[value]}>{enumLabel(value)}</Tag> },
             ]}
           />,
         }}
@@ -137,147 +129,86 @@ const FeesPage = () => {
           {
             title: 'TT',
             dataIndex: 'status',
-            render: (v) => <Tag color={statusColor[v]}>{v}</Tag>,
+            render: (v) => <Tag color={feeStatusColor[v]}>{enumLabel(v)}</Tag>,
           },
           (canManage || canOnline)
             ? {
                 title: 'Thao tác',
-                render: (_, r) => r.status !== 'PAID' ? (
+                render: (_, r) => (
                   <Space size="small">
-                    {canManage && <Button
-                      size="small"
-                      onClick={() => {
-                        setSelected(r);
-                        payForm.resetFields();
-                        setOpenPay(true);
-                      }}
-                    >
-                      Thu tien
-                    </Button>}
-                    {canOnline && <Button
-                      size="small"
-                      type="primary"
-                      loading={payingId === r._id}
-                      disabled={!!payingId}
-                      onClick={async () => {
-                        setPayingId(r._id);
-                        try {
-                          const res = await createOnlinePaymentApi({
-                            invoiceId: r._id,
-                            provider: 'VNPAY',
-                          });
-                          if (res?.EC === 0 && res.data?.checkoutUrl) {
-                            window.location.assign(res.data.checkoutUrl);
-                          } else {
-                            message.error(res?.EM || 'Không tạo được giao dịch');
-                          }
-                        } catch { message.error('Không kết nối được cổng thanh toán'); }
-                        finally { setPayingId(null); }
-                      }}
-                    >
-                      Thanh toán VNPay
-                    </Button>}
+                    {r.status !== 'PAID' && canManage && (
+                      <Button
+                        size="small"
+                        onClick={() => {
+                          setSelected(r);
+                          payForm.resetFields();
+                          setOpenPay(true);
+                        }}
+                      >
+                        Thu tiền
+                      </Button>
+                    )}
+                    {r.status !== 'PAID' && canOnline && (
+                      <Button
+                        size="small"
+                        type="primary"
+                        loading={payingId === r._id}
+                        disabled={!!payingId}
+                        onClick={async () => {
+                          setPayingId(r._id);
+                          try {
+                            const res = await createOnlinePaymentApi({
+                              invoiceId: r._id,
+                              provider: 'VNPAY',
+                            });
+                            if (res?.EC === 0 && res.data?.checkoutUrl) {
+                              window.location.assign(res.data.checkoutUrl);
+                            } else {
+                              message.error(res?.EM || 'Không tạo được giao dịch');
+                            }
+                          } catch { message.error('Không kết nối được cổng thanh toán'); }
+                          finally { setPayingId(null); }
+                        }}
+                      >
+                        Thanh toán VNPay
+                      </Button>
+                    )}
+                    {r.paidAmount > 0 && (
+                      <Button
+                        size="small"
+                        icon={<PrinterOutlined />}
+                        onClick={() => setReceiptModal({ open: true, invoice: r })}
+                      >
+                        Biên lai
+                      </Button>
+                    )}
                   </Space>
-                ) : null,
+                ),
               }
             : {},
         ].filter((c) => c.title)}
       />
 
-      <Modal open={openFee} title="Tạo hóa đơn" onCancel={() => setOpenFee(false)} onOk={() => feeForm.submit()}>
-        <Form
-          form={feeForm}
-          layout="vertical"
-          onFinish={async (v) => {
-            const res = await createFeeApi(v);
-            if (res?.EC === 0) {
-              message.success(res.EM);
-              setOpenFee(false);
-              feeForm.resetFields();
-              load();
-            } else message.error(res?.EM);
-          }}
-        >
-          <Form.Item name="studentId" label="Học sinh" rules={[{ required: true }]}>
-            <Select options={students.map((s) => ({ value: s._id, label: s.name }))} />
-          </Form.Item>
-          <Form.Item name="academicYearId" label="Năm học" rules={[{ required: true }]}>
-            <Select options={years.map((y) => ({ value: y._id, label: y.name }))} />
-          </Form.Item>
-          <Form.Item name="title" label="Nội dung" rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="description" label="Chi tiết"><Input.TextArea maxLength={1000} /></Form.Item>
-          <Form.List
-            name="lineItems"
-            rules={[{ validator: async (_, items) => { if (!items?.length) throw new Error('Cần ít nhất một khoản thu'); } }]}
-          >
-            {(fields, { add, remove }, { errors }) => <Space direction="vertical" style={{ width: '100%' }}>
-              {fields.map(({ key, name, ...rest }) => <Card
-                key={key}
-                size="small"
-                title={`Khoản thu ${name + 1}`}
-                extra={<Button danger size="small" disabled={fields.length === 1} onClick={() => remove(name)}>Xóa</Button>}
-              >
-                <Space align="start" wrap>
-                  <Form.Item {...rest} name={[name, 'code']} label="Mã"><Input maxLength={50} style={{ width: 110 }} /></Form.Item>
-                  <Form.Item {...rest} name={[name, 'name']} label="Tên khoản" rules={[{ required: true, whitespace: true }]}><Input maxLength={200} style={{ width: 220 }} /></Form.Item>
-                  <Form.Item {...rest} name={[name, 'category']} label="Loại" rules={[{ required: true }]}><Select options={categoryOptions} style={{ width: 150 }} /></Form.Item>
-                  <Form.Item {...rest} name={[name, 'quantity']} label="Số lượng" rules={[{ required: true }]}><InputNumber min={0.01} style={{ width: 100 }} /></Form.Item>
-                  <Form.Item {...rest} name={[name, 'unitAmount']} label="Đơn giá" rules={[{ required: true }]}><InputNumber min={1} step={1000} style={{ width: 160 }} /></Form.Item>
-                </Space>
-                <Form.Item {...rest} name={[name, 'description']} label="Mô tả"><Input maxLength={500} /></Form.Item>
-              </Card>)}
-              <Button type="dashed" onClick={() => add({ category: 'TUITION', quantity: 1 })}>Thêm khoản thu</Button>
-              <Form.ErrorList errors={errors} />
-            </Space>}
-          </Form.List>
-          <Form.Item name="dueDate" label="Hạn thanh toán" rules={[{ required: true }]}>
-            <Input type="date" />
-          </Form.Item>
-        </Form>
-      </Modal>
+      <FeeInvoiceModal
+        openFee={openFee}
+        setOpenFee={setOpenFee}
+        feeForm={feeForm}
+        targetScope={targetScope}
+        setTargetScope={setTargetScope}
+        classes={classes}
+        students={students}
+        years={years}
+        load={load}
+      />
+      <FeePaymentModal
+        openPay={openPay}
+        setOpenPay={setOpenPay}
+        selected={selected}
+        payForm={payForm}
+        load={load}
+      />
 
-      <Modal
-        open={openPay}
-        title={`Thu tiền — ${selected?.title || ''}`}
-        onCancel={() => setOpenPay(false)}
-        onOk={() => payForm.submit()}
-      >
-        <Form
-          form={payForm}
-          layout="vertical"
-          onFinish={async (v) => {
-            const res = await recordPaymentApi({
-              invoiceId: selected._id,
-              amount: v.amount,
-              method: v.method,
-              note: v.note,
-            });
-            if (res?.EC === 0) {
-              message.success(res.EM);
-              setOpenPay(false);
-              load();
-            } else message.error(res?.EM);
-          }}
-        >
-          <Form.Item name="amount" label="Số tiền" rules={[{ required: true }]}>
-            <InputNumber style={{ width: '100%' }} min={1} />
-          </Form.Item>
-          <Form.Item name="method" label="Hình thức" initialValue="CASH">
-            <Select
-              options={[
-                { value: 'CASH', label: 'Tiền mặt' },
-                { value: 'TRANSFER', label: 'Chuyển khoản' },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item name="note" label="Ghi chú">
-            <Input />
-          </Form.Item>
-        </Form>
-      </Modal>
-
+      <FeeReceiptModal receiptModal={receiptModal} setReceiptModal={setReceiptModal} />
     </div>
   );
 };

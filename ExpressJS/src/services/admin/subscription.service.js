@@ -1,7 +1,6 @@
 function createSubscriptionService(dependencies) {
   const persistence = dependencies.persistence;
   const ApiError = require("../../utils/common/http/api-error.util");
-  const Subscription = "subscription";
   const { ROLES } = require("../../config/constants/roles.config");
   const { schoolScope, objectId } = dependencies.services["data-scope"];
   const { targetSchool } = dependencies.services["write-scope"];
@@ -70,13 +69,22 @@ function createSubscriptionService(dependencies) {
   
   const markInvoicePaid = async (actor, id) => {
     if (actor.role !== ROLES.SUPER_ADMIN) throw new ApiError(403, 'Chỉ Super Admin');
-    const inv = await persistence.invFindByIdAndUpdate(id, { status: 'PAID', paidAt: new Date() }, { new: true });
-    if (!inv) throw new ApiError(404, 'Không tìm thấy hóa đơn');
-    await persistence.markInvoicePaidFindByIdAndUpdate(inv.subscriptionId, {
-      expiresAt: inv.periodEnd,
-      status: 'ACTIVE',
+    return persistence.transactionTransaction(async session => {
+      const inv = await persistence.invFindById(id, session);
+      if (!inv) throw new ApiError(404, 'Không tìm thấy hóa đơn');
+      if (inv.status === 'CANCELLED') throw new ApiError(409, 'Hóa đơn đã bị hủy');
+      if (inv.status !== 'PAID') {
+        inv.status = 'PAID';
+        inv.paidAt = new Date();
+        await inv.save({ session });
+      }
+      const subscription = await persistence.markInvoicePaidFindByIdAndUpdate(inv.subscriptionId, {
+        $max: { expiresAt: inv.periodEnd },
+        $set: { status: 'ACTIVE' },
+      }, { new: true, session });
+      if (!subscription) throw new ApiError(409, 'Gói dịch vụ liên kết với hóa đơn không còn tồn tại');
+      return inv;
     });
-    return inv;
   };
   
   const listInvoices = async (actor, query = {}) => {

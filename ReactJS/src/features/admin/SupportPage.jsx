@@ -4,6 +4,7 @@ import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
 import { createTicketApi, getTicketsApi, updateTicketApi } from '../../services/api.service';
 import { can } from '../../utils/permissions';
+import { enumLabel } from '../../utils/enum-labels';
 import { ROLES } from '../../constants/roles';
 
 const SupportPage = () => {
@@ -41,7 +42,7 @@ const SupportPage = () => {
           {
             title: 'TT',
             dataIndex: 'status',
-            render: (v) => <Tag color={v === 'RESOLVED' ? 'green' : 'gold'}>{v}</Tag>,
+            render: (v) => <Tag color={v === 'RESOLVED' ? 'green' : 'gold'}>{enumLabel(v)}</Tag>,
           },
           {
             title: 'Ngày',

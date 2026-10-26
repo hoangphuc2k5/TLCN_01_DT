@@ -6,6 +6,7 @@ import { useSelector } from 'react-redux';
 import { createLeaveApi, getLeavesApi, reviewLeaveApi, cancelMakeupApi } from '../../services/api.service';
 import { ROLES } from '../../constants/roles';
 import { can } from '../../utils/permissions';
+import { enumLabel } from '../../utils/enum-labels';
 
 const TYPE_LABELS = {
   STUDENT_ABSENCE: 'Xin nghỉ học',
@@ -49,7 +50,9 @@ const LeavePage = () => {
   const [selectedType, setSelectedType] = useState(typeOptions[0]?.value);
   const [form] = Form.useForm();
   const [cancelForm] = Form.useForm();
+  const [rejectForm] = Form.useForm();
   const [cancelTarget, setCancelTarget] = useState(null);
+  const [rejectTarget, setRejectTarget] = useState(null);
 
   const load = async () => {
     const res = await getLeavesApi();
@@ -114,7 +117,7 @@ const LeavePage = () => {
             title: 'TT',
             dataIndex: 'status',
             render: (v) => (
-              <Tag color={v === 'APPROVED' ? 'green' : v === 'REJECTED' ? 'red' : 'gold'}>{v}</Tag>
+              <Tag color={v === 'APPROVED' ? 'green' : v === 'REJECTED' ? 'red' : 'gold'}>{enumLabel(v)}</Tag>
             ),
           },
           canReview
@@ -141,13 +144,7 @@ const LeavePage = () => {
                       <Button
                         size="small"
                         danger
-                        onClick={async () => {
-                          const res = await reviewLeaveApi(r._id, { status: 'REJECTED' });
-                          if (res?.EC === 0) {
-                            message.success(res.EM);
-                            load();
-                          } else message.error(res?.EM);
-                        }}
+                        onClick={() => { rejectForm.resetFields(); setRejectTarget(r); }}
                       >
                         Từ chối
                       </Button>
@@ -157,7 +154,7 @@ const LeavePage = () => {
             : {},
         ].filter((c) => c.title)}
       />
-      <Modal open={!!cancelTarget} title="Hủy lịch dạy bù" onCancel={() => setCancelTarget(null)} onOk={() => cancelForm.submit()}>
+      <Modal open={!!cancelTarget} title="Hủy lịch dạy bù" okText="Đồng ý" okButtonProps={{ danger: true }} cancelText="Đóng" onCancel={() => setCancelTarget(null)} onOk={() => cancelForm.submit()}>
         <p>Lịch bù sẽ được gỡ khỏi lịch theo ngày. Giáo viên có thể gửi đề xuất mới cho tiết nghỉ này.</p>
         <Form form={cancelForm} layout="vertical" onFinish={async values => {
           const res = await cancelMakeupApi(cancelTarget._id, values);
@@ -167,12 +164,40 @@ const LeavePage = () => {
           <Form.Item name="note" label="Lý do hủy lịch" rules={[{ required: true, whitespace: true }]}><Input.TextArea maxLength={1000} /></Form.Item>
         </Form>
       </Modal>
+      <Modal
+        open={!!rejectTarget}
+        title="Từ chối đơn từ"
+        okText="Xác nhận từ chối"
+        okButtonProps={{ danger: true }}
+        cancelText="Đóng"
+        onCancel={() => setRejectTarget(null)}
+        onOk={() => rejectForm.submit()}
+      >
+        <p>Lý do từ chối sẽ được thông báo đến người gửi đơn.</p>
+        <Form
+          form={rejectForm}
+          layout="vertical"
+          onFinish={async values => {
+            const res = await reviewLeaveApi(rejectTarget._id, { status: 'REJECTED', reviewNote: values.reviewNote });
+            if (res?.EC === 0) { message.success('Đã từ chối đơn'); setRejectTarget(null); load(); }
+            else message.error(res?.EM);
+          }}
+        >
+          <Form.Item
+            name="reviewNote"
+            label="Lý do từ chối"
+            rules={[{ required: true, whitespace: true, message: 'Vui lòng nhập lý do từ chối' }]}
+          >
+            <Input.TextArea rows={3} maxLength={500} placeholder="Nhập lý do từ chối để thông báo đến người gửi..." />
+          </Form.Item>
+        </Form>
+      </Modal>
       <Modal open={open} title="Gửi đơn từ" onCancel={() => setOpen(false)} onOk={() => form.submit()}>
         <Form
           form={form}
           layout="vertical"
           onFinish={async (v) => {
-            const { makeupSource, ...payload } = v;
+            const { makeupSource: _makeupSource, ...payload } = v;
             if (v.type === 'MAKEUP_CLASS') { payload.fromDate = v.makeup?.date; payload.toDate = v.makeup?.date; }
             const res = await createLeaveApi(payload);
             if (res?.EC === 0) {

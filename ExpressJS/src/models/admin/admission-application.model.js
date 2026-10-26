@@ -15,6 +15,7 @@ const schema = new mongoose.Schema({
   reviewNote: { type: String, default: '' },
   reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   reviewedAt: { type: Date, default: null },
+  enrolledStudentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
 }, { timestamps: true });
 
 schema.index({ trackingCode: 1 }, { unique: true });

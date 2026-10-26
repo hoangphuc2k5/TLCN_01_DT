@@ -7,12 +7,22 @@ async function login(page, account) {
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 async function showSchedule(page) {
+  const initialSchedule = page.waitForResponse(r => r.url().includes('/timetables/schedule?'));
   await page.getByRole('link', { name: 'Thời khóa biểu', exact: true }).click();
+  await initialSchedule;
+  const loadButton = page.getByRole('button', { name: 'Xem lịch', exact: true });
+  await expect(loadButton).toBeEnabled();
   await page.getByLabel('Lịch từ ngày').fill('2026-09-07');
   await page.getByLabel('Lịch đến ngày').fill('2026-09-08');
-  const response = page.waitForResponse(r => r.url().includes('/timetables/schedule?') && r.url().includes('2026-09-07'));
-  await page.getByRole('button', { name: 'Xem lịch', exact: true }).click();
-  expect((await response).status()).toBe(200);
+  const [response] = await Promise.all([
+    page.waitForResponse(response => {
+      const url = new URL(response.url());
+      return url.pathname.endsWith('/timetables/schedule')
+        && url.searchParams.get('fromDate') === '2026-09-07';
+    }),
+    loadButton.click(),
+  ]);
+  expect(response.status()).toBe(200);
 }
 test('teacher submits absence and structured makeup; admin approval updates parent timetable', async ({ browser }) => {
   const teacherContext = await browser.newContext();
@@ -34,8 +44,11 @@ test('teacher submits absence and structured makeup; admin approval updates pare
     await login(admin, 'admin0');
     await admin.getByRole('link', { name: 'Đơn từ', exact: true }).click();
     let row = admin.getByRole('row').filter({ hasText: 'QA teaching absence' });
+    const absenceReview = admin.waitForResponse(r => r.url().endsWith('/review') && r.request().method() === 'PATCH');
     await row.getByRole('button', { name: 'Duyệt', exact: true }).click();
-    await expect(row.getByText('APPROVED', { exact: true })).toBeVisible();
+    const absenceReviewResponse = await absenceReview;
+    expect(absenceReviewResponse.status()).toBe(200);
+    await expect(row.getByText('Đã duyệt', { exact: true })).toBeVisible();
     await teacher.getByRole('button', { name: 'Gửi đơn', exact: true }).click();
     dialog = teacher.getByRole('dialog');
     await dialog.getByLabel('Loại đơn', { exact: true }).press('ArrowDown');
@@ -55,7 +68,7 @@ test('teacher submits absence and structured makeup; admin approval updates pare
     row = admin.getByRole('row').filter({ hasText: 'QA makeup lesson' });
     await expect(row.getByText('QA Makeup Room', { exact: false })).toBeVisible();
     await row.getByRole('button', { name: 'Duyệt', exact: true }).click();
-    await expect(row.getByText('APPROVED', { exact: true })).toBeVisible();
+    await expect(row.getByText('Đã duyệt', { exact: true })).toBeVisible();
     await login(parent, 'parent0');
     await showSchedule(parent);
     await expect(parent.getByText('Nghỉ dạy', { exact: true })).toBeVisible();
@@ -66,7 +79,7 @@ test('teacher submits absence and structured makeup; admin approval updates pare
     await row.getByRole('button', { name: 'Hủy lịch bù', exact: true }).click();
     await admin.getByRole('dialog').getByLabel('Lý do hủy lịch', { exact: true }).fill('QA room unavailable');
     await admin.getByRole('dialog').getByRole('button', { name: 'Đồng ý', exact: true }).click();
-    await expect(row.getByText('CANCELLED', { exact: true })).toBeVisible();
+    await expect(row.getByText('Đã hủy', { exact: true })).toBeVisible();
     await parent.getByRole('button', { name: 'Xem lịch', exact: true }).click();
     await expect(parent.getByText('Dạy bù', { exact: true })).toHaveCount(0);
     await expect(parent.getByText('Nghỉ dạy', { exact: true })).toBeVisible();
@@ -83,4 +96,33 @@ test('student sees own dated timetable and rejects an excessive date range', asy
   await page.getByRole('button', { name: 'Xem lịch', exact: true }).click();
   expect((await rejected).status()).toBe(400);
   await expect(page.getByText('Khoảng ngày phải từ 1 đến 31 ngày', { exact: true }).first()).toBeVisible();
+});
+
+test('manual date range is preserved while academic years load', async ({ page }) => {
+  await login(page, 'student1');
+  let releaseAcademicYears;
+  const academicYearsGate = new Promise(resolve => { releaseAcademicYears = resolve; });
+  await page.route('**/v1/api/academic-years', async route => {
+    await academicYearsGate;
+    await route.continue();
+  });
+
+  await page.getByRole('link', { name: 'Thời khóa biểu', exact: true }).click();
+  await page.waitForRequest(request => request.url().includes('/v1/api/academic-years'));
+  await page.getByLabel('Lịch từ ngày').fill('2026-09-07');
+  await page.getByLabel('Lịch đến ngày').fill('2026-09-08');
+  const selectedSchedule = page.waitForResponse(response => {
+    const url = new URL(response.url());
+    return url.pathname.endsWith('/timetables/schedule')
+      && url.searchParams.get('fromDate') === '2026-09-07'
+      && url.searchParams.get('toDate') === '2026-09-08';
+  });
+  await page.getByRole('button', { name: 'Xem lịch', exact: true }).click();
+  expect((await selectedSchedule).status()).toBe(200);
+
+  const academicYearsResponse = page.waitForResponse(response => response.url().includes('/v1/api/academic-years'));
+  releaseAcademicYears();
+  expect((await academicYearsResponse).status()).toBe(200);
+  await expect(page.getByLabel('Lịch từ ngày')).toHaveValue('2026-09-07');
+  await expect(page.getByLabel('Lịch đến ngày')).toHaveValue('2026-09-08');
 });

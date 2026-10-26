@@ -1,4 +1,4 @@
-const { authorizeRoles, authorizePermissionAction, authorizeRead } = require("../../../middleware/common/security/rbac.middleware");
+const { authorizePermissionAction } = require("../../../middleware/common/security/rbac.middleware");
 const { PERMISSIONS } = require("../../../config/constants/permissions.config");
 const audit = require("../../../middleware/common/security/audit.middleware");
 const upload = require("../../../middleware/common/files/upload.middleware");
@@ -33,6 +33,19 @@ const register1 = router => {
     upload.single('file'),
     audit('IMPORT', 'Attendance'),
     imp.importAttendance
+  );
+  router.post(
+    '/import/exams/parse',
+    authorizePermissionAction('create', PERMISSIONS.MANAGE_EXAMS),
+    upload.single('file'),
+    imp.parseExamQuestions
+  );
+  router.post(
+    '/import/exams',
+    authorizePermissionAction('create', PERMISSIONS.MANAGE_EXAMS),
+    upload.single('file'),
+    audit('IMPORT', 'Exam'),
+    imp.importExam
   );
 };
 

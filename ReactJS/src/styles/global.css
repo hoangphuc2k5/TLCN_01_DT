@@ -8,9 +8,219 @@ html,
 body,
 #root {
   margin: 0;
+  width: 100%;
   min-height: 100%;
-  font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif;
-  background: #f5f7f8;
+  font-family: var(--ui-font-family, 'Be Vietnam Pro', 'Segoe UI', sans-serif);
+  background: var(--ui-color-canvas, #f5f7f8);
+}
+
+body {
+  min-width: 320px;
+}
+
+.app-shell {
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app-sider {
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-right: 1px solid var(--ui-color-border, #dfe6e9);
+}
+
+.app-brand {
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.app-brand-title {
+  color: var(--ui-color-primary, #0f4c5c) !important;
+}
+
+.app-main-layout {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.app-header {
+  flex: 0 0 64px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--ui-space-xl, 24px);
+  background: var(--ui-color-surface, #fff);
+  border-bottom: 1px solid var(--ui-color-border, #dfe6e9);
+}
+
+.app-content {
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: var(--ui-space-xl, 24px);
+}
+
+.app-content-panel {
+  width: 100%;
+  max-width: 1680px;
+  margin-inline: auto;
+  min-width: 0;
+  overflow: hidden;
+  min-height: 360px;
+  padding: var(--ui-space-xl, 24px);
+  background: var(--ui-color-surface, #fff);
+  border: 1px solid var(--ui-color-border, #dfe6e9);
+  border-radius: var(--ui-radius-card, 12px);
+}
+
+.app-page-shell,
+.app-page-content,
+.app-route-frame,
+.app-route-content {
+  min-width: 0;
+}
+
+.app-page-shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-xl, 24px);
+}
+
+.app-route-frame {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-xl, 24px);
+}
+
+.app-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ui-space-lg, 16px);
+}
+
+.app-page-header-copy {
+  min-width: 0;
+}
+
+.app-page-title {
+  margin: 0;
+  color: var(--ui-color-text, #1f2933);
+  font-size: clamp(1.375rem, 2vw, 1.75rem);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.app-page-description {
+  max-width: 72ch;
+  margin: var(--ui-space-sm, 8px) 0 0;
+  color: var(--ui-color-text-secondary, #65727a);
+  line-height: 1.55;
+}
+
+.app-page-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--ui-space-sm, 8px);
+}
+
+.app-content-panel .ant-btn {
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.app-content-panel :is(.ant-btn, .ant-input, .ant-select-selector):focus-visible {
+  outline: 2px solid var(--ui-color-primary, #0f4c5c);
+  outline-offset: 2px;
+}
+
+.app-content-panel .ant-table-wrapper {
+  max-width: 100%;
+}
+
+.app-content-panel .ant-table-content {
+  overflow-x: auto !important;
+  overscroll-behavior-x: contain;
+}
+
+.app-content-panel .ant-table-content > table {
+  min-width: max-content;
+}
+
+.app-mobile-drawer .ant-drawer-body {
+  overscroll-behavior: contain;
+}
+
+.attendance-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 8px;
+  align-items: end;
+  margin-bottom: 24px;
+}
+
+.attendance-form .ant-form-item {
+  min-width: 0;
+  margin: 0;
+}
+
+.attendance-form .ant-btn {
+  min-height: 32px;
+}
+
+@media (max-width: 767px) {
+  .app-header {
+    flex-basis: 56px;
+    padding: 0 var(--ui-space-sm, 8px);
+  }
+
+  .app-role-label,
+  .app-user-name {
+    display: none;
+  }
+
+  .app-content-panel {
+    padding: var(--ui-space-md, 12px);
+    border-radius: var(--ui-radius-control, 8px);
+  }
+
+  .app-content {
+    margin: var(--ui-space-md, 12px);
+  }
+
+  .app-page-shell {
+    gap: var(--ui-space-lg, 16px);
+  }
+
+  .app-page-header {
+    flex-direction: column;
+  }
+
+  .app-page-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .app-content-panel .ant-card {
+    max-width: 100%;
+  }
+
+  .attendance-form .ant-btn {
+    width: 100%;
+  }
 }
 
 a {

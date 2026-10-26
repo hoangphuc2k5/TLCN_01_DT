@@ -23,7 +23,7 @@ class DashboardAnalyticsRepository {
   }
 
   rowsFind(arg1) {
-    return this.models["grade"].find(arg1).select('average').lean();
+    return this.models["grade"].find(arg1).select('average scores').lean();
   }
 
   assignmentsFind(arg1) {

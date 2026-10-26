@@ -1,20 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
-import {
-  Button,
-  Form,
-  Input,
-  InputNumber,
-  Modal,
-  Radio,
-  Select,
-  Space,
-  Table,
-  Tag,
-  message,
-} from 'antd';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Button, Form, Space, Table, Tag, message } from 'antd';
 import { useSelector } from 'react-redux';
 import {
-  createExamApi,
   getAttemptsApi,
   getClassesApi,
   getExamApi,
@@ -27,6 +14,10 @@ import {
 } from '../../services/api.service';
 import { ROLES } from '../../constants/roles';
 import { can } from '../../utils/permissions';
+import ImportExcelButton from '../../components/ImportExcelButton';
+import ExamAttemptModal from './ExamAttemptModal';
+import ExamBuilderModal from './ExamBuilderModal';
+import useExamQuestionDrafts from './useExamQuestionDrafts';
 
 const ExamsPage = () => {
   const { user } = useSelector((s) => s.auth);
@@ -46,12 +37,16 @@ const ExamsPage = () => {
   const [answers, setAnswers] = useState({});
   const submitRef = useRef(null);
   const [form] = Form.useForm();
+  const {
+    questions, setQuestions, importLoading, pastedText, setPastedText, manualForm, manualType, setManualType,
+    downloadTemplate, handleUploadExcel, handleParseText, handleAddManual, removeQuestion, mcqCount, essayCount, totalPoints,
+  } = useExamQuestionDrafts();
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const [e, a] = await Promise.all([getExamsApi(), getAttemptsApi()]);
     if (e?.EC === 0) setExams(e.data || []);
     if (a?.EC === 0) setAttempts(a.data || []);
-  };
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -62,7 +57,7 @@ const ExamsPage = () => {
       }
       load();
     })();
-  }, []);
+  }, [canManage, load]);
 
   const startExam = async (examId) => {
     const start = await startAttemptApi(examId);
@@ -72,11 +67,18 @@ const ExamsPage = () => {
     const detail = await getExamApi(examId);
     if (detail?.EC === 0) {
       const order = (start.data.questionOrder || []).map(String);
-      const questions = order.length
+      const questionsSorted = order.length
         ? [...(detail.data.questions || [])].sort((a, b) => order.indexOf(String(a._id)) - order.indexOf(String(b._id)))
         : detail.data.questions;
-      setTaking({ ...detail.data, questions });
-      setAnswers(Object.fromEntries((start.data.answers || []).map(answer => [answer.questionId, { answerKey: answer.answerKey || '', answerText: answer.answerText || '' }])));
+      setTaking({ ...detail.data, questions: questionsSorted });
+      setAnswers(
+        Object.fromEntries(
+          (start.data.answers || []).map((answer) => [
+            answer.questionId,
+            { answerKey: answer.answerKey || '', answerText: answer.answerText || '' },
+          ])
+        )
+      );
     }
   };
 
@@ -90,7 +92,11 @@ const ExamsPage = () => {
     }));
     const res = await submitAttemptApi(attemptId, payload);
     if (res?.EC === 0) {
-      message.success(res.data.score == null ? 'Nộp bài thành công — điểm chưa công bố' : `Nộp bài thành công — Điểm MCQ: ${res.data.score}/${res.data.maxScore}`);
+      message.success(
+        res.data.score == null
+          ? 'Nộp bài thành công — điểm chưa công bố'
+          : `Nộp bài thành công — Điểm MCQ: ${res.data.score}/${res.data.maxScore}`
+      );
       setTaking(null);
       setAttemptId(null);
       setDeadlineAt(null);
@@ -116,11 +122,13 @@ const ExamsPage = () => {
   useEffect(() => {
     if (!taking || !attemptId || !Object.keys(answers).length) return undefined;
     const timer = window.setTimeout(async () => {
-      const payload = (taking.questions || []).map(q => ({
-        questionId: q._id,
-        answerKey: answers[q._id]?.answerKey || '',
-        answerText: answers[q._id]?.answerText || '',
-      })).filter(answer => answer.answerKey || answer.answerText);
+      const payload = (taking.questions || [])
+        .map((q) => ({
+          questionId: q._id,
+          answerKey: answers[q._id]?.answerKey || '',
+          answerText: answers[q._id]?.answerText || '',
+        }))
+        .filter((answer) => answer.answerKey || answer.answerText);
       if (!payload.length) return;
       const result = await saveAttemptDraftApi(attemptId, payload);
       if (result?.EC !== 0 && result?.EM) message.warning(result.EM);
@@ -138,22 +146,42 @@ const ExamsPage = () => {
   return (
     <div>
       {canManage && (
-        <Button type="primary" style={{ marginBottom: 16 }} onClick={() => setOpen(true)}>
-          Tạo đề thi
-        </Button>
+        <Space style={{ marginBottom: 16 }}>
+          <Button
+            type="primary"
+            onClick={() => {
+              form.resetFields();
+              setQuestions([]);
+              setPastedText('');
+              setOpen(true);
+            }}
+          >
+            Tạo đề thi
+          </Button>
+          <ImportExcelButton type="exams" onDone={load} label="Import đề thi (Excel)" />
+        </Space>
       )}
+
       <Table
         rowKey="_id"
         dataSource={exams}
         style={{ marginBottom: 24 }}
         columns={[
           { title: 'Đề thi', dataIndex: 'title' },
-          { title: 'Môn', render: (_, r) => r.subjectId?.name },
-          { title: 'Lớp', render: (_, r) => r.classId?.name },
+          { title: 'Môn', render: (_, r) => r.subjectId?.name || '-' },
+          { title: 'Lớp', render: (_, r) => r.classId?.name || '-' },
           {
-            title: 'TT',
+            title: 'Số câu',
+            render: (_, r) => `${r.questions?.length || 0} câu`,
+          },
+          {
+            title: 'Thời gian',
+            render: (_, r) => `${r.durationMinutes || 45} phút`,
+          },
+          {
+            title: 'Trạng thái',
             dataIndex: 'status',
-            render: (v) => <Tag>{v}</Tag>,
+            render: (v) => <Tag color={v === 'PUBLISHED' ? 'green' : 'orange'}>{v === 'PUBLISHED' ? 'Đã mở' : 'Bản nháp'}</Tag>,
           },
           {
             title: 'Thao tác',
@@ -192,146 +220,17 @@ const ExamsPage = () => {
         columns={[
           { title: 'Đề', render: (_, r) => r.examId?.title },
           { title: 'HS', render: (_, r) => r.studentId?.name },
-          { title: 'Điểm', render: (_, r) => r.score == null ? 'Chưa công bố' : `${r.score}/${r.maxScore}` },
+          {
+            title: 'Điểm',
+            render: (_, r) => (r.score == null ? 'Chưa công bố' : `${r.score}/${r.maxScore}`),
+          },
           { title: 'TT', dataIndex: 'status' },
         ]}
       />
 
-      <Modal
-        open={!!taking}
-        title={taking?.title}
-        onCancel={() => { setTaking(null); setAttemptId(null); setDeadlineAt(null); }}
-        onOk={submit}
-        confirmLoading={submitting}
-        okText="Nộp bài"
-        width={720}
-      >
-        <div style={{ marginBottom: 16, fontWeight: 600, color: remainingSeconds != null && remainingSeconds <= 60 ? '#cf1322' : undefined }}>
-          Thời gian còn lại: {formatRemaining(remainingSeconds)}
-        </div>
-        {(taking?.questions || []).map((q, idx) => (
-          <div key={q._id} style={{ marginBottom: 16 }}>
-            <div>
-              <strong>
-                Câu {idx + 1}. ({q.points}đ)
-              </strong>{' '}
-              {q.prompt}
-            </div>
-            {q.type === 'MCQ' ? (
-              <Radio.Group
-                style={{ marginTop: 8 }}
-                onChange={(e) =>
-                  setAnswers((prev) => ({
-                    ...prev,
-                    [q._id]: { answerKey: e.target.value },
-                  }))
-                }
-                value={answers[q._id]?.answerKey}
-              >
-                {(q.options || []).map((o) => (
-                  <Radio key={o.key} value={o.key} style={{ display: 'block' }}>
-                    {o.key}. {o.text}
-                  </Radio>
-                ))}
-              </Radio.Group>
-            ) : (
-              <Input.TextArea
-                style={{ marginTop: 8 }}
-                rows={3}
-                value={answers[q._id]?.answerText || ''}
-                onChange={(e) =>
-                  setAnswers((prev) => ({
-                    ...prev,
-                    [q._id]: { answerText: e.target.value },
-                  }))
-                }
-              />
-            )}
-          </div>
-        ))}
-      </Modal>
+      <ExamAttemptModal taking={taking} setTaking={setTaking} setAttemptId={setAttemptId} setDeadlineAt={setDeadlineAt} submit={submit} submitting={submitting} remainingSeconds={remainingSeconds} formatRemaining={formatRemaining} answers={answers} setAnswers={setAnswers} />
 
-      <Modal open={open} title="Tạo đề thi nhanh" onCancel={() => setOpen(false)} onOk={() => form.submit()} width={640}>
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={async (v) => {
-            const questions = [
-              {
-                type: 'MCQ',
-                prompt: v.q1,
-                options: [
-                  { key: 'A', text: v.a1 },
-                  { key: 'B', text: v.b1 },
-                  { key: 'C', text: v.c1 },
-                ],
-                correctKey: v.correct1,
-                points: 1,
-              },
-              {
-                type: 'ESSAY',
-                prompt: v.essay || 'Câu tự luận',
-                options: [],
-                points: 2,
-              },
-            ];
-            const res = await createExamApi({
-              title: v.title,
-              classId: v.classId,
-              subjectId: v.subjectId,
-              status: 'DRAFT',
-              questions,
-              durationMinutes: v.durationMinutes || 30,
-            });
-            if (res?.EC === 0) {
-              message.success(res.EM);
-              setOpen(false);
-              form.resetFields();
-              load();
-            } else message.error(res?.EM);
-          }}
-        >
-          <Form.Item name="title" label="Tiêu đề" rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="classId" label="Lớp">
-            <Select allowClear options={classes.map((c) => ({ value: c._id, label: c.name }))} />
-          </Form.Item>
-          <Form.Item name="subjectId" label="Môn">
-            <Select allowClear options={subjects.map((s) => ({ value: s._id, label: s.name }))} />
-          </Form.Item>
-          <Form.Item name="durationMinutes" label="Thời gian (phút)" initialValue={30}>
-            <InputNumber min={5} style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item name="q1" label="Câu MCQ" rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Space wrap>
-            <Form.Item name="a1" label="A" rules={[{ required: true }]}>
-              <Input />
-            </Form.Item>
-            <Form.Item name="b1" label="B" rules={[{ required: true }]}>
-              <Input />
-            </Form.Item>
-            <Form.Item name="c1" label="C" rules={[{ required: true }]}>
-              <Input />
-            </Form.Item>
-            <Form.Item name="correct1" label="Đáp án" rules={[{ required: true }]}>
-              <Select
-                style={{ width: 80 }}
-                options={[
-                  { value: 'A', label: 'A' },
-                  { value: 'B', label: 'B' },
-                  { value: 'C', label: 'C' },
-                ]}
-              />
-            </Form.Item>
-          </Space>
-          <Form.Item name="essay" label="Câu tự luận">
-            <Input />
-          </Form.Item>
-        </Form>
-      </Modal>
+      <ExamBuilderModal open={open} setOpen={setOpen} form={form} questions={questions} setQuestions={setQuestions} classes={classes} subjects={subjects} downloadTemplate={downloadTemplate} importLoading={importLoading} handleUploadExcel={handleUploadExcel} pastedText={pastedText} setPastedText={setPastedText} handleParseText={handleParseText} manualForm={manualForm} handleAddManual={handleAddManual} manualType={manualType} setManualType={setManualType} mcqCount={mcqCount} essayCount={essayCount} totalPoints={totalPoints} removeQuestion={removeQuestion} load={load} />
     </div>
   );
 };

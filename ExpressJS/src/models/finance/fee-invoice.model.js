@@ -38,5 +38,6 @@ const feeInvoiceSchema = new mongoose.Schema(
 );
 
 feeInvoiceSchema.index({ schoolId: 1, studentId: 1, status: 1 });
+feeInvoiceSchema.index({ schoolId: 1, dueDate: 1 });
 
 module.exports = mongoose.model('FeeInvoice', feeInvoiceSchema);

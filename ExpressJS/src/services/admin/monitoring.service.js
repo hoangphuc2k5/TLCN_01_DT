@@ -1,6 +1,5 @@
 function createMonitoringService(dependencies) {
   const persistence = dependencies.persistence;
-  const mongoose = require('mongoose');
   const { schoolScope } = dependencies.services["data-scope"];
   
   const getSystemMetrics = async actor => {
@@ -9,15 +8,17 @@ function createMonitoringService(dependencies) {
     const schoolFilter = scope.schoolId ? { _id: scope.schoolId } : scope.clusterId ? { clusterId: scope.clusterId } : {};
     const schools = await persistence.schoolsFind(schoolFilter);
     const schoolIds = schools.map(school => school._id);
-    const [users, classes] = await Promise.all([
+    const [users, classes, assetUsage] = await Promise.all([
       persistence.getSystemMetricsAggregate([{ $match: schoolIds.length ? { schoolId: { $in: schoolIds } } : { _id: { $in: [] } } }, { $group: { _id: '$role', count: { $sum: 1 } } }]),
       persistence.getSystemMetricsCountDocuments(schoolIds.length ? { schoolId: { $in: schoolIds } } : { _id: { $in: [] } }),
+      schoolIds.length ? persistence.assetUsageAggregate(schoolIds) : Promise.resolve([]),
     ]);
+    const storageBySchool = new Map(assetUsage.map(item => [String(item._id), item.usedBytes]));
     return {
       status: db === 'up' ? 'healthy' : 'degraded', uptimeSeconds: Math.round(process.uptime()), responseMs: Date.now() - started,
       database: { status: db, readyState: persistence.readyState },
       process: { memoryRssBytes: process.memoryUsage().rss, heapUsedBytes: process.memoryUsage().heapUsed, heapTotalBytes: process.memoryUsage().heapTotal },
-      schools: schools.map(school => ({ _id: school._id, name: school.name, code: school.code, subdomain: school.subdomain, status: school.status, storageUsedBytes: school.storageUsedBytes || 0 })),
+      schools: schools.map(school => ({ _id: school._id, name: school.name, code: school.code, subdomain: school.subdomain, status: school.status, storageUsedBytes: storageBySchool.get(String(school._id)) || 0 })),
       totals: { schools: schools.length, classes, users: users.reduce((total, item) => total + item.count, 0), usersByRole: Object.fromEntries(users.map(item => [item._id, item.count])) },
     };
   };

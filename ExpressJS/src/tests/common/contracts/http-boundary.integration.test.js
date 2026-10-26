@@ -74,3 +74,41 @@ test('production errors hide internal details but preserve expected client error
     console.error = oldConsoleError;
   }
 });
+
+test('response attaches X-Request-Id header and respects incoming client request id', async () => {
+  const generated = await fetch(`${baseUrl}/v1/api/health`);
+  const generatedId = generated.headers.get('x-request-id');
+  assert.ok(generatedId);
+  assert.match(generatedId, /^[0-9a-f-]{36}$/i);
+
+  const customId = 'client-correlation-id-98765';
+  const custom = await fetch(`${baseUrl}/v1/api/health`, {
+    headers: { 'X-Request-Id': customId },
+  });
+  assert.equal(custom.headers.get('x-request-id'), customId);
+});
+
+test('health endpoint reports readiness based on database connection state', async () => {
+  const disconnected = await fetch(`${baseUrl}/v1/api/health`);
+  assert.equal(disconnected.status, 503);
+  const disconnectedBody = await disconnected.json();
+  assert.equal(disconnectedBody.EC, 503);
+  assert.equal(disconnectedBody.EM, 'Database disconnected');
+  assert.equal(disconnectedBody.data.status, 'down');
+  assert.equal(disconnectedBody.data.database, 'disconnected');
+
+  const mongoose = require('mongoose');
+  try {
+    Object.defineProperty(mongoose.connection, 'readyState', { value: 1, configurable: true });
+    const connected = await fetch(`${baseUrl}/v1/api/health`);
+    assert.equal(connected.status, 200);
+    const connectedBody = await connected.json();
+    assert.equal(connectedBody.EC, 0);
+    assert.equal(connectedBody.EM, 'OK');
+    assert.equal(connectedBody.data.status, 'up');
+    assert.equal(connectedBody.data.database, 'connected');
+  } finally {
+    delete mongoose.connection.readyState;
+  }
+});
+

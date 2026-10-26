@@ -1,15 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Button, Card, Form, Input, InputNumber, Modal, Radio, Select, Space, Table, Tag, message } from 'antd';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Button, Card, Form, Space, Table, Tag, message } from 'antd';
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
 import {
-  closeHomeworkApi, createHomeworkApi, createRetakeRequestApi, downloadHomeworkAttachmentApi,
+  closeHomeworkApi, downloadHomeworkAttachmentApi,
   getAcademicYearsApi, getClassesApi, getHomeworkSubmissionsApi, getHomeworksApi,
-  getRetakeRequestsApi, getSubjectsApi, gradeHomeworkApi, publishHomeworkApi,
-  reviewRetakeRequestApi, submitHomeworkApi, uploadHomeworkAttachmentApi,
-} from '../../services/api.service';
+  getRetakeRequestsApi, getSubjectsApi, getUserDirectoryApi, publishHomeworkApi,
+  reviewRetakeRequestApi, } from '../../services/api.service';
 import { ROLES } from '../../constants/roles';
+import { enumLabel } from '../../utils/enum-labels';
 import { can } from '../../utils/permissions';
+import AssignmentDialogs from './AssignmentDialogs';
 
 const teacherRoles = [ROLES.SUBJECT_TEACHER, ROLES.HOMEROOM_TEACHER];
 const formatDate = value => value ? dayjs(value).format('DD/MM/YYYY HH:mm') : '-';
@@ -30,6 +31,7 @@ export default function AssignmentsPage() {
   const [classes, setClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [years, setYears] = useState([]);
+  const [teachers, setTeachers] = useState([]);
   const [retakes, setRetakes] = useState([]);
   const [open, setOpen] = useState(false);
   const [submitTarget, setSubmitTarget] = useState(null);
@@ -43,20 +45,30 @@ export default function AssignmentsPage() {
   const [retakeForm] = Form.useForm();
   const submissionMode = Form.useWatch('submissionMode', submitForm) || 'WEB';
 
-  const loadHomeworks = async () => {
+  const loadHomeworks = useCallback(async () => {
     const result = await getHomeworksApi();
     if (result?.EC === 0) setRows(result.data || []);
-  };
-  const loadRetakes = async () => {
+  }, []);
+  const loadRetakes = useCallback(async () => {
     if (!seeRetakes) return;
     const result = await getRetakeRequestsApi();
     if (result?.EC === 0) setRetakes(result.data || []);
-  };
+  }, [seeRetakes]);
 
   useEffect(() => {
     (async () => {
       const requests = [];
-      if (manage) requests.push(getClassesApi().then(result => setClasses(result?.data || [])));
+      if (manage) {
+        requests.push(getClassesApi().then(result => setClasses(result?.data || [])));
+        if (!isTeacher) {
+          requests.push(
+            Promise.all([
+              getUserDirectoryApi({ role: ROLES.SUBJECT_TEACHER }),
+              getUserDirectoryApi({ role: ROLES.HOMEROOM_TEACHER }),
+            ]).then(([t, h]) => setTeachers([...(t?.data || []), ...(h?.data || [])]))
+          );
+        }
+      }
       if (manage || seeRetakes) {
         requests.push(getSubjectsApi().then(result => setSubjects(result?.data || [])));
         requests.push(getAcademicYearsApi().then(result => setYears(result?.data || [])));
@@ -64,7 +76,7 @@ export default function AssignmentsPage() {
       await Promise.all(requests);
       await Promise.all([loadHomeworks(), loadRetakes()]);
     })();
-  }, []);
+  }, [isTeacher, loadHomeworks, loadRetakes, manage, seeRetakes]);
 
   const startSubmission = row => {
     const mode = row.submission?.status === 'UPLOADING' ? 'FILE' : 'WEB';
@@ -94,12 +106,15 @@ export default function AssignmentsPage() {
     { title: 'Môn', render: (_, row) => row.subjectId?.name },
     { title: 'Hạn nộp', dataIndex: 'dueAt', render: formatDate },
     { title: 'Điểm tối đa', dataIndex: 'maxScore' },
-    { title: 'Trạng thái', dataIndex: 'status', render: value => <Tag color={value === 'PUBLISHED' ? 'green' : value === 'CLOSED' ? 'default' : 'gold'}>{value}</Tag> },
+    { title: 'Trạng thái', dataIndex: 'status', render: value => <Tag color={value === 'PUBLISHED' ? 'green' : value === 'CLOSED' ? 'default' : 'gold'}>{enumLabel(value)}</Tag> },
     {
       title: 'Bài của em',
       render: (_, row) => row.submission ? <Space direction="vertical" size={2}>
         <span>{row.submission.status === 'UPLOADING' ? 'Chờ tải file' : row.submission.score == null ? 'Đã nộp' : `${row.submission.score}/${row.maxScore}`}</span>
         <Tag>{modeLabels[row.submission.submissionMode] || row.submission.submissionMode}</Tag>
+        {row.submission.status === 'GRADED' && row.submission.feedback?.trim() && (
+          <span><strong>Nhận xét:</strong> {row.submission.feedback}</span>
+        )}
         {(row.submission.attachmentIds || []).map(file => <Button type="link" size="small" key={file._id} onClick={() => downloadHomeworkAttachmentApi(file._id, file.originalName)}>{file.originalName}</Button>)}
         {student && row.status === 'PUBLISHED' && row.submission.status !== 'GRADED' && <Button size="small" onClick={() => startSubmission(row)}>{row.submission.status === 'UPLOADING' ? 'Tải lại file' : 'Nộp lại'}</Button>}
       </Space> : student && row.status === 'PUBLISHED' ? <Button size="small" onClick={() => startSubmission(row)}>Nộp bài</Button> : '-',
@@ -126,82 +141,11 @@ export default function AssignmentsPage() {
         { title: 'Môn', render: (_, row) => row.subjectId?.name },
         { title: 'Năm học', render: (_, row) => row.academicYearId?.name },
         { title: 'Lý do', dataIndex: 'reason' },
-        { title: 'Trạng thái', dataIndex: 'status', render: value => <Tag>{value}</Tag> },
+        { title: 'Trạng thái', dataIndex: 'status', render: value => <Tag>{enumLabel(value)}</Tag> },
         { title: 'Xử lý', render: (_, row) => reviewRetake && row.status === 'REQUESTED' ? <Space><Button size="small" onClick={() => reviewRequest(row, 'APPROVED')}>Duyệt</Button><Button size="small" danger onClick={() => reviewRequest(row, 'REJECTED')}>Từ chối</Button></Space> : '-' },
       ]} />
     </Card>}
 
-    <Modal open={open} title={createTitle} onCancel={() => setOpen(false)} onOk={() => form.submit()} width={640}>
-      <Form form={form} layout="vertical" onFinish={async values => { const result = await createHomeworkApi({ ...values, dueAt: new Date(values.dueAt).toISOString(), availableFrom: values.availableFrom ? new Date(values.availableFrom).toISOString() : undefined }); if (result?.EC === 0) { message.success(result.EM); setOpen(false); loadHomeworks(); } else message.error(result?.EM); }}>
-        <Form.Item name="title" label="Tiêu đề" rules={[{ required: true }]}><Input maxLength={200} /></Form.Item>
-        <Form.Item name="instructions" label="Đề bài / hướng dẫn"><Input.TextArea rows={5} maxLength={10000} /></Form.Item>
-        <Form.Item name="classId" label="Lớp" rules={[{ required: true }]}><Select options={classes.map(item => ({ value: item._id, label: item.name }))} /></Form.Item>
-        <Form.Item name="subjectId" label="Môn" rules={[{ required: true }]}><Select options={subjects.map(item => ({ value: item._id, label: item.name }))} /></Form.Item>
-        <Form.Item name="academicYearId" label="Năm học" rules={[{ required: true }]}><Select options={years.map(item => ({ value: item._id, label: item.name }))} /></Form.Item>
-        {!isTeacher && <Form.Item name="teacherId" label="ID giáo viên" rules={[{ required: true }]}><Input /></Form.Item>}
-        <Form.Item name="dueAt" label="Hạn nộp" rules={[{ required: true }]}><Input type="datetime-local" /></Form.Item>
-        <Form.Item name="maxScore" label="Điểm tối đa" initialValue={10} rules={[{ required: true }]}><InputNumber min={0.1} max={100} /></Form.Item>
-        <Form.Item name="allowLate" label="Cho phép nộp trễ" valuePropName="checked"><input type="checkbox" /></Form.Item>
-        <Form.Item name="lateUntil" label="Hạn cuối nộp trễ"><Input type="datetime-local" /></Form.Item>
-      </Form>
-    </Modal>
-
-    <Modal open={!!submitTarget} title={`Nộp bài: ${submitTarget?.title || ''}`} onCancel={() => { setSubmitTarget(null); setSubmitFile(null); }} onOk={() => submitForm.submit()}>
-      <Form form={submitForm} layout="vertical" initialValues={{ submissionMode: 'WEB' }} onFinish={async values => {
-        if (values.submissionMode === 'FILE' && !submitFile) return message.error('Hãy chọn file bài làm');
-        const result = await submitHomeworkApi(submitTarget._id, values);
-        if (result?.EC !== 0) return message.error(result?.EM);
-        if (values.submissionMode === 'FILE') {
-          const uploaded = await uploadHomeworkAttachmentApi(submitTarget._id, submitFile);
-          if (uploaded?.EC !== 0) {
-            message.error(`Chưa hoàn tất nộp bài: ${uploaded?.EM || 'Không tải được file'}`);
-            await loadHomeworks();
-            return;
-          }
-        }
-        message.success(values.submissionMode === 'FILE' ? 'Đã nộp file bài làm' : 'Đã nộp bài trực tuyến');
-        setSubmitTarget(null);
-        setSubmitFile(null);
-        loadHomeworks();
-      }}>
-        <Form.Item name="submissionMode" label="Hình thức nộp" rules={[{ required: true }]}>
-          <Radio.Group options={[{ value: 'WEB', label: 'Làm trực tuyến' }, { value: 'FILE', label: 'Nộp file' }]} />
-        </Form.Item>
-        <Form.Item name="answerText" label={submissionMode === 'WEB' ? 'Nội dung bài làm' : 'Ghi chú'} rules={submissionMode === 'WEB' ? [{ required: true, whitespace: true }] : []}>
-          <Input.TextArea rows={submissionMode === 'WEB' ? 10 : 4} maxLength={20000} showCount />
-        </Form.Item>
-        {submissionMode === 'FILE' && <Form.Item label="File bài làm" required>
-          <input aria-label="File bài làm" type="file" accept=".pdf,.png,.jpg,.jpeg,.txt,.docx,.xlsx,.pptx" onChange={event => setSubmitFile(event.target.files?.[0] || null)} />
-        </Form.Item>}
-      </Form>
-    </Modal>
-
-    <Modal open={!!gradeTarget} title={`Bài nộp: ${gradeTarget?.title || ''}`} onCancel={() => setGradeTarget(null)} footer={null} width={920}>
-      <Table size="small" rowKey="_id" dataSource={submissions} columns={[
-        { title: 'Học sinh', render: (_, row) => row.studentId?.name || '' },
-        { title: 'Hình thức', dataIndex: 'submissionMode', render: value => modeLabels[value] || value },
-        { title: 'Nội dung', dataIndex: 'answerText', ellipsis: true },
-        { title: 'File', render: (_, row) => <Space direction="vertical">{(row.attachmentIds || []).map(file => <Button type="link" size="small" key={file._id} onClick={() => downloadHomeworkAttachmentApi(file._id, file.originalName)}>{file.originalName}</Button>)}</Space> },
-        { title: 'Thời gian nộp', dataIndex: 'submittedAt', render: formatDate },
-        { title: 'Trễ', dataIndex: 'late', render: value => value ? 'Có' : 'Không' },
-        { title: 'Điểm', dataIndex: 'score', render: value => value == null ? 'Chưa chấm' : value },
-        { title: 'Chấm', render: (_, row) => row.status === 'SUBMITTED' ? <Button size="small" onClick={() => { gradeForm.resetFields(); gradeForm.setFieldsValue({ submissionId: row._id }); }}>Chấm bài</Button> : 'Đã chấm' },
-      ]} />
-      <Form form={gradeForm} layout="inline" onFinish={async values => { const result = await gradeHomeworkApi(values.submissionId, values); if (result?.EC === 0) { const refreshed = await getHomeworkSubmissionsApi(gradeTarget._id); setSubmissions(refreshed.data || []); gradeForm.resetFields(); message.success(result.EM); } else message.error(result?.EM); }} style={{ marginTop: 16 }}>
-        <Form.Item name="submissionId" hidden><Input /></Form.Item>
-        <Form.Item name="score" label="Điểm" rules={[{ required: true }]}><InputNumber min={0} max={gradeTarget?.maxScore} /></Form.Item>
-        <Form.Item name="feedback" label="Nhận xét"><Input style={{ width: 300 }} maxLength={10000} /></Form.Item>
-        <Button htmlType="submit" type="primary">Lưu</Button>
-      </Form>
-    </Modal>
-
-    <Modal open={retakeOpen} title="Yêu cầu thi lại / học lại" onCancel={() => setRetakeOpen(false)} onOk={() => retakeForm.submit()}>
-      <Form form={retakeForm} layout="vertical" onFinish={async values => { const result = await createRetakeRequestApi(values); if (result?.EC === 0) { message.success(result.EM); setRetakeOpen(false); retakeForm.resetFields(); loadRetakes(); } else message.error(result?.EM); }}>
-        <Form.Item name="requestType" label="Loại yêu cầu" rules={[{ required: true }]}><Select options={Object.entries(requestTypeLabels).map(([value, label]) => ({ value, label }))} /></Form.Item>
-        <Form.Item name="subjectId" label="Môn" rules={[{ required: true }]}><Select options={subjects.map(item => ({ value: item._id, label: item.name }))} /></Form.Item>
-        <Form.Item name="academicYearId" label="Năm học" rules={[{ required: true }]}><Select options={years.map(item => ({ value: item._id, label: item.name }))} /></Form.Item>
-        <Form.Item name="reason" label="Lý do" rules={[{ required: true, whitespace: true }]}><Input.TextArea maxLength={2000} showCount /></Form.Item>
-      </Form>
-    </Modal>
+    <AssignmentDialogs open={open} createTitle={createTitle} setOpen={setOpen} form={form} classes={classes} subjects={subjects} years={years} teachers={teachers} isTeacher={isTeacher} loadHomeworks={loadHomeworks} submitTarget={submitTarget} setSubmitTarget={setSubmitTarget} submitFile={submitFile} setSubmitFile={setSubmitFile} submitForm={submitForm} submissionMode={submissionMode} gradeTarget={gradeTarget} setGradeTarget={setGradeTarget} submissions={submissions} setSubmissions={setSubmissions} gradeForm={gradeForm} retakeOpen={retakeOpen} setRetakeOpen={setRetakeOpen} retakeForm={retakeForm} loadRetakes={loadRetakes} formatDate={formatDate} modeLabels={modeLabels} requestTypeLabels={requestTypeLabels} />
   </Space>;
 }

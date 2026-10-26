@@ -64,7 +64,7 @@ class SuperAdminDashboard extends BaseDashboard {
         { key: 'schools', label: 'Số trường', value: schools },
         { key: 'users', label: 'Người dùng', value: users },
         { key: 'clusters', label: 'Cụm trường', value: clusters },
-        { key: 'systemAnnouncements', label: 'TB hệ thống', value: announcements },
+        { key: 'systemAnnouncements', label: 'Thông báo hệ thống', value: announcements },
       ],
     };
   }
@@ -145,7 +145,11 @@ class AccountantDashboard extends BaseDashboard {
     const [unpaid, paid, overdue] = await Promise.all([
       this.persistence.count('fee-invoice', { schoolId, status: FEE_STATUS.UNPAID }),
       this.persistence.count('fee-invoice', { schoolId, status: FEE_STATUS.PAID }),
-      this.persistence.count('fee-invoice', { schoolId, status: FEE_STATUS.OVERDUE }),
+      this.persistence.count('fee-invoice', {
+        schoolId,
+        dueDate: { $lt: new Date() },
+        $expr: { $lt: [{ $ifNull: ['$paidAmount', 0] }, '$amount'] },
+      }),
     ]);
     return {
       title: 'Bảng điều khiển Kế toán',

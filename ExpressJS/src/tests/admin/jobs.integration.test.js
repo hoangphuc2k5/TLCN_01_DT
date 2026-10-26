@@ -201,7 +201,7 @@ test('file cleanup job removes real bytes and releases reserved quota; active up
   assert.equal(await Job.countDocuments(), 1);
   await worker.runOnce();
   assert.equal((await Job.findOne()).status, 'SUCCEEDED');
-  assert.equal((await School.findById(schools[0]._id).select('+storageUsedBytes')).storageUsedBytes, 0);
+  assert.equal((await School.findById(schools[0]._id).select('+storageUsedBytes')).storageUsedBytes, active.sizeBytes);
   await assert.rejects(fs.stat(storage.localPath(asset.key)), { code: 'ENOENT' });
   assert.ok(await FileAsset.exists({ _id: active._id }));
   await active.deleteOne();
