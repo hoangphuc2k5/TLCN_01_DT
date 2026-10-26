@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, Button, Space, Spin, Tag, Typography } from 'antd';
+import { Alert, Button, Skeleton, Space, Tag, Typography } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { DollarCircleOutlined } from '@ant-design/icons';
@@ -17,21 +17,33 @@ const DashboardPage = () => {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const res = await getDashboardApi();
-      if (res?.EC === 0) setData(res.data);
-      else setError(res?.EM || 'Không tải được dashboard');
-      setLoading(false);
+      setError('');
+      try {
+        const res = await getDashboardApi();
+        if (res?.EC === 0) setData(res.data);
+        else setError(res?.EM || 'Không tải được dashboard');
+      } catch (requestError) {
+        setError(requestError?.response?.data?.EM || requestError?.message || 'Không tải được dashboard');
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
 
-  if (loading) return <Spin />;
-  if (error) return <Alert type="error" message={error} />;
+  if (loading) {
+    return (
+      <div className="dashboard-loading" aria-label="Đang tải tổng quan">
+        <Skeleton active paragraph={{ rows: 2 }} />
+        <Skeleton active paragraph={{ rows: 5 }} />
+      </div>
+    );
+  }
+  if (error) return <Alert className="dashboard-state-error" type="error" showIcon message="Không tải được tổng quan" description={error} />;
 
   const analytics = data?.analytics || {};
   const money = (value) =>
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(value || 0);
 
-  const isStudent = user?.role === ROLES.STUDENT;
   const isParent = user?.role === ROLES.PARENT;
 
   const invoiceColumns = [
@@ -139,7 +151,7 @@ const DashboardPage = () => {
     },
   ];
 
-  return <DashboardContent data={data} analytics={analytics} money={money} isStudent={isStudent} isParent={isParent} invoiceColumns={invoiceColumns} gradeColumns={gradeColumns} navigate={navigate} />;
+  return <DashboardContent data={data} analytics={analytics} money={money} user={user} invoiceColumns={invoiceColumns} gradeColumns={gradeColumns} navigate={navigate} />;
 };
 
 export default DashboardPage;

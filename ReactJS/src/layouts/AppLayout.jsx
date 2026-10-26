@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Layout, Menu, Typography, Button, Avatar, Space, Badge, Drawer, Grid } from 'antd';
+import { Layout, Menu, Typography, Button, Avatar, Space, Drawer, Grid } from 'antd';
 import {
   DashboardOutlined,
   BankOutlined,
@@ -10,6 +10,7 @@ import {
   FormOutlined,
   DollarOutlined,
   NotificationOutlined,
+  BellOutlined,
   FileTextOutlined,
   UserOutlined,
   LogoutOutlined,
@@ -45,6 +46,30 @@ const canManageRoles = (user) => {
   return (user.permissionEntries || []).some(
     (p) => p.resource === 'roles' && (p.actions || []).includes('view')
   );
+};
+
+const menuGroupForPath = (path) => {
+  if (path === '/dashboard' || path === '/profile') return 'CHUNG';
+  if (['/attendance', '/grades', '/exams', '/materials', '/assignments', '/lesson-plans', '/timetable', '/student-documents'].includes(path)) return 'HỌC TẬP';
+  if (['/fees', '/payroll', '/subscriptions'].includes(path)) return 'TÀI CHÍNH';
+  if (['/announcements', '/messages', '/calendar', '/leave', '/contact-book', '/class-life', '/appointments'].includes(path)) return 'LIÊN LẠC';
+  if (['/clusters', '/schools', '/users', '/roles', '/templates', '/audit-logs', '/monitoring', '/jobs', '/school-comparison', '/support'].includes(path)) return 'QUẢN TRỊ';
+  if (['/classes', '/library', '/facilities', '/equipment-maintenance', '/conduct', '/rewards', '/admissions', '/activities'].includes(path)) return 'NGHIỆP VỤ';
+  return 'KHÁC';
+};
+
+const groupMenuItems = (items) => {
+  const groups = new Map();
+  items.forEach((item) => {
+    const label = menuGroupForPath(item.key);
+    if (!groups.has(label)) groups.set(label, []);
+    groups.get(label).push(item);
+  });
+
+  const order = ['CHUNG', 'HỌC TẬP', 'TÀI CHÍNH', 'LIÊN LẠC', 'NGHIỆP VỤ', 'QUẢN TRỊ', 'KHÁC'];
+  return order
+    .filter((label) => groups.has(label))
+    .map((label) => ({ key: `group-${label}`, type: 'group', label, children: groups.get(label) }));
 };
 
 const menuByRole = (role, user) => {
@@ -201,17 +226,10 @@ const menuByRole = (role, user) => {
 };
 
 const AppLayout = () => {
-  const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const contentRef = useRef(null);
   const { user } = useSelector((s) => s.auth);
   const appName = useSelector((s) => s.auth.appName) || 'EduMoet';
-  const shortName = appName
-    .split(/\s+/)
-    .map((w) => w[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase() || 'EM';
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
@@ -219,9 +237,18 @@ const AppLayout = () => {
   const compactNavigation = !screens.lg;
 
   const items = useMemo(() => menuByRole(user?.role, user), [user]);
+  const groupedItems = useMemo(() => groupMenuItems(items), [items]);
 
-  const selected = items.find((i) => location.pathname.startsWith(i.key))?.key || '/dashboard';
+  const selected = items
+    .filter((item) => item.key !== '/dashboard')
+    .sort((a, b) => b.key.length - a.key.length)
+    .find((item) => location.pathname === item.key || location.pathname.startsWith(`${item.key}/`))?.key
+    || (location.pathname === '/dashboard' ? '/dashboard' : undefined);
   const pageMetadata = getPageMetadata(location.pathname);
+  const roleLabel = user?.roleLabel || ROLE_LABELS[user?.role] || user?.role || '';
+  const organizationName = user?.schoolId?.name
+    || user?.clusterId?.name
+    || (user?.role === ROLES.SUPER_ADMIN ? 'Toàn hệ thống' : roleLabel);
 
   useLayoutEffect(() => {
     contentRef.current?.scrollTo({ top: 0, left: 0 });
@@ -230,118 +257,105 @@ const AppLayout = () => {
   }, [location.pathname, location.search, location.hash]);
 
   const navigationMenu = (
-    <Menu mode="inline" selectedKeys={[selected]} items={items} onClick={() => setMobileMenuOpen(false)} />
+    <Menu
+      mode="inline"
+      selectedKeys={selected ? [selected] : []}
+      items={groupedItems}
+      onClick={() => setMobileMenuOpen(false)}
+    />
   );
 
   return (
     <Layout className="app-shell">
-      {!compactNavigation && (
-        <Sider
-          className="app-sider"
-          collapsible
-          collapsed={collapsed}
-          onCollapse={setCollapsed}
-          theme="light"
-          width={240}
-        >
-          <div
-            className="app-brand"
-            onClick={() => navigate('/profile')}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') navigate('/profile');
-            }}
-            title="Thông tin tài khoản"
-          >
-            <img
-              src={logo}
-              alt={`Logo ${appName}`}
-              style={{
-                width: collapsed ? 40 : 56,
-                height: collapsed ? 40 : 56,
-                objectFit: 'contain',
-                marginBottom: collapsed ? 0 : 8,
-              }}
-            />
-            <Typography.Title level={collapsed ? 5 : 4} className="app-brand-title" style={{ margin: 0 }}>
-              {collapsed ? shortName : appName}
-            </Typography.Title>
-            {!collapsed && (
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                Quản lý đa trường
-              </Typography.Text>
-            )}
-          </div>
-          {navigationMenu}
-        </Sider>
-      )}
-      <Drawer
-        className="app-mobile-drawer"
-        title={appName}
-        placement="left"
-        width={280}
-        open={compactNavigation && mobileMenuOpen}
-        onClose={() => setMobileMenuOpen(false)}
-        styles={{ body: { padding: 0, overflowY: 'auto' } }}
-      >
-        {navigationMenu}
-      </Drawer>
-      <Layout className="app-main-layout">
-        <Header
-          className="app-header"
-        >
-          <Space size={compactNavigation ? 8 : 16} className="app-header-leading">
-            {compactNavigation && (
-              <Button
-                aria-label="Mở menu điều hướng"
-                icon={<MenuOutlined />}
-                onClick={() => setMobileMenuOpen(true)}
-              />
-            )}
-            <Typography.Text className="app-role-label" strong>
-              {user?.roleLabel || ROLE_LABELS[user?.role] || user?.role}
-              {user?.schoolId?.name ? ` · ${user.schoolId.name}` : ''}
-            </Typography.Text>
-          </Space>
-          <Space size={compactNavigation ? 8 : 16}>
-            <span
-              className="app-user-chip"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
-              onClick={() => navigate('/profile')}
-              title="Thông tin tài khoản"
-            >
-              <Badge dot>
-                <Avatar icon={<UserOutlined />} src={user?.avatar || undefined} />
-              </Badge>
-              <span className="app-user-name">{user?.name}</span>
-            </span>
+      <Header className="app-header">
+        <div className="app-header-leading">
+          {compactNavigation && (
             <Button
-              icon={<LogoutOutlined />}
-              aria-label="Đăng xuất"
-              onClick={() => {
-                dispatch(logout());
-                navigate('/login');
-              }}
-              className="app-logout-button"
-            >
-              <span className="app-logout-label">Đăng xuất</span>
-            </Button>
-          </Space>
-        </Header>
-        <Content
-          ref={contentRef}
-          className="app-content"
+              className="app-menu-toggle"
+              aria-label="Mở menu điều hướng"
+              icon={<MenuOutlined />}
+              onClick={() => setMobileMenuOpen(true)}
+            />
+          )}
+          <div className="app-header-brand" aria-label={appName}>
+            <img src={logo} alt="" className="app-header-logo" />
+            <Typography.Text className="app-header-brand-name" strong>{appName}</Typography.Text>
+          </div>
+          <span className="app-header-divider" aria-hidden="true" />
+          <div className="app-header-context" title={organizationName}>
+            <BankOutlined aria-hidden="true" />
+            <span className="app-header-context-copy">
+              <Typography.Text className="app-header-context-name" strong>{organizationName}</Typography.Text>
+              <Typography.Text className="app-header-context-role" type="secondary">{roleLabel}</Typography.Text>
+            </span>
+          </div>
+        </div>
+        <Space size={compactNavigation ? 4 : 12} className="app-header-actions">
+          <Button
+            className="app-header-icon-button"
+            type="text"
+            aria-label="Mở thông báo"
+            title="Thông báo"
+            icon={<BellOutlined />}
+            onClick={() => navigate('/announcements')}
+          />
+          <Button
+            type="text"
+            className="app-profile-button"
+            aria-label="Thông tin tài khoản"
+            title="Thông tin tài khoản"
+            onClick={() => navigate('/profile')}
+          >
+            <Avatar icon={<UserOutlined />} src={user?.avatar || undefined} />
+            <span className="app-user-name">{user?.name}</span>
+          </Button>
+          <Button
+            type="text"
+            icon={<LogoutOutlined />}
+            aria-label="Đăng xuất"
+            onClick={() => {
+              dispatch(logout());
+              navigate('/login');
+            }}
+            className="app-logout-button"
+          >
+            <span className="app-logout-label">Đăng xuất</span>
+          </Button>
+        </Space>
+      </Header>
+      <Layout className="app-body">
+        {!compactNavigation && (
+          <Sider
+            className="app-sider"
+            theme="light"
+            width={248}
+          >
+            {navigationMenu}
+          </Sider>
+        )}
+        <Drawer
+          className="app-mobile-drawer"
+          title={appName}
+          placement="left"
+          width={280}
+          open={compactNavigation && mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
+          styles={{ body: { padding: 0, overflowY: 'auto' } }}
         >
-          <div className="app-content-panel">
-            <div className="app-route-frame">
-              {pageMetadata && <PageHeader title={pageMetadata.title} />}
-              <div className="app-route-content">
-                <Outlet />
+          {navigationMenu}
+        </Drawer>
+        <Layout className="app-main-layout">
+          <Content ref={contentRef} className="app-content">
+            <div className={`app-content-panel${location.pathname === '/dashboard' ? ' app-content-panel--dashboard' : ''}`}>
+              <div className={`app-route-frame${location.pathname === '/dashboard' ? ' app-route-frame--dashboard' : ''}`}>
+                {pageMetadata && <PageHeader title={pageMetadata.title} />}
+                <div className="app-route-content">
+                  <Outlet />
+                </div>
               </div>
             </div>
-          </div>
-        </Content>
+          </Content>
+        </Layout>
       </Layout>
     </Layout>
   );
