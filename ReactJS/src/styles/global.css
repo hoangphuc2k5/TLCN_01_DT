@@ -539,8 +539,9 @@ body {
 }
 
 .app-shell-figma .app-content-panel .ant-table-thead > tr > th {
-  border-bottom-color: #aebdc3;
-  background: #edf1f3;
+  border-bottom-color: #d2c2a3;
+  border-inline-end-color: #d9cbb2;
+  background: #f1e9db;
   color: #1f2933;
   font-weight: 600;
 }
