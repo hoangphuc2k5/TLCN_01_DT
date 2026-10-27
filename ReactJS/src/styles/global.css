@@ -874,6 +874,21 @@ body {
   color: #f5f8fb;
 }
 
+.app-dashboard-menu .ant-menu-item {
+  height: 42px;
+  margin: 4px 4px;
+  padding-inline: 20px !important;
+  border: 1px solid rgb(224 237 245 / 42%);
+  border-radius: 8px;
+  line-height: 40px;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.app-dashboard-menu > .ant-menu-item {
+  width: calc(100% - 28px);
+  margin: 10px 14px;
+}
+
 .app-shell-figma .app-dashboard-menu .ant-menu-item a {
   color: inherit;
 }
@@ -885,12 +900,14 @@ body {
 
 .app-shell-figma .app-dashboard-menu .ant-menu-item:hover:not(.ant-menu-item-selected),
 .app-shell-figma .app-dashboard-menu .ant-menu-submenu-title:hover {
+  border-color: #f2c365;
   color: #fff;
   background: #0a659d;
 }
 
 .app-shell-figma .app-dashboard-menu .ant-menu-item-selected {
   box-shadow: inset 4px 0 #f2c365;
+  border-color: #f2c365;
   background: #f4f7fa !important;
   color: #07598e !important;
   font-weight: 700;
