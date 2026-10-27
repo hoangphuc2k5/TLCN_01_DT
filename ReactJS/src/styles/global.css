@@ -45,6 +45,18 @@ body {
   background: #fff;
 }
 
+.app-shell-figma .app-sider::after {
+  position: sticky;
+  z-index: 2;
+  bottom: 0;
+  display: block;
+  height: 22px;
+  margin-top: -22px;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0%), #fff 90%);
+  content: '';
+  pointer-events: none;
+}
+
 .app-shell-figma .app-brand {
   display: none;
 }
@@ -182,12 +194,12 @@ body {
 }
 
 .dashboard-scope-copy small {
-  color: #61727a;
+  color: #52646d;
   font-size: 9px;
 }
 
 .dashboard-scope-chevron {
-  color: #61727a;
+  color: #52646d;
   font-size: 10px;
 }
 
@@ -213,20 +225,12 @@ body {
   height: 19px;
 }
 
-.dashboard-notification-button .dashboard-notification-dot {
-  position: absolute;
-  top: 4px;
-  right: 1px;
-  width: 8px;
-  height: 8px;
-}
-
 .dashboard-account-button {
   gap: 7px;
   padding: 0;
   border: 0;
   background: transparent;
-  color: #61727a;
+  color: #52646d;
   cursor: pointer;
 }
 
@@ -263,6 +267,32 @@ body {
   z-index: 1;
 }
 
+.dashboard-account-details {
+  display: flex;
+  max-width: 160px;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+}
+
+.dashboard-account-details strong,
+.dashboard-account-details small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-account-details strong {
+  color: #1f2933;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.dashboard-account-details small {
+  color: #52646d;
+  font-size: 10px;
+}
+
 .app-shell-dashboard .app-content {
   margin: 0;
   padding: 28px 30px 34px;
@@ -287,35 +317,44 @@ body {
   background: transparent;
 }
 
-.app-dashboard-menu .ant-menu-item-group {
+.app-dashboard-menu .ant-menu-submenu {
   margin: 0 14px 8px;
   padding-bottom: 8px;
   border-bottom: 1px solid #dbe5e8;
 }
 
-.app-dashboard-menu .ant-menu-item-group:last-child {
+.app-dashboard-menu .ant-menu-submenu:last-child {
   border-bottom: 0;
 }
 
-.app-dashboard-menu .ant-menu-item-group-title {
-  padding: 18px 10px 9px;
-  color: #61727a;
+.app-dashboard-menu .ant-menu-submenu-title {
+  height: 34px;
+  margin: 0;
+  padding: 0 10px !important;
+  color: #52646d;
   font-size: 9px;
   font-weight: 600;
-  line-height: 1.2;
+  letter-spacing: 0.04em;
+  line-height: 34px;
 }
 
-.app-dashboard-menu .ant-menu-item-group-list {
+.app-dashboard-menu .ant-menu-sub {
   margin: 0;
+  background: transparent !important;
 }
 
 .app-dashboard-menu .ant-menu-item {
-  width: 100%;
+  width: calc(100% - 8px);
   height: 40px;
-  margin: 0;
+  margin: 0 4px;
   padding-inline: 14px !important;
   border-radius: 8px;
   line-height: 40px;
+}
+
+.app-dashboard-menu > .ant-menu-item {
+  width: calc(100% - 28px);
+  margin: 12px 14px 8px;
 }
 
 .app-dashboard-menu .ant-menu-item::after {
@@ -325,37 +364,39 @@ body {
 .app-dashboard-menu .ant-menu-item-selected {
   box-shadow: inset 3px 0 #059694;
   background: #e3f5f2 !important;
-  color: #0f4c5c !important;
-  font-weight: 600;
 }
 
-.app-dashboard-menu .dashboard-menu-dot {
-  position: relative;
-  display: inline-block;
-  width: 13px;
-  height: 13px;
-  vertical-align: middle;
+.app-dashboard-menu .ant-menu-item:hover:not(.ant-menu-item-selected) {
+  background: #f0f5f7;
+  color: #0f4c5c;
 }
 
-.app-dashboard-menu .dashboard-menu-dot img {
-  position: absolute;
-  inset: 0;
-  width: 13px;
-  height: 13px;
+.app-dashboard-menu .ant-menu-item:active {
+  background: #e8eff2;
 }
 
-.app-dashboard-menu .dashboard-menu-dot img:last-child,
-.app-dashboard-menu .ant-menu-item-selected .dashboard-menu-dot img:first-child {
-  display: none;
+.app-dashboard-menu .ant-menu-item:focus-visible,
+.app-dashboard-menu .ant-menu-submenu-title:focus-visible {
+  outline: 2px solid #0f4c5c;
+  outline-offset: -2px;
 }
 
-.app-dashboard-menu .ant-menu-item-selected .dashboard-menu-dot img:last-child {
-  display: block;
+.app-dashboard-menu .ant-menu-item-disabled {
+  opacity: 0.58;
+}
+
+.app-dashboard-menu .ant-menu-item-icon {
+  color: #51636d;
+  font-size: 15px;
 }
 
 .app-dashboard-menu .ant-menu-title-content {
   margin-inline-start: 10px !important;
   font-size: 12px;
+}
+
+.app-dashboard-menu .ant-menu-submenu-arrow {
+  color: #52646d;
 }
 
 .app-brand {
@@ -605,6 +646,10 @@ body {
     gap: 8px;
   }
 
+  .dashboard-account-details {
+    display: none;
+  }
+
   .dashboard-account-avatar,
   .dashboard-account-avatar img {
     width: 34px;
@@ -633,9 +678,6 @@ body {
     width: 26px;
   }
 
-  .dashboard-notification-button .dashboard-notification-dot {
-    right: 0;
-  }
 }
 
 a {
