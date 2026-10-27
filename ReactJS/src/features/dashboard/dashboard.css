@@ -32,7 +32,7 @@
 
 .dashboard-heading p {
   margin: 4px 0 0;
-  color: #61727a;
+  color: #52646d;
   font-size: 13px;
   line-height: 1.45;
 }
@@ -47,7 +47,7 @@
   border: 1px solid #dbe5e8;
   border-radius: 999px;
   background: #fff;
-  color: #61727a;
+  color: #52646d;
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -85,7 +85,7 @@
   min-width: 0;
   align-items: center;
   gap: 8px;
-  color: #61727a;
+  color: #52646d;
   font-size: 12px;
   line-height: 1.2;
 }
@@ -96,10 +96,11 @@
   height: 26px;
   flex: 0 0 26px;
   place-items: center;
+  border: 1px solid #a5d0cc;
   border-radius: 50%;
   background: #e3f5f2;
   color: #0f4c5c;
-  font-size: 8px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -120,7 +121,7 @@
 
 .dashboard-metric > small {
   margin-top: 2px;
-  color: #61727a;
+  color: #52646d;
   font-size: 10px;
   line-height: 1.3;
 }
@@ -134,6 +135,8 @@
 .dashboard-panel {
   min-width: 0;
   min-height: 360px;
+  height: auto;
+  overflow: visible;
   padding: 18px 19px 16px;
   border: 1px solid #dbe5e8;
   border-radius: 12px;
@@ -164,15 +167,24 @@
 }
 
 .dashboard-panel-heading button {
-  min-height: 28px;
-  padding: 0;
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 2px;
   border: 0;
   background: transparent;
   color: #0f4c5c;
   cursor: pointer;
   font: inherit;
-  font-size: 10px;
+  font-size: 12px;
+  font-weight: 500;
   white-space: nowrap;
+}
+
+.dashboard-panel-heading button:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .dashboard-panel-heading button:focus-visible,
@@ -184,7 +196,7 @@
 
 .dashboard-panel-caption {
   margin: 14px 0 0;
-  color: #61727a;
+  color: #52646d;
   font-size: 9px;
   line-height: 1.4;
 }
@@ -215,7 +227,7 @@
 
 .dashboard-bar-meta {
   overflow: hidden;
-  color: #61727a;
+  color: #52646d;
   font-size: 10px;
   font-weight: 400;
   text-align: right;
@@ -229,6 +241,12 @@
   overflow: hidden;
   border-radius: 999px;
   background: #f0f5f7;
+}
+
+.dashboard-bar-baseline {
+  color: #52646d;
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 .dashboard-bar-fill {
@@ -287,7 +305,7 @@
 }
 
 .dashboard-attendance-chart text {
-  fill: #61727a;
+  fill: #52646d;
   font-family: inherit;
   font-size: 10px;
 }
@@ -302,6 +320,103 @@
   overscroll-behavior-x: contain;
 }
 
+.dashboard-stat-list {
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.dashboard-stat-row {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #dbe5e8;
+}
+
+.dashboard-stat-row:last-child {
+  border-bottom: 0;
+}
+
+.dashboard-stat-row dt {
+  color: #52646d;
+  font-size: 12px;
+}
+
+.dashboard-stat-row dd {
+  margin: 0;
+  color: #1f2933;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.dashboard-activity-panel {
+  min-height: 0;
+  padding: 20px 22px;
+}
+
+.dashboard-activity-list {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  flex-direction: column;
+  list-style: none;
+}
+
+.dashboard-activity-item {
+  display: flex;
+  min-width: 0;
+  min-height: 58px;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #dbe5e8;
+}
+
+.dashboard-activity-item:last-child {
+  border-bottom: 0;
+}
+
+.dashboard-activity-icon {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  place-items: center;
+  border: 1px solid #a5d0cc;
+  border-radius: 50%;
+  background: #e3f5f2;
+  color: #0f4c5c;
+}
+
+.dashboard-activity-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dashboard-activity-copy strong {
+  overflow: hidden;
+  color: #1f2933;
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-activity-copy span,
+.dashboard-activity-item time {
+  color: #52646d;
+  font-size: 11px;
+}
+
+.dashboard-activity-item time {
+  flex: 0 0 auto;
+  text-align: right;
+}
+
 .dashboard-table {
   width: 100%;
   border-collapse: collapse;
@@ -312,7 +427,7 @@
 
 .dashboard-table th {
   height: 31px;
-  color: #61727a;
+  color: #52646d;
   font-size: 9px;
   font-weight: 500;
   white-space: nowrap;
@@ -389,8 +504,8 @@
 }
 
 .dashboard-highlight-copy small {
-  color: #61727a;
-  font-size: 9px;
+  color: #52646d;
+  font-size: 10px;
   line-height: 1.4;
 }
 
@@ -413,7 +528,7 @@
 
 .dashboard-shortcuts > p {
   margin: 4px 0 18px;
-  color: #61727a;
+  color: #52646d;
   font-size: 10px;
 }
 
@@ -455,7 +570,7 @@
 .dashboard-shortcuts > small {
   display: block;
   margin-top: 13px;
-  color: #61727a;
+  color: #52646d;
   font-size: 9px;
 }
 
@@ -464,7 +579,7 @@
   display: grid;
   min-height: 180px;
   place-items: center;
-  color: #61727a;
+  color: #52646d;
   font-size: 12px;
   text-align: center;
 }

@@ -1,6 +1,7 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Layout, Menu, Button, Drawer, Grid, Dropdown } from 'antd';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Layout, Menu, Button, Drawer, Grid, Dropdown, Tooltip } from 'antd';
 import {
+  AppstoreOutlined,
   DashboardOutlined,
   BankOutlined,
   TeamOutlined,
@@ -32,15 +33,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import PageHeader from '../components/layout/PageHeader';
 import { getPageMetadata } from '../constants/page-metadata';
 import { logout } from '../store/auth.slice';
-import { ROLES } from '../constants/roles';
+import { ROLES, ROLE_LABELS } from '../constants/roles';
 import { canVisit } from '../utils/permissions';
 import notificationIcon from '../features/dashboard/assets/figma/notification-outline.svg';
-import notificationDot from '../features/dashboard/assets/figma/notification-dot.svg';
 import accountAvatar from '../features/dashboard/assets/figma/account-avatar.svg';
 import brandLeafTeal from '../features/dashboard/assets/figma/brand-leaf-teal.svg';
 import brandLeafAmber from '../features/dashboard/assets/figma/brand-leaf-amber.svg';
-import navDot from '../features/dashboard/assets/figma/nav-dot.svg';
-import navDotActive from '../features/dashboard/assets/figma/nav-dot-active.svg';
 
 const { Header, Sider, Content } = Layout;
 const { useBreakpoint } = Grid;
@@ -108,31 +106,80 @@ const dashboardNavByRole = {
 };
 
 const dashboardMenuByRole = (role, user) => {
-  const groups = (dashboardNavByRole[role] || [['CHUNG', [['Tổng quan', '/dashboard']]]]).map(([label, entries]) => ({ label, entries: [...entries] }));
-  const knownPaths = new Set(groups.flatMap((group) => group.entries.map(([, path]) => path)));
+  const sourceGroups = dashboardNavByRole[role] || [['CHUNG', [['Tổng quan', '/dashboard']]]];
+  const legacyItems = menuByRole(role, user);
+  const legacyItemsByPath = new Map(legacyItems.map((item) => [item.key, item]));
+  const entries = new Map();
+  for (const [, groupEntries] of sourceGroups) {
+    for (const [title, path] of groupEntries) if (!entries.has(path)) entries.set(path, title);
+  }
+  for (const item of legacyItems) {
+    if (!entries.has(item.key)) entries.set(item.key, item.label?.props?.children || item.key);
+  }
+
+  const groupLabels = ['TỔ CHỨC', 'NGƯỜI DÙNG & QUYỀN', 'HỌC VỤ', 'VẬN HÀNH', 'TÀI KHOẢN'];
+  const groupedEntries = new Map(groupLabels.map((label) => [label, []]));
   const accountPaths = new Set(['/profile', '/messages', '/support']);
-  const additionalItems = menuByRole(role, user).filter((item) => !knownPaths.has(item.key));
-  const businessItems = additionalItems.filter((item) => !accountPaths.has(item.key));
-  const accountItems = additionalItems.filter((item) => accountPaths.has(item.key));
-  const businessGroup = groups.find((group) => group.label === 'NGHIỆP VỤ');
-  if (businessItems.length && businessGroup) {
-    businessGroup.entries.push(...businessItems.map((item) => [item.label?.props?.children || item.key, item.key]));
+  const organizationPaths = new Set(['/schools', '/clusters']);
+  const identityPaths = new Set(['/users', '/roles']);
+  const operationPaths = new Set(['/fees', '/payroll', '/facilities', '/equipment-maintenance', '/monitoring', '/jobs', '/audit-logs', '/subscriptions', '/templates', '/school-comparison']);
+  for (const [path, title] of entries) {
+    if (path === '/dashboard') continue;
+    const group = accountPaths.has(path) ? 'TÀI KHOẢN'
+      : organizationPaths.has(path) ? 'TỔ CHỨC'
+        : identityPaths.has(path) ? 'NGƯỜI DÙNG & QUYỀN'
+          : operationPaths.has(path) ? 'VẬN HÀNH' : 'HỌC VỤ';
+    groupedEntries.get(group).push([title, path]);
   }
-  const accountGroup = groups.find((group) => group.label === 'TÀI KHOẢN');
-  if (accountItems.length && accountGroup) {
-    accountGroup.entries.push(...accountItems.map((item) => [item.label?.props?.children || item.key, item.key]));
-  }
-  if (businessItems.length && !businessGroup) groups.push({ label: 'NGHIỆP VỤ', entries: businessItems.map((item) => [item.label?.props?.children || item.key, item.key]) });
-  if (accountItems.length && !accountGroup) groups.push({ label: 'TÀI KHOẢN', entries: accountItems.map((item) => [item.label?.props?.children || item.key, item.key]) });
-  return groups.map(({ label, entries }) => ({
-    type: 'group',
+  const dashboardIcons = {
+    '/dashboard': <DashboardOutlined />,
+    '/schools': <BankOutlined />,
+    '/clusters': <AppstoreOutlined />,
+    '/users': <TeamOutlined />,
+    '/roles': <SafetyCertificateOutlined />,
+    '/announcements': <NotificationOutlined />,
+    '/audit-logs': <AuditOutlined />,
+    '/subscriptions': <CloudServerOutlined />,
+    '/templates': <FileDoneOutlined />,
+    '/lesson-plans': <ReadOutlined />,
+    '/student-documents': <FileTextOutlined />,
+    '/payroll': <DollarOutlined />,
+    '/equipment-maintenance': <ToolOutlined />,
+    '/monitoring': <CloudServerOutlined />,
+    '/jobs': <CloudServerOutlined />,
+    '/library': <BookOutlined />,
+    '/classes': <ReadOutlined />,
+    '/attendance': <CheckSquareOutlined />,
+    '/grades': <FormOutlined />,
+    '/exams': <ExperimentOutlined />,
+    '/materials': <BookOutlined />,
+    '/assignments': <FormOutlined />,
+    '/contact-book': <MailOutlined />,
+    '/class-life': <ScheduleOutlined />,
+    '/appointments': <CalendarOutlined />,
+    '/conduct': <SmileOutlined />,
+    '/rewards': <SmileOutlined />,
+    '/admissions': <TeamOutlined />,
+    '/activities': <ScheduleOutlined />,
+    '/calendar': <CalendarOutlined />,
+    '/leave': <FileTextOutlined />,
+    '/timetable': <ScheduleOutlined />,
+    '/profile': <UserOutlined />,
+    '/messages': <MailOutlined />,
+    '/support': <CustomerServiceOutlined />,
+  };
+  const toMenuItem = ([title, path]) => ({
+    key: path,
+    icon: dashboardIcons[path] || legacyItemsByPath.get(path)?.icon || <ReadOutlined />,
+    label: <Link to={path}>{title}</Link>,
+  });
+  const dashboardItem = canVisit(user, '/dashboard') ? [toMenuItem([entries.get('/dashboard') || 'Tổng quan', '/dashboard'])] : [];
+  const collapsibleGroups = groupLabels.map((label) => ({
+    key: `section:${label}`,
     label,
-    children: entries.filter(([, path]) => canVisit(user, path)).map(([title, path]) => ({
-      key: path,
-      icon: <span className="dashboard-menu-dot" aria-hidden="true"><img src={navDot} alt="" /><img src={navDotActive} alt="" /></span>,
-      label: <Link to={path}>{title}</Link>,
-    })),
+    children: groupedEntries.get(label).filter(([, path]) => canVisit(user, path)).map(toMenuItem),
   })).filter((group) => group.children.length);
+  return [...dashboardItem, ...collapsibleGroups];
 };
 
 const getSchoolYear = () => {
@@ -309,9 +356,17 @@ const AppLayout = () => {
 
   const isDashboard = location.pathname === '/dashboard';
   const items = useMemo(() => dashboardMenuByRole(user?.role, user), [user]);
-
-  const selected = items.flatMap((group) => group.children || []).find((item) => location.pathname.startsWith(item.key))?.key || '/dashboard';
+  const selectableItems = items.flatMap((item) => item.children || [item]);
+  const selectedItem = selectableItems.find((item) => location.pathname.startsWith(item.key));
+  const selected = selectedItem?.key || '/dashboard';
+  const selectedGroup = items.find((item) => item.children?.some((child) => child.key === selected));
+  const defaultOpenGroup = selectedGroup?.key || items.find((item) => item.children)?.key;
+  const [openMenuGroups, setOpenMenuGroups] = useState(() => (defaultOpenGroup ? [defaultOpenGroup] : []));
   const pageMetadata = getPageMetadata(location.pathname);
+
+  useEffect(() => {
+    if (defaultOpenGroup) setOpenMenuGroups([defaultOpenGroup]);
+  }, [defaultOpenGroup, location.pathname]);
 
   useLayoutEffect(() => {
     contentRef.current?.scrollTo({ top: 0, left: 0 });
@@ -320,7 +375,7 @@ const AppLayout = () => {
   }, [location.pathname, location.search, location.hash]);
 
   const navigationMenu = (
-    <Menu className="app-dashboard-menu" mode="inline" selectedKeys={[selected]} items={items} onClick={() => setMobileMenuOpen(false)} />
+    <Menu className="app-dashboard-menu" mode="inline" selectedKeys={[selected]} openKeys={openMenuGroups} onOpenChange={setOpenMenuGroups} items={items} forceSubMenuRender onClick={() => setMobileMenuOpen(false)} />
   );
 
   const dashboardScope = user?.role === ROLES.SUPER_ADMIN
@@ -350,7 +405,7 @@ const AppLayout = () => {
           theme="light"
           width={250}
         >
-          {navigationMenu}
+          <nav aria-label="Điều hướng chính">{navigationMenu}</nav>
         </Sider>
       )}
       <Drawer
@@ -362,7 +417,7 @@ const AppLayout = () => {
         onClose={() => setMobileMenuOpen(false)}
         styles={{ body: { padding: 0, overflowY: 'auto' } }}
       >
-        {navigationMenu}
+        <nav aria-label="Điều hướng chính">{navigationMenu}</nav>
       </Drawer>
       <Layout className="app-main-layout">
         <Header className="app-header dashboard-app-header">
@@ -381,13 +436,15 @@ const AppLayout = () => {
                 </div>
               </div>
               <div className="dashboard-header-actions">
-                <Button className="dashboard-notification-button" aria-label="Mở thông báo" onClick={() => navigate('/announcements')}>
-                  <img src={notificationIcon} alt="" />
-                  <img className="dashboard-notification-dot" src={notificationDot} alt="" />
-                </Button>
+                <Tooltip title="Thông báo" placement="bottom">
+                  <Button className="dashboard-notification-button" aria-label="Thông báo" onClick={() => navigate('/announcements')}>
+                    <img src={notificationIcon} alt="" />
+                  </Button>
+                </Tooltip>
                 <Dropdown menu={accountMenu} trigger={['click']} placement="bottomRight">
-                  <button className="dashboard-account-button" type="button" aria-label="Mở menu tài khoản">
+                  <button className="dashboard-account-button" type="button" aria-label={`Tài khoản ${user?.name || ''}, ${user?.roleLabel || ROLE_LABELS[user?.role] || user?.role || ''}`} title="Mở menu tài khoản">
                     <span className="dashboard-account-avatar"><img src={accountAvatar} alt="" /><span>{getInitials(user?.name)}</span></span>
+                    <span className="dashboard-account-details"><strong>{user?.name || 'Người dùng'}</strong><small>{user?.roleLabel || ROLE_LABELS[user?.role] || user?.role}</small></span>
                     <DownOutlined />
                   </button>
                 </Dropdown>

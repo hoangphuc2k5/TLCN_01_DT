@@ -1,6 +1,7 @@
 import { ROLES } from '../../constants/roles';
 import {
   AppstoreOutlined,
+  AuditOutlined,
   BankOutlined,
   BarChartOutlined,
   BookOutlined,
@@ -13,6 +14,7 @@ import {
   FormOutlined,
   NotificationOutlined,
   ReadOutlined,
+  RightOutlined,
   TeamOutlined,
   ToolOutlined,
   UserOutlined,
@@ -56,8 +58,7 @@ const roleContent = {
       ['clusters', 'Cụm trường', 'cụm', 'CT'],
       ['systemAnnouncements', 'Thông báo hệ thống', 'đang hoạt động', 'TB'],
     ],
-    primary: 'system', primaryTitle: 'Quy mô hệ thống', secondaryTitle: 'Tổng quan quản trị',
-    highlights: [['clusters', 'Cụm trường', 'Phạm vi toàn hệ thống'], ['schools', 'Trường đang hoạt động', 'Số liệu từ hệ thống'], ['systemAnnouncements', 'Thông báo hệ thống', 'Thông tin hiện có']],
+    primary: 'activity', primaryTitle: 'Hoạt động quản trị gần đây',
     quickLinks: [['Trường học', '/schools'], ['Cụm trường', '/clusters'], ['Tài khoản', '/users'], ['Nhật ký hệ thống', '/audit-logs']],
   },
   [ROLES.CLUSTER_ADMIN]: {
@@ -134,7 +135,7 @@ const metricValue = (metric, stats, analytics) => {
   return readStat(stats, metric[0]);
 };
 
-const DashboardContent = ({ data, role, analytics = {}, navigate }) => {
+const DashboardContent = ({ data, role, analytics = {}, activities = [], navigate }) => {
   const config = roleContent[role];
   const stats = data?.stats || [];
   if (!config) return <div className="role-dashboard-empty"><h1>Tổng quan</h1><p>Chưa có dữ liệu dashboard cho vai trò này.</p></div>;
@@ -142,16 +143,22 @@ const DashboardContent = ({ data, role, analytics = {}, navigate }) => {
   const metrics = config.metrics.map((metric) => ({ metric, value: metricValue(metric, stats, analytics) }));
   const totalCount = (key) => readStat(stats, key);
 
-  const renderSystem = () => {
-    const rows = config.metrics.map((metric) => ({ label: metric[1], value: readStat(stats, metric[0]), unit: metric[2] }));
-    const max = Math.max(1, ...rows.map((row) => Number(row.value) || 0));
-    return <div className="dashboard-bars">{rows.map((row) => (
-      <div className="dashboard-bar-row" key={row.label}>
-        <div className="dashboard-bar-copy"><span>{row.label}</span><span className="dashboard-bar-meta">{row.value == null ? 'Chưa có dữ liệu' : `${formatNumber(row.value)} ${row.unit}`}</span></div>
-        <div className="dashboard-bar-track"><span className="dashboard-bar-fill" style={{ width: `${Math.max(row.value ? 5 : 0, ((Number(row.value) || 0) / max) * 100)}%` }} /></div>
-      </div>
-    ))}</div>;
-  };
+  const renderActivity = () => activities.length ? (
+    <ol className="dashboard-activity-list">
+      {activities.slice(0, 8).map((activity) => {
+        const occurredAt = new Date(activity.createdAt);
+        const action = String(activity.action || 'Hoạt động').replace(/[_-]+/g, ' ').toLocaleLowerCase('vi-VN');
+        const resource = String(activity.resource || '').replace(/[_-]+/g, ' ').toLocaleLowerCase('vi-VN');
+        return (
+          <li className="dashboard-activity-item" key={activity._id}>
+            <span className="dashboard-activity-icon" aria-hidden="true"><AuditOutlined /></span>
+            <span className="dashboard-activity-copy"><strong>{activity.actorId?.name || 'Tài khoản hệ thống'}</strong><span>{action}{resource ? ` · ${resource}` : ''}</span></span>
+            <time dateTime={activity.createdAt}>{Number.isNaN(occurredAt.getTime()) ? '—' : occurredAt.toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}</time>
+          </li>
+        );
+      })}
+    </ol>
+  ) : <EmptyState>Chưa có hoạt động quản trị gần đây.</EmptyState>;
 
   const renderSchools = () => {
     const schools = data?.schools || [];
@@ -190,37 +197,41 @@ const DashboardContent = ({ data, role, analytics = {}, navigate }) => {
     const item = analytics.assignments;
     if (!item) return <EmptyState>Chưa có dữ liệu bài tập trong phạm vi tài khoản.</EmptyState>;
     const rows = [
-      ['Đã nộp', item.submitted, item.assignments ? `${formatNumber(item.submitted)} lượt nộp` : 'Chưa có bài tập'],
-      ['Đã chấm', item.graded, 'Lượt đã hoàn tất'],
-      ['Chưa nộp', Math.max(0, (item.assignments || 0) - (item.submitted || 0)), 'Bài tập cần theo dõi'],
-      ['Đang tải', item.pendingUploads, 'Đang đồng bộ'],
+      ['Bài tập được giao', item.assignments],
+      ['Lượt đã nộp', item.submitted],
+      ['Lượt đã chấm', item.graded],
+      ['Lượt đang tải lên', item.pendingUploads],
     ];
-    const max = Math.max(1, ...rows.map((row) => Number(row[1]) || 0));
-    return <div className="dashboard-bars">{rows.map(([label, value, detail]) => (
-      <div className="dashboard-bar-row" key={label}><div className="dashboard-bar-copy"><span>{label}</span><span className="dashboard-bar-meta">{detail}</span></div><div className="dashboard-bar-track"><span className="dashboard-bar-fill" style={{ width: `${Math.max(value ? 5 : 0, ((Number(value) || 0) / max) * 100)}%` }} /></div></div>
-    ))}</div>;
+    return <dl className="dashboard-stat-list">{rows.map(([label, value]) => (
+      <div className="dashboard-stat-row" key={label}><dt>{label}</dt><dd>{formatNumber(value)}</dd></div>
+    ))}</dl>;
   };
 
   const renderFees = () => {
     const fees = analytics.fees;
     if (!fees) return <EmptyState>Chưa có dữ liệu thu học phí trong phạm vi tài khoản.</EmptyState>;
     const overdueCount = totalCount('overdue') || 0;
+    const collectionRate = Number(fees.collectionRate) || 0;
+    const overdueRate = fees.invoiceCount ? (overdueCount / fees.invoiceCount) * 100 : 0;
     const rows = [
-      ['Đã thu', fees.paid, fees.collectionRate, `${formatNumber(fees.collectionRate)}% kế hoạch`],
-      ['Còn phải thu', fees.outstanding, Math.max(0, 100 - fees.collectionRate), `${formatNumber(Math.max(0, 100 - fees.collectionRate))}% kế hoạch`],
-      ['Hóa đơn quá hạn', overdueCount, fees.invoiceCount ? (overdueCount / fees.invoiceCount) * 100 : 0, 'Cần ưu tiên rà soát'],
+      ['Đã thu', `${formatMoney(fees.paid)} / ${formatMoney(fees.billed)}`, collectionRate, `${formatNumber(collectionRate)}% tổng phải thu`],
+      ['Còn phải thu', `${formatMoney(fees.outstanding)} / ${formatMoney(fees.billed)}`, Math.max(0, 100 - collectionRate), `${formatNumber(Math.max(0, 100 - collectionRate))}% tổng phải thu`],
+      ['Hóa đơn quá hạn', `${formatNumber(overdueCount)} / ${formatNumber(fees.invoiceCount)} hóa đơn`, overdueRate, `${formatNumber(overdueRate)}% số hóa đơn`],
     ];
     return <div className="dashboard-bars">{rows.map(([label, value, percent, detail]) => (
-      <div className="dashboard-bar-row" key={label}><div className="dashboard-bar-copy"><span>{label}</span><span className="dashboard-bar-meta">{label === 'Hóa đơn quá hạn' ? `${formatNumber(value)} · ${detail}` : `${formatMoney(value)} · ${detail}`}</span></div><div className="dashboard-bar-track"><span className="dashboard-bar-fill" style={{ width: `${Math.max(value ? 5 : 0, Math.min(100, Number(percent) || 0))}%` }} /></div></div>
+      <div className="dashboard-bar-row" key={label}>
+        <div className="dashboard-bar-copy"><span>{label}</span><span className="dashboard-bar-meta">{value}</span></div>
+        <div className="dashboard-bar-track" role="progressbar" aria-label={label} aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(Math.min(100, Number(percent) || 0))}><span className="dashboard-bar-fill" style={{ width: `${Math.min(100, Number(percent) || 0)}%` }} /></div>
+        <span className="dashboard-bar-baseline">{detail}</span>
+      </div>
     ))}</div>;
   };
 
   const renderLibrary = () => {
-    const rows = config.metrics.map((metric) => ({ label: metric[1], value: readStat(stats, metric[0]), unit: metric[2] }));
-    const max = Math.max(1, ...rows.map((row) => Number(row.value) || 0));
-    return <div className="dashboard-bars">{rows.map((row) => (
-      <div className="dashboard-bar-row" key={row.label}><div className="dashboard-bar-copy"><span>{row.label}</span><span className="dashboard-bar-meta">{row.value == null ? 'Chưa có dữ liệu' : `${formatNumber(row.value)} ${row.unit}`}</span></div><div className="dashboard-bar-track"><span className="dashboard-bar-fill" style={{ width: `${Math.max(row.value ? 5 : 0, ((Number(row.value) || 0) / max) * 100)}%` }} /></div></div>
-    ))}</div>;
+    const rows = config.metrics.map((metric) => [metric[1], readStat(stats, metric[0]), metric[2]]);
+    return <dl className="dashboard-stat-list">{rows.map(([label, value, unit]) => (
+      <div className="dashboard-stat-row" key={label}><dt>{label}</dt><dd>{value == null ? '—' : `${formatNumber(value)} ${unit}`}</dd></div>
+    ))}</dl>;
   };
 
   const gradeRows = (data?.grades || []).slice(0, 5).map((grade) => ({
@@ -232,7 +243,7 @@ const DashboardContent = ({ data, role, analytics = {}, navigate }) => {
   ) : <EmptyState>Chưa có kết quả học tập để hiển thị.</EmptyState>;
 
   const primaryRenderer = {
-    system: renderSystem,
+    activity: renderActivity,
     schools: renderSchools,
     attendance: renderAttendance,
     assignments: renderAssignments,
@@ -282,23 +293,30 @@ const DashboardContent = ({ data, role, analytics = {}, navigate }) => {
         ))}
       </section>
 
-      <section className="dashboard-panel-grid">
-        <article className="dashboard-panel dashboard-primary-panel">
-          <h2>{config.primaryTitle}</h2>
+      {role === ROLES.SUPER_ADMIN ? (
+        <section className="dashboard-panel dashboard-activity-panel">
+          <div className="dashboard-panel-heading"><h2>{config.primaryTitle}</h2><button type="button" onClick={() => navigate('/audit-logs')}>Xem nhật ký <RightOutlined aria-hidden="true" /></button></div>
           {primaryRenderer()}
-          <p className="dashboard-panel-caption">Số liệu theo phạm vi và quyền của tài khoản đang đăng nhập.</p>
-        </article>
-        <article className="dashboard-panel dashboard-secondary-panel">
-          <div className="dashboard-panel-heading"><h2>{config.secondaryTitle}</h2><button type="button" onClick={() => navigate(secondaryRoute)}>Xem tất cả <span aria-hidden="true">→</span></button></div>
-          <div className="dashboard-highlight-list">
-            {rightItems.length ? rightItems.map((item, index) => (
-              <button className="dashboard-highlight" key={`${item.label}-${index}`} type="button" onClick={() => navigate(secondaryRoute)}>
-                <img src={priorityDot} alt="" /><span className="dashboard-highlight-copy"><strong>{item.label}</strong><small>{item.detail}</small></span><b className={item.overdue ? 'is-priority' : ''}>{typeof item.value === 'string' ? item.value : formatNumber(item.value)}</b>
-              </button>
-            )) : <EmptyState>Không có mục cần theo dõi.</EmptyState>}
-          </div>
-        </article>
-      </section>
+        </section>
+      ) : (
+        <section className="dashboard-panel-grid">
+          <article className="dashboard-panel dashboard-primary-panel">
+            <h2>{config.primaryTitle}</h2>
+            {primaryRenderer()}
+            <p className="dashboard-panel-caption">Số liệu theo phạm vi và quyền của tài khoản đang đăng nhập.</p>
+          </article>
+          <article className="dashboard-panel dashboard-secondary-panel">
+            <div className="dashboard-panel-heading"><h2>{config.secondaryTitle}</h2><button type="button" onClick={() => navigate(secondaryRoute)}>Xem tất cả <RightOutlined aria-hidden="true" /></button></div>
+            <div className="dashboard-highlight-list">
+              {rightItems.length ? rightItems.map((item, index) => (
+                <button className="dashboard-highlight" key={`${item.label}-${index}`} type="button" onClick={() => navigate(secondaryRoute)}>
+                  <img src={priorityDot} alt="" /><span className="dashboard-highlight-copy"><strong>{item.label}</strong><small>{item.detail}</small></span><b className={item.overdue ? 'is-priority' : ''}>{typeof item.value === 'string' ? item.value : formatNumber(item.value)}</b>
+                </button>
+              )) : <EmptyState>Không có mục cần theo dõi.</EmptyState>}
+            </div>
+          </article>
+        </section>
+      )}
 
       <section className="dashboard-panel dashboard-shortcuts">
         <h2>Truy cập nhanh</h2><p>Lối tắt theo nghiệp vụ của vai trò</p>
