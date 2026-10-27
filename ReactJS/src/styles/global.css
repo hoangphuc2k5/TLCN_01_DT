@@ -530,6 +530,123 @@ body {
   min-height: 32px;
 }
 
+/* Shared contrast and reading hierarchy for application pages. */
+.app-shell-figma .app-content-panel .ant-select-selection-placeholder,
+.app-shell-figma .app-content-panel .ant-input::placeholder,
+.app-shell-figma .app-content-panel .ant-picker-input input::placeholder {
+  color: #52616a;
+  opacity: 1;
+}
+
+.app-shell-figma .app-content-panel .ant-table-thead > tr > th {
+  border-bottom-color: #aebdc3;
+  background: #edf1f3;
+  color: #1f2933;
+  font-weight: 600;
+}
+
+.app-shell-figma .app-content-panel .ant-table-tbody > tr > td {
+  border-bottom-color: #c5ced3;
+}
+
+.app-shell-figma .app-content-panel .ant-tag {
+  font-weight: 600;
+}
+
+.app-shell-figma .app-content-panel .ant-tag.ant-tag-green {
+  border-color: #95de64;
+  background: #f6ffed;
+  color: #237804;
+}
+
+.app-shell-figma .app-content-panel .ant-tag.ant-tag-blue {
+  border-color: #91caff;
+  background: #e6f4ff;
+  color: #0958d9;
+}
+
+.app-shell-figma .app-content-panel .ant-tag.ant-tag-orange {
+  border-color: #ffc069;
+  background: #fff7e6;
+  color: #ad4e00;
+}
+
+.app-shell-figma .app-content-panel .ant-tag.ant-tag-red {
+  border-color: #ffa39e;
+  background: #fff1f0;
+  color: #a8071a;
+}
+
+.app-shell-figma .app-content-panel .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #0b3d4a;
+  font-weight: 600;
+}
+
+.app-shell-figma .app-content-panel .ant-tabs-ink-bar {
+  height: 3px;
+  border-radius: 2px;
+}
+
+.app-dashboard-menu .ant-menu-submenu-title {
+  color: #46545c;
+  font-size: 10px;
+}
+
+.app-dashboard-menu .ant-menu-submenu {
+  border-bottom-color: #c5ced3;
+}
+
+.app-dashboard-menu .ant-menu-item-selected {
+  box-shadow: inset 4px 0 #0b7775;
+  background: #d2ece7 !important;
+  color: #0b3d4a !important;
+  font-weight: 600;
+}
+
+.app-dashboard-menu .ant-menu-item-icon,
+.app-dashboard-menu .ant-menu-submenu-arrow {
+  color: #46545c;
+}
+
+.app-dashboard-menu .ant-menu-title-content {
+  font-size: 13px;
+}
+
+.dashboard-scope-copy small {
+  color: #46545c;
+  font-size: 10px;
+}
+
+.dashboard-data-label {
+  border-color: #c5ced3;
+  color: #46545c;
+  font-size: 11px;
+}
+
+.dashboard-metric-label {
+  color: #46545c;
+  font-size: 13px;
+}
+
+.dashboard-metric > small,
+.dashboard-bar-meta {
+  color: #46545c;
+  font-size: 11px;
+}
+
+.dashboard-chart-badge {
+  font-size: 11px;
+}
+
+.dashboard-attendance-chart text {
+  fill: #46545c;
+  font-size: 11px;
+}
+
+.dashboard-attendance-chart .dashboard-chart-date {
+  font-size: 10px;
+}
+
 @media (max-width: 767px) {
   .app-header {
     flex-basis: 56px;
