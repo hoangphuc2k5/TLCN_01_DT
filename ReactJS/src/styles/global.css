@@ -889,6 +889,11 @@ body {
   margin: 10px 14px;
 }
 
+.app-dashboard-menu .ant-menu-submenu .ant-menu-item {
+  width: calc(100% - 22px);
+  margin: 4px 4px 4px 18px;
+}
+
 .app-shell-figma .app-dashboard-menu .ant-menu-item a {
   color: inherit;
 }
