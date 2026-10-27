@@ -1,4 +1,11 @@
 import { test, expect } from '@playwright/test';
+
+async function openMenuGroup(page, label) {
+  const group = page.locator('.app-dashboard-menu .ant-menu-submenu-title').filter({ hasText: label });
+  await expect(group).toBeVisible();
+  if (await group.getAttribute('aria-expanded') !== 'true') await group.click();
+}
+
 async function login(page, account) {
   await page.goto('/login');
   await page.getByLabel('Email', { exact: true }).fill(`${account}@test.invalid`);
@@ -8,7 +15,7 @@ async function login(page, account) {
 }
 async function showSchedule(page) {
   const initialSchedule = page.waitForResponse(r => r.url().includes('/timetables/schedule?'));
-  await page.getByRole('link', { name: 'Thời khóa biểu', exact: true }).click();
+  await page.goto('/timetable');
   await initialSchedule;
   const loadButton = page.getByRole('button', { name: 'Xem lịch', exact: true });
   await expect(loadButton).toBeEnabled();
@@ -31,6 +38,7 @@ test('teacher submits absence and structured makeup; admin approval updates pare
   try {
     const teacher = await teacherContext.newPage(), admin = await adminContext.newPage(), parent = await parentContext.newPage();
     await login(teacher, 'teacher0');
+    await openMenuGroup(teacher, 'HỌC VỤ');
     await teacher.getByRole('link', { name: 'Đơn từ', exact: true }).click();
     await teacher.getByRole('button', { name: 'Gửi đơn', exact: true }).click();
     let dialog = teacher.getByRole('dialog');
@@ -42,6 +50,7 @@ test('teacher submits absence and structured makeup; admin approval updates pare
     expect((await sent).status()).toBe(201);
     await expect(dialog).toBeHidden();
     await login(admin, 'admin0');
+    await openMenuGroup(admin, 'HỌC VỤ');
     await admin.getByRole('link', { name: 'Đơn từ', exact: true }).click();
     let row = admin.getByRole('row').filter({ hasText: 'QA teaching absence' });
     const absenceReview = admin.waitForResponse(r => r.url().endsWith('/review') && r.request().method() === 'PATCH');
@@ -107,8 +116,9 @@ test('manual date range is preserved while academic years load', async ({ page }
     await route.continue();
   });
 
-  await page.getByRole('link', { name: 'Thời khóa biểu', exact: true }).click();
-  await page.waitForRequest(request => request.url().includes('/v1/api/academic-years'));
+  const academicYearsRequest = page.waitForRequest(request => request.url().includes('/v1/api/academic-years'));
+  await page.goto('/timetable');
+  await academicYearsRequest;
   await page.getByLabel('Lịch từ ngày').fill('2026-09-07');
   await page.getByLabel('Lịch đến ngày').fill('2026-09-08');
   const selectedSchedule = page.waitForResponse(response => {
