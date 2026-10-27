@@ -10,6 +10,7 @@ import {
   CheckSquareOutlined,
   FormOutlined,
   DollarOutlined,
+  BellOutlined,
   NotificationOutlined,
   FileTextOutlined,
   UserOutlined,
@@ -35,7 +36,6 @@ import { getPageMetadata } from '../constants/page-metadata';
 import { logout } from '../store/auth.slice';
 import { ROLES, ROLE_LABELS } from '../constants/roles';
 import { canVisit } from '../utils/permissions';
-import notificationIcon from '../features/dashboard/assets/figma/notification-outline.svg';
 import accountAvatar from '../features/dashboard/assets/figma/account-avatar.svg';
 import brandLeafTeal from '../features/dashboard/assets/figma/brand-leaf-teal.svg';
 import brandLeafAmber from '../features/dashboard/assets/figma/brand-leaf-amber.svg';
@@ -429,16 +429,15 @@ const AppLayout = () => {
                   <strong>{appName}</strong>
                 </div>
                 {!compactNavigation && <span className="dashboard-header-divider" aria-hidden="true" />}
-                <div className="dashboard-scope-pill">
+                <div className="dashboard-scope-pill" aria-label="Phạm vi hiện tại">
                   <span className="dashboard-scope-icon" aria-hidden="true">⌂</span>
-                  <span className="dashboard-scope-copy"><strong>{dashboardScope}</strong><small>{getSchoolYear()}</small></span>
-                  {!compactNavigation && <DownOutlined className="dashboard-scope-chevron" />}
+                  <span className="dashboard-scope-copy"><strong>{dashboardScope}</strong><small>Phạm vi hiện tại · {getSchoolYear()}</small></span>
                 </div>
               </div>
               <div className="dashboard-header-actions">
                 <Tooltip title="Thông báo" placement="bottom">
                   <Button className="dashboard-notification-button" aria-label="Thông báo" onClick={() => navigate('/announcements')}>
-                    <img src={notificationIcon} alt="" />
+                    <BellOutlined aria-hidden="true" />
                   </Button>
                 </Tooltip>
                 <Dropdown menu={accountMenu} trigger={['click']} placement="bottomRight">

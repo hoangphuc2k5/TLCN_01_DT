@@ -187,11 +187,6 @@ body {
   font-size: 9px;
 }
 
-.dashboard-scope-chevron {
-  color: #52646d;
-  font-size: 10px;
-}
-
 .dashboard-header-actions {
   flex: 0 0 auto;
   gap: 20px;
@@ -208,10 +203,10 @@ body {
   box-shadow: none;
 }
 
-.dashboard-notification-button img:first-child {
+.dashboard-notification-button .anticon {
   display: block;
-  width: 19px;
-  height: 19px;
+  color: #52646d;
+  font-size: 19px;
 }
 
 .dashboard-account-button {
