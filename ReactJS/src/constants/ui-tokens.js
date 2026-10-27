@@ -8,11 +8,11 @@ const spacing = Object.freeze({
 });
 
 export const UI_TOKENS = Object.freeze({
-  colorPrimary: '#0f4c5c',
+  colorPrimary: '#07598e',
   colorText: '#1f2933',
   colorTextSecondary: '#46545c',
   colorTextPlaceholder: '#52616a',
-  colorBgLayout: '#f0f3f5',
+  colorBgLayout: '#eceef0',
   colorBgContainer: '#ffffff',
   colorBorder: '#aebdc3',
   colorBorderSecondary: '#c5ced3',

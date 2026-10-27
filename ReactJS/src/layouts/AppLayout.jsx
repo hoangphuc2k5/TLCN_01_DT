@@ -405,6 +405,10 @@ const AppLayout = () => {
           theme="light"
           width={250}
         >
+          <div className="app-brand sidebar-brand" aria-label={appName}>
+            <span className="dashboard-brand-mark" aria-hidden="true"><img src={brandLeafTeal} alt="" /><img src={brandLeafAmber} alt="" /></span>
+            <strong>{appName}</strong>
+          </div>
           <nav aria-label="Điều hướng chính">{navigationMenu}</nav>
         </Sider>
       )}
@@ -417,6 +421,10 @@ const AppLayout = () => {
         onClose={() => setMobileMenuOpen(false)}
         styles={{ body: { padding: 0, overflowY: 'auto' } }}
       >
+        <div className="app-brand sidebar-brand" aria-label={appName}>
+          <span className="dashboard-brand-mark" aria-hidden="true"><img src={brandLeafTeal} alt="" /><img src={brandLeafAmber} alt="" /></span>
+          <strong>{appName}</strong>
+        </div>
         <nav aria-label="Điều hướng chính">{navigationMenu}</nav>
       </Drawer>
       <Layout className="app-main-layout">
