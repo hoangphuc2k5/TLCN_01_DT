@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Layout, Menu, Typography, Button, Avatar, Space, Badge, Drawer, Grid, Dropdown } from 'antd';
+import { Layout, Menu, Button, Drawer, Grid, Dropdown } from 'antd';
 import {
   DashboardOutlined,
   BankOutlined,
@@ -32,9 +32,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import PageHeader from '../components/layout/PageHeader';
 import { getPageMetadata } from '../constants/page-metadata';
 import { logout } from '../store/auth.slice';
-import { ROLES, ROLE_LABELS } from '../constants/roles';
+import { ROLES } from '../constants/roles';
 import { canVisit } from '../utils/permissions';
-import logo from '../Logo/icon.png';
 import notificationIcon from '../features/dashboard/assets/figma/notification-outline.svg';
 import notificationDot from '../features/dashboard/assets/figma/notification-dot.svg';
 import accountAvatar from '../features/dashboard/assets/figma/account-avatar.svg';
@@ -108,15 +107,33 @@ const dashboardNavByRole = {
   ],
 };
 
-const dashboardMenuByRole = (role, user) => (dashboardNavByRole[role] || []).map(([label, entries]) => ({
-  type: 'group',
-  label,
-  children: entries.filter(([, path]) => canVisit(user, path)).map(([title, path]) => ({
-    key: path,
-    icon: <span className="dashboard-menu-dot" aria-hidden="true"><img src={navDot} alt="" /><img src={navDotActive} alt="" /></span>,
-    label: <Link to={path}>{title}</Link>,
-  })),
-})).filter((group) => group.children.length);
+const dashboardMenuByRole = (role, user) => {
+  const groups = (dashboardNavByRole[role] || [['CHUNG', [['Tổng quan', '/dashboard']]]]).map(([label, entries]) => ({ label, entries: [...entries] }));
+  const knownPaths = new Set(groups.flatMap((group) => group.entries.map(([, path]) => path)));
+  const accountPaths = new Set(['/profile', '/messages', '/support']);
+  const additionalItems = menuByRole(role, user).filter((item) => !knownPaths.has(item.key));
+  const businessItems = additionalItems.filter((item) => !accountPaths.has(item.key));
+  const accountItems = additionalItems.filter((item) => accountPaths.has(item.key));
+  const businessGroup = groups.find((group) => group.label === 'NGHIỆP VỤ');
+  if (businessItems.length && businessGroup) {
+    businessGroup.entries.push(...businessItems.map((item) => [item.label?.props?.children || item.key, item.key]));
+  }
+  const accountGroup = groups.find((group) => group.label === 'TÀI KHOẢN');
+  if (accountItems.length && accountGroup) {
+    accountGroup.entries.push(...accountItems.map((item) => [item.label?.props?.children || item.key, item.key]));
+  }
+  if (businessItems.length && !businessGroup) groups.push({ label: 'NGHIỆP VỤ', entries: businessItems.map((item) => [item.label?.props?.children || item.key, item.key]) });
+  if (accountItems.length && !accountGroup) groups.push({ label: 'TÀI KHOẢN', entries: accountItems.map((item) => [item.label?.props?.children || item.key, item.key]) });
+  return groups.map(({ label, entries }) => ({
+    type: 'group',
+    label,
+    children: entries.filter(([, path]) => canVisit(user, path)).map(([title, path]) => ({
+      key: path,
+      icon: <span className="dashboard-menu-dot" aria-hidden="true"><img src={navDot} alt="" /><img src={navDotActive} alt="" /></span>,
+      label: <Link to={path}>{title}</Link>,
+    })),
+  })).filter((group) => group.children.length);
+};
 
 const getSchoolYear = () => {
   const now = new Date();
@@ -280,17 +297,10 @@ const menuByRole = (role, user) => {
 };
 
 const AppLayout = () => {
-  const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const contentRef = useRef(null);
   const { user } = useSelector((s) => s.auth);
   const appName = useSelector((s) => s.auth.appName) || 'EduMoet';
-  const shortName = appName
-    .split(/\s+/)
-    .map((w) => w[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase() || 'EM';
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
@@ -298,9 +308,9 @@ const AppLayout = () => {
   const compactNavigation = !screens.lg;
 
   const isDashboard = location.pathname === '/dashboard';
-  const items = useMemo(() => (isDashboard ? dashboardMenuByRole(user?.role, user) : menuByRole(user?.role, user)), [isDashboard, user]);
+  const items = useMemo(() => dashboardMenuByRole(user?.role, user), [user]);
 
-  const selected = items.find((i) => location.pathname.startsWith(i.key))?.key || '/dashboard';
+  const selected = items.flatMap((group) => group.children || []).find((item) => location.pathname.startsWith(item.key))?.key || '/dashboard';
   const pageMetadata = getPageMetadata(location.pathname);
 
   useLayoutEffect(() => {
@@ -310,7 +320,7 @@ const AppLayout = () => {
   }, [location.pathname, location.search, location.hash]);
 
   const navigationMenu = (
-    <Menu className={isDashboard ? 'app-dashboard-menu' : undefined} mode="inline" selectedKeys={[selected]} items={items} onClick={() => setMobileMenuOpen(false)} />
+    <Menu className="app-dashboard-menu" mode="inline" selectedKeys={[selected]} items={items} onClick={() => setMobileMenuOpen(false)} />
   );
 
   const dashboardScope = user?.role === ROLES.SUPER_ADMIN
@@ -333,45 +343,13 @@ const AppLayout = () => {
   };
 
   return (
-    <Layout className={`app-shell${isDashboard ? ' app-shell-dashboard' : ''}`}>
+    <Layout className={`app-shell app-shell-figma${isDashboard ? ' app-shell-dashboard' : ''}`}>
       {!compactNavigation && (
         <Sider
           className="app-sider"
-          collapsible={!isDashboard}
-          collapsed={isDashboard ? false : collapsed}
-          onCollapse={setCollapsed}
           theme="light"
-          width={isDashboard ? 250 : 240}
+          width={250}
         >
-          <div
-            className="app-brand"
-            onClick={() => navigate('/profile')}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') navigate('/profile');
-            }}
-            title="Thông tin tài khoản"
-          >
-            <img
-              src={logo}
-              alt={`Logo ${appName}`}
-              style={{
-                width: collapsed ? 40 : 56,
-                height: collapsed ? 40 : 56,
-                objectFit: 'contain',
-                marginBottom: collapsed ? 0 : 8,
-              }}
-            />
-            <Typography.Title level={collapsed ? 5 : 4} className="app-brand-title" style={{ margin: 0 }}>
-              {collapsed ? shortName : appName}
-            </Typography.Title>
-            {!collapsed && (
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                Quản lý đa trường
-              </Typography.Text>
-            )}
-          </div>
           {navigationMenu}
         </Sider>
       )}
@@ -387,9 +365,8 @@ const AppLayout = () => {
         {navigationMenu}
       </Drawer>
       <Layout className="app-main-layout">
-        <Header className={`app-header${isDashboard ? ' dashboard-app-header' : ''}`}>
-          {isDashboard ? (
-            <div className="dashboard-header-content">
+        <Header className="app-header dashboard-app-header">
+          <div className="dashboard-header-content">
               <div className="dashboard-header-left">
                 {compactNavigation && <Button aria-label="Mở menu điều hướng" icon={<MenuOutlined />} onClick={() => setMobileMenuOpen(true)} />}
                 <div className="dashboard-wordmark" aria-label={appName}>
@@ -415,27 +392,7 @@ const AppLayout = () => {
                   </button>
                 </Dropdown>
               </div>
-            </div>
-          ) : (
-            <>
-              <Space size={compactNavigation ? 8 : 16} className="app-header-leading">
-                {compactNavigation && <Button aria-label="Mở menu điều hướng" icon={<MenuOutlined />} onClick={() => setMobileMenuOpen(true)} />}
-                <Typography.Text className="app-role-label" strong>
-                  {user?.roleLabel || ROLE_LABELS[user?.role] || user?.role}
-                  {user?.schoolId?.name ? ` · ${user.schoolId.name}` : ''}
-                </Typography.Text>
-              </Space>
-              <Space size={compactNavigation ? 8 : 16}>
-                <span className="app-user-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} onClick={() => navigate('/profile')} title="Thông tin tài khoản">
-                  <Badge dot><Avatar icon={<UserOutlined />} src={user?.avatar || undefined} /></Badge>
-                  <span className="app-user-name">{user?.name}</span>
-                </span>
-                <Button icon={<LogoutOutlined />} aria-label="Đăng xuất" onClick={() => { dispatch(logout()); navigate('/login'); }} className="app-logout-button">
-                  <span className="app-logout-label">Đăng xuất</span>
-                </Button>
-              </Space>
-            </>
-          )}
+          </div>
         </Header>
         <Content
           ref={contentRef}
