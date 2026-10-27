@@ -923,6 +923,32 @@ body {
   color: #07598e !important;
 }
 
+.app-shell-figma .app-dashboard-menu .ant-menu-submenu .ant-menu-item {
+  border-color: transparent;
+  background: transparent;
+}
+
+.app-shell-figma .app-dashboard-menu .ant-menu-submenu .ant-menu-item:hover:not(.ant-menu-item-selected) {
+  border-color: transparent;
+  background: #0a659d;
+}
+
+.app-shell-figma .app-dashboard-menu .ant-menu-submenu .ant-menu-item-selected {
+  box-shadow: inset 3px 0 #f2c365;
+  border-color: transparent;
+  background: transparent !important;
+  color: #fff !important;
+  font-weight: 700;
+}
+
+.app-shell-figma .app-dashboard-menu .ant-menu-submenu .ant-menu-item-selected a {
+  color: #fff !important;
+}
+
+.app-shell-figma .app-dashboard-menu .ant-menu-submenu .ant-menu-item-selected .ant-menu-item-icon {
+  color: #ffd166 !important;
+}
+
 .app-shell-figma .app-dashboard-menu .ant-menu-item:focus-visible,
 .app-shell-figma .app-dashboard-menu .ant-menu-submenu-title:focus-visible {
   outline: 2px solid #f2c365;
