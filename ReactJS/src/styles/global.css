@@ -166,6 +166,7 @@ body {
   flex: 1 1 auto;
   flex-direction: column;
   gap: 3px;
+  line-height: 1.25;
 }
 
 .dashboard-scope-copy strong,
