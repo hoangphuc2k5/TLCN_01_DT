@@ -441,10 +441,10 @@ const AppLayout = () => {
                   </Button>
                 </Tooltip>
                 <Dropdown menu={accountMenu} trigger={['click']} placement="bottomRight">
-                  <button className="dashboard-account-button" type="button" aria-label={`Tài khoản ${user?.name || ''}, ${user?.roleLabel || ROLE_LABELS[user?.role] || user?.role || ''}`} title="Mở menu tài khoản">
-                    <span className="dashboard-account-avatar"><img src={accountAvatar} alt="" /><span>{getInitials(user?.name)}</span></span>
+                  <button className="dashboard-account-button" type="button" title="Mở menu tài khoản">
+                    <span className="dashboard-account-avatar"><img src={accountAvatar} alt="" /><span aria-hidden="true">{getInitials(user?.name)}</span></span>
                     <span className="dashboard-account-details"><strong>{user?.name || 'Người dùng'}</strong><small>{user?.roleLabel || ROLE_LABELS[user?.role] || user?.role}</small></span>
-                    <DownOutlined />
+                    <DownOutlined aria-hidden="true" />
                   </button>
                 </Dropdown>
               </div>
