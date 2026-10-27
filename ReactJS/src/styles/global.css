@@ -34,7 +34,7 @@ body {
   border-right: 1px solid var(--ui-color-border, #dfe6e9);
 }
 
-.app-shell-dashboard .app-sider {
+.app-shell-figma .app-sider {
   box-sizing: border-box;
   flex: 0 0 250px !important;
   width: 250px !important;
@@ -45,15 +45,15 @@ body {
   background: #fff;
 }
 
-.app-shell-dashboard .app-brand {
+.app-shell-figma .app-brand {
   display: none;
 }
 
-.app-shell-dashboard .app-main-layout {
+.app-shell-figma .app-main-layout {
   padding-top: 72px;
 }
 
-.app-shell-dashboard .dashboard-app-header {
+.app-shell-figma .dashboard-app-header {
   position: fixed;
   z-index: 1000;
   top: 0;
@@ -548,15 +548,15 @@ body {
 }
 
 @media (max-width: 991px) {
-  .app-shell-dashboard .app-sider {
+  .app-shell-figma .app-sider {
     display: none;
   }
 
-  .app-shell-dashboard .app-main-layout {
+  .app-shell-figma .app-main-layout {
     padding-top: 56px;
   }
 
-  .app-shell-dashboard .dashboard-app-header {
+  .app-shell-figma .dashboard-app-header {
     height: 56px;
     flex-basis: 56px;
     padding: 0 12px;
