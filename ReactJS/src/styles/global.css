@@ -40,13 +40,28 @@ body {
   width: 250px !important;
   max-width: 250px !important;
   min-width: 250px !important;
-  padding-top: 72px;
   border-right: 0;
-  background: #fff;
+  background: #07598e;
 }
 
 .app-shell-figma .app-brand {
-  display: none;
+  display: flex;
+  height: 118px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  border-bottom: 1px solid rgb(255 255 255 / 28%);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.app-shell-figma .app-brand .dashboard-brand-mark {
+  width: 38px;
+  height: 34px;
+  flex-basis: 34px;
+  transform: scale(1.2);
 }
 
 .app-shell-figma .app-main-layout {
@@ -58,13 +73,13 @@ body {
   z-index: 1000;
   top: 0;
   right: 0;
-  left: 0;
-  width: 100%;
+  left: 250px;
+  width: calc(100% - 250px);
   height: 72px;
   flex: 0 0 72px;
   padding: 0 24px;
-  border-bottom: 1px solid #dbe5e8;
-  background: #fff;
+  border-bottom: 1px solid #064b78;
+  background: #07598e;
 }
 
 .dashboard-header-content,
@@ -93,7 +108,7 @@ body {
   width: 140px;
   flex: 0 0 140px;
   gap: 8px;
-  color: #0f4c5c;
+  color: #fff;
   font-size: 19px;
   line-height: 1;
   white-space: nowrap;
@@ -133,18 +148,18 @@ body {
   width: 1px;
   height: 44px;
   flex: 0 0 1px;
-  background: #dbe5e8;
+  background: rgb(255 255 255 / 35%);
 }
 
 .dashboard-scope-pill {
-  width: min(310px, 32vw);
+  width: min(560px, 55vw);
   min-width: 0;
   height: 44px;
   gap: 10px;
   padding: 0 12px;
-  border: 1px solid #dbe5e8;
-  border-radius: 8px;
-  background: #fff;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .dashboard-scope-icon {
@@ -154,8 +169,8 @@ body {
   flex: 0 0 28px;
   place-items: center;
   border-radius: 7px;
-  background: #e3f5f2;
-  color: #0f4c5c;
+  background: #fff;
+  color: #07598e;
   font-size: 18px;
   line-height: 1;
 }
@@ -177,14 +192,16 @@ body {
 }
 
 .dashboard-scope-copy strong {
-  color: #1f2933;
-  font-size: 11px;
-  font-weight: 600;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .dashboard-scope-copy small {
-  color: #52646d;
-  font-size: 9px;
+  color: #e0edf5;
+  font-size: 11px;
 }
 
 .dashboard-header-actions {
@@ -205,7 +222,7 @@ body {
 
 .dashboard-notification-button .anticon {
   display: block;
-  color: #52646d;
+  color: #fff;
   font-size: 19px;
 }
 
@@ -214,13 +231,13 @@ body {
   padding: 0;
   border: 0;
   background: transparent;
-  color: #52646d;
+  color: #fff;
   cursor: pointer;
 }
 
 .dashboard-account-button:focus-visible,
 .dashboard-notification-button:focus-visible {
-  outline: 2px solid #0f4c5c;
+  outline: 2px solid #f2c365;
   outline-offset: 3px;
 }
 
@@ -267,13 +284,13 @@ body {
 }
 
 .dashboard-account-details strong {
-  color: #1f2933;
+  color: #fff;
   font-size: 11px;
   font-weight: 600;
 }
 
 .dashboard-account-details small {
-  color: #52646d;
+  color: #e0edf5;
   font-size: 10px;
 }
 
@@ -780,6 +797,214 @@ body {
     width: 26px;
   }
 
+}
+
+@media (min-width: 992px) {
+  .dashboard-wordmark,
+  .dashboard-header-divider {
+    display: none;
+  }
+}
+
+@media (min-width: 992px) and (max-width: 1200px) {
+  .dashboard-scope-pill {
+    width: min(360px, 40vw);
+  }
+
+  .dashboard-header-actions {
+    gap: 12px;
+  }
+
+  .dashboard-account-details {
+    max-width: 120px;
+  }
+}
+
+@media (max-width: 991px) {
+  .app-shell-figma .dashboard-app-header {
+    left: 0;
+    width: 100%;
+  }
+
+  .app-shell-figma .app-brand {
+    display: none;
+  }
+
+  .app-mobile-drawer .ant-drawer-header {
+    border-bottom-color: #064b78;
+    background: #07598e;
+  }
+
+  .app-mobile-drawer .ant-drawer-title,
+  .app-mobile-drawer .ant-drawer-close {
+    color: #fff;
+  }
+
+  .app-mobile-drawer .ant-drawer-body {
+    background: #07598e;
+  }
+
+  .app-mobile-drawer .sidebar-brand {
+    display: none;
+  }
+}
+
+.app-shell-figma .app-dashboard-menu.ant-menu {
+  color: #f5f8fb;
+  background: transparent;
+}
+
+.app-shell-figma .app-dashboard-menu .ant-menu-submenu {
+  border-bottom-color: rgb(255 255 255 / 28%);
+}
+
+.app-shell-figma .app-dashboard-menu .ant-menu-submenu-title {
+  color: #dceaf3;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.app-shell-figma .app-dashboard-menu .ant-menu-item {
+  color: #f5f8fb;
+}
+
+.app-shell-figma .app-dashboard-menu .ant-menu-item a {
+  color: inherit;
+}
+
+.app-shell-figma .app-dashboard-menu .ant-menu-item-icon,
+.app-shell-figma .app-dashboard-menu .ant-menu-submenu-arrow {
+  color: #e0edf5;
+}
+
+.app-shell-figma .app-dashboard-menu .ant-menu-item:hover:not(.ant-menu-item-selected),
+.app-shell-figma .app-dashboard-menu .ant-menu-submenu-title:hover {
+  color: #fff;
+  background: #0a659d;
+}
+
+.app-shell-figma .app-dashboard-menu .ant-menu-item-selected {
+  box-shadow: inset 4px 0 #f2c365;
+  background: #f4f7fa !important;
+  color: #07598e !important;
+  font-weight: 700;
+}
+
+.app-shell-figma .app-dashboard-menu .ant-menu-item-selected a,
+.app-shell-figma .app-dashboard-menu .ant-menu-item-selected .ant-menu-item-icon {
+  color: #07598e !important;
+}
+
+.app-shell-figma .app-dashboard-menu .ant-menu-item:focus-visible,
+.app-shell-figma .app-dashboard-menu .ant-menu-submenu-title:focus-visible {
+  outline: 2px solid #f2c365;
+  outline-offset: -2px;
+}
+
+.app-shell-figma .dashboard-app-header .dashboard-scope-icon {
+  flex: 0 0 28px;
+  background: #fff;
+  color: #07598e;
+}
+
+.app-shell-figma .dashboard-app-header .dashboard-scope-copy strong {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.app-shell-figma .dashboard-app-header .dashboard-scope-copy small {
+  color: #e0edf5;
+  font-size: 11px;
+}
+
+.app-shell-figma .dashboard-app-header .dashboard-notification-button .anticon,
+.app-shell-figma .dashboard-app-header .dashboard-account-button,
+.app-shell-figma .dashboard-app-header .dashboard-account-details strong,
+.app-shell-figma .dashboard-app-header .dashboard-account-button > svg {
+  color: #fff;
+}
+
+.app-shell-figma .dashboard-app-header .dashboard-notification-button.ant-btn {
+  border-color: transparent;
+  background: transparent;
+  color: #fff;
+}
+
+.app-shell-figma .dashboard-app-header .dashboard-notification-button.ant-btn:hover {
+  background: #0a659d;
+}
+
+.app-shell-figma .dashboard-app-header .dashboard-account-details small {
+  color: #e0edf5;
+}
+
+.app-shell-figma .app-page-header {
+  align-items: flex-end;
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: 2px solid #c6cdd2;
+}
+
+.app-shell-figma .app-page-title,
+.app-shell-dashboard .dashboard-heading h1 {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  margin: 0 18px -2px 0;
+  padding: 5px 16px;
+  background: #07598e;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.app-shell-figma .app-page-title::after,
+.app-shell-dashboard .dashboard-heading h1::after {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  width: 18px;
+  height: 100%;
+  background: #96a0a7;
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+  content: '';
+}
+
+.app-shell-figma .app-page-description {
+  color: #46545c;
+}
+
+.app-shell-dashboard .dashboard-heading {
+  align-items: flex-end;
+  border-bottom: 2px solid #c6cdd2;
+}
+
+.app-shell-dashboard .dashboard-heading h1 {
+  flex: 0 1 auto;
+  font-size: clamp(18px, 2vw, 22px);
+}
+
+@media (max-width: 767px) {
+  .app-shell-figma .app-page-title,
+  .app-shell-dashboard .dashboard-heading h1 {
+    min-height: 34px;
+    padding: 5px 12px;
+    font-size: 17px;
+  }
+
+  .app-shell-figma .dashboard-app-header .dashboard-scope-copy strong {
+    font-size: 10px;
+  }
+
+  .app-shell-figma .dashboard-app-header .dashboard-scope-copy small {
+    font-size: 9px;
+  }
 }
 
 a {
