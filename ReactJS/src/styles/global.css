@@ -34,6 +34,372 @@ body {
   border-right: 1px solid var(--ui-color-border, #dfe6e9);
 }
 
+.app-shell-figma .app-sider {
+  box-sizing: border-box;
+  flex: 0 0 250px !important;
+  width: 250px !important;
+  max-width: 250px !important;
+  min-width: 250px !important;
+  border-right: 0;
+  background: #07598e;
+}
+
+.app-shell-figma .app-brand {
+  display: flex;
+  height: 118px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  border-bottom: 1px solid rgb(255 255 255 / 28%);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.app-shell-figma .app-brand .dashboard-brand-mark {
+  width: 38px;
+  height: 34px;
+  flex-basis: 34px;
+  transform: scale(1.2);
+}
+
+.app-shell-figma .app-main-layout {
+  padding-top: 72px;
+}
+
+.app-shell-figma .dashboard-app-header {
+  position: fixed;
+  z-index: 1000;
+  top: 0;
+  right: 0;
+  left: 250px;
+  width: calc(100% - 250px);
+  height: 72px;
+  flex: 0 0 72px;
+  padding: 0 24px;
+  border-bottom: 1px solid #064b78;
+  background: #07598e;
+}
+
+.dashboard-header-content,
+.dashboard-header-left,
+.dashboard-header-actions,
+.dashboard-wordmark,
+.dashboard-scope-pill,
+.dashboard-account-button {
+  display: flex;
+  align-items: center;
+}
+
+.dashboard-header-content {
+  width: 100%;
+  height: 100%;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.dashboard-header-left {
+  min-width: 0;
+  gap: 24px;
+}
+
+.dashboard-wordmark {
+  width: 140px;
+  flex: 0 0 140px;
+  gap: 8px;
+  color: #fff;
+  font-size: 19px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.dashboard-wordmark strong {
+  font-weight: 700;
+}
+
+.dashboard-brand-mark {
+  position: relative;
+  display: inline-flex;
+  width: 30px;
+  height: 28px;
+  align-items: center;
+  flex: 0 0 30px;
+}
+
+.dashboard-brand-mark img {
+  position: absolute;
+  display: block;
+  width: 14px;
+  height: 24px;
+}
+
+.dashboard-brand-mark img:first-child {
+  left: 0;
+  top: 2px;
+}
+
+.dashboard-brand-mark img:last-child {
+  left: 14px;
+  top: 0;
+}
+
+.dashboard-header-divider {
+  width: 1px;
+  height: 44px;
+  flex: 0 0 1px;
+  background: rgb(255 255 255 / 35%);
+}
+
+.dashboard-scope-pill {
+  width: min(560px, 55vw);
+  min-width: 0;
+  height: 44px;
+  gap: 10px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.dashboard-scope-icon {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  place-items: center;
+  border-radius: 7px;
+  background: #fff;
+  color: #07598e;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.dashboard-scope-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 3px;
+  line-height: 1.25;
+}
+
+.dashboard-scope-copy strong,
+.dashboard-scope-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-scope-copy strong {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.dashboard-scope-copy small {
+  color: #e0edf5;
+  font-size: 11px;
+}
+
+.dashboard-header-actions {
+  flex: 0 0 auto;
+  gap: 20px;
+}
+
+.dashboard-notification-button.ant-btn {
+  position: relative;
+  display: grid;
+  width: 32px;
+  height: 38px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  box-shadow: none;
+}
+
+.dashboard-notification-button .anticon {
+  display: block;
+  color: #fff;
+  font-size: 19px;
+}
+
+.dashboard-account-button {
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+}
+
+.dashboard-account-button:focus-visible,
+.dashboard-notification-button:focus-visible {
+  outline: 2px solid #f2c365;
+  outline-offset: 3px;
+}
+
+.dashboard-account-button > svg {
+  font-size: 10px;
+}
+
+.dashboard-account-avatar {
+  position: relative;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  color: #0f4c5c;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.dashboard-account-avatar img {
+  position: absolute;
+  inset: 0;
+  width: 38px;
+  height: 38px;
+}
+
+.dashboard-account-avatar span {
+  position: relative;
+  z-index: 1;
+}
+
+.dashboard-account-details {
+  display: flex;
+  max-width: 160px;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+}
+
+.dashboard-account-details strong,
+.dashboard-account-details small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-account-details strong {
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.dashboard-account-details small {
+  color: #e0edf5;
+  font-size: 10px;
+}
+
+.app-shell-dashboard .app-content {
+  margin: 0;
+  padding: 28px 30px 34px;
+  background: #f5f7f9;
+}
+
+.app-shell-dashboard .app-content-panel {
+  min-height: 0;
+  overflow: visible;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.app-shell-dashboard .app-route-frame {
+  gap: 0;
+}
+
+.app-dashboard-menu.ant-menu-inline {
+  border-inline-end: 0;
+  background: transparent;
+}
+
+.app-dashboard-menu .ant-menu-submenu {
+  margin: 0 14px 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #dbe5e8;
+}
+
+.app-dashboard-menu .ant-menu-submenu:last-child {
+  border-bottom: 0;
+}
+
+.app-dashboard-menu .ant-menu-submenu-title {
+  height: 34px;
+  margin: 0;
+  padding: 0 10px !important;
+  color: #52646d;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 34px;
+}
+
+.app-dashboard-menu .ant-menu-sub {
+  margin: 0;
+  background: transparent !important;
+}
+
+.app-dashboard-menu .ant-menu-item {
+  width: calc(100% - 8px);
+  height: 40px;
+  margin: 0 4px;
+  padding-inline: 14px !important;
+  border-radius: 8px;
+  line-height: 40px;
+}
+
+.app-dashboard-menu > .ant-menu-item {
+  width: calc(100% - 28px);
+  margin: 12px 14px 8px;
+}
+
+.app-dashboard-menu .ant-menu-item::after {
+  display: none;
+}
+
+.app-dashboard-menu .ant-menu-item-selected {
+  box-shadow: inset 3px 0 #059694;
+  background: #e3f5f2 !important;
+}
+
+.app-dashboard-menu .ant-menu-item:hover:not(.ant-menu-item-selected) {
+  background: #f0f5f7;
+  color: #0f4c5c;
+}
+
+.app-dashboard-menu .ant-menu-item:active {
+  background: #e8eff2;
+}
+
+.app-dashboard-menu .ant-menu-item:focus-visible,
+.app-dashboard-menu .ant-menu-submenu-title:focus-visible {
+  outline: 2px solid #0f4c5c;
+  outline-offset: -2px;
+}
+
+.app-dashboard-menu .ant-menu-item-disabled {
+  opacity: 0.58;
+}
+
+.app-dashboard-menu .ant-menu-item-icon {
+  color: #51636d;
+  font-size: 15px;
+}
+
+.app-dashboard-menu .ant-menu-title-content {
+  margin-inline-start: 10px !important;
+  font-size: 12px;
+}
+
+.app-dashboard-menu .ant-menu-submenu-arrow {
+  color: #52646d;
+}
+
 .app-brand {
   padding: 16px;
   text-align: center;
@@ -181,6 +547,124 @@ body {
   min-height: 32px;
 }
 
+/* Shared contrast and reading hierarchy for application pages. */
+.app-shell-figma .app-content-panel .ant-select-selection-placeholder,
+.app-shell-figma .app-content-panel .ant-input::placeholder,
+.app-shell-figma .app-content-panel .ant-picker-input input::placeholder {
+  color: #52616a;
+  opacity: 1;
+}
+
+.app-shell-figma .app-content-panel .ant-table-thead > tr > th {
+  border-bottom-color: #d2c2a3;
+  border-inline-end-color: #d9cbb2;
+  background: #f1e9db;
+  color: #1f2933;
+  font-weight: 600;
+}
+
+.app-shell-figma .app-content-panel .ant-table-tbody > tr > td {
+  border-bottom-color: #c5ced3;
+}
+
+.app-shell-figma .app-content-panel .ant-tag {
+  font-weight: 600;
+}
+
+.app-shell-figma .app-content-panel .ant-tag.ant-tag-green {
+  border-color: #95de64;
+  background: #f6ffed;
+  color: #237804;
+}
+
+.app-shell-figma .app-content-panel .ant-tag.ant-tag-blue {
+  border-color: #91caff;
+  background: #e6f4ff;
+  color: #0958d9;
+}
+
+.app-shell-figma .app-content-panel .ant-tag.ant-tag-orange {
+  border-color: #ffc069;
+  background: #fff7e6;
+  color: #ad4e00;
+}
+
+.app-shell-figma .app-content-panel .ant-tag.ant-tag-red {
+  border-color: #ffa39e;
+  background: #fff1f0;
+  color: #a8071a;
+}
+
+.app-shell-figma .app-content-panel .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #0b3d4a;
+  font-weight: 600;
+}
+
+.app-shell-figma .app-content-panel .ant-tabs-ink-bar {
+  height: 3px;
+  border-radius: 2px;
+}
+
+.app-dashboard-menu .ant-menu-submenu-title {
+  color: #46545c;
+  font-size: 10px;
+}
+
+.app-dashboard-menu .ant-menu-submenu {
+  border-bottom-color: #c5ced3;
+}
+
+.app-dashboard-menu .ant-menu-item-selected {
+  box-shadow: inset 4px 0 #0b7775;
+  background: #d2ece7 !important;
+  color: #0b3d4a !important;
+  font-weight: 600;
+}
+
+.app-dashboard-menu .ant-menu-item-icon,
+.app-dashboard-menu .ant-menu-submenu-arrow {
+  color: #46545c;
+}
+
+.app-dashboard-menu .ant-menu-title-content {
+  font-size: 13px;
+}
+
+.dashboard-scope-copy small {
+  color: #46545c;
+  font-size: 10px;
+}
+
+.dashboard-data-label {
+  border-color: #c5ced3;
+  color: #46545c;
+  font-size: 11px;
+}
+
+.dashboard-metric-label {
+  color: #46545c;
+  font-size: 13px;
+}
+
+.dashboard-metric > small,
+.dashboard-bar-meta {
+  color: #46545c;
+  font-size: 11px;
+}
+
+.dashboard-chart-badge {
+  font-size: 11px;
+}
+
+.dashboard-attendance-chart text {
+  fill: #46545c;
+  font-size: 11px;
+}
+
+.dashboard-attendance-chart .dashboard-chart-date {
+  font-size: 10px;
+}
+
 @media (max-width: 767px) {
   .app-header {
     flex-basis: 56px;
@@ -220,6 +704,376 @@ body {
 
   .attendance-form .ant-btn {
     width: 100%;
+  }
+}
+
+@media (max-width: 991px) {
+  .app-shell-figma .app-sider {
+    display: none;
+  }
+
+  .app-shell-figma .app-main-layout {
+    padding-top: 56px;
+  }
+
+  .app-shell-figma .dashboard-app-header {
+    height: 56px;
+    flex-basis: 56px;
+    padding: 0 12px;
+  }
+
+  .dashboard-header-left {
+    gap: 10px;
+  }
+
+  .dashboard-wordmark {
+    width: auto;
+    flex-basis: auto;
+    gap: 6px;
+    font-size: 15px;
+  }
+
+  .dashboard-brand-mark {
+    transform: scale(.8);
+    transform-origin: left center;
+    width: 25px;
+    flex-basis: 25px;
+  }
+
+  .dashboard-scope-pill {
+    width: min(220px, 38vw);
+    height: 38px;
+    gap: 7px;
+    padding: 0 8px;
+  }
+
+  .dashboard-scope-icon {
+    width: 24px;
+    height: 24px;
+    flex-basis: 24px;
+  }
+
+  .dashboard-scope-copy strong {
+    font-size: 10px;
+  }
+
+  .dashboard-scope-copy small {
+    font-size: 8px;
+  }
+
+  .dashboard-header-actions {
+    gap: 8px;
+  }
+
+  .dashboard-account-details {
+    display: none;
+  }
+
+  .dashboard-account-avatar,
+  .dashboard-account-avatar img {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+@media (max-width: 767px) {
+  .app-shell-dashboard .app-content {
+    padding: 16px 12px 24px;
+  }
+
+  .dashboard-header-left {
+    gap: 4px;
+  }
+
+  .dashboard-wordmark {
+    font-size: 14px;
+  }
+
+  .dashboard-scope-pill {
+    width: clamp(80px, 25vw, 130px);
+  }
+
+  .dashboard-notification-button.ant-btn {
+    width: 26px;
+  }
+
+}
+
+@media (min-width: 992px) {
+  .dashboard-wordmark,
+  .dashboard-header-divider {
+    display: none;
+  }
+}
+
+@media (min-width: 992px) and (max-width: 1200px) {
+  .dashboard-scope-pill {
+    width: min(360px, 40vw);
+  }
+
+  .dashboard-header-actions {
+    gap: 12px;
+  }
+
+  .dashboard-account-details {
+    max-width: 120px;
+  }
+}
+
+@media (max-width: 991px) {
+  .app-shell-figma .dashboard-app-header {
+    left: 0;
+    width: 100%;
+  }
+
+  .app-shell-figma .app-brand {
+    display: none;
+  }
+
+  .app-mobile-drawer .ant-drawer-header {
+    border-bottom-color: #064b78;
+    background: #07598e;
+  }
+
+  .app-mobile-drawer .ant-drawer-title,
+  .app-mobile-drawer .ant-drawer-close {
+    color: #fff;
+  }
+
+  .app-mobile-drawer .ant-drawer-body {
+    background: #07598e;
+  }
+
+  .app-mobile-drawer .sidebar-brand {
+    display: none;
+  }
+}
+
+.app-shell-figma .app-dashboard-menu.ant-menu {
+  color: #f5f8fb;
+  background: transparent;
+}
+
+.app-shell-figma .app-dashboard-menu .ant-menu-submenu {
+  border-bottom-color: rgb(255 255 255 / 28%);
+}
+
+.app-shell-figma .app-dashboard-menu .ant-menu-submenu-title {
+  color: #ffd166;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.app-mobile-drawer .app-dashboard-menu .ant-menu-submenu-title {
+  color: #ffd166;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.app-shell-figma .app-dashboard-menu .ant-menu-item {
+  color: #f5f8fb;
+}
+
+.app-dashboard-menu .ant-menu-item {
+  height: 42px;
+  margin: 4px 4px;
+  padding-inline: 20px !important;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  line-height: 40px;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.app-dashboard-menu > .ant-menu-item {
+  width: calc(100% - 28px);
+  margin: 10px 14px;
+}
+
+.app-dashboard-menu .ant-menu-submenu .ant-menu-item {
+  width: calc(100% - 22px);
+  margin: 4px 4px 4px 18px;
+}
+
+.app-shell-figma .app-dashboard-menu .ant-menu-item a {
+  color: inherit;
+}
+
+.app-shell-figma .app-dashboard-menu .ant-menu-item-icon,
+.app-shell-figma .app-dashboard-menu .ant-menu-submenu-arrow {
+  color: #e0edf5;
+}
+
+.app-shell-figma .app-dashboard-menu .ant-menu-item:hover:not(.ant-menu-item-selected),
+.app-shell-figma .app-dashboard-menu .ant-menu-submenu-title:hover {
+  border-color: transparent;
+  color: #fff;
+  background: #0a659d;
+}
+
+.app-shell-figma .app-dashboard-menu .ant-menu-item-selected {
+  box-shadow: inset 4px 0 #f2c365;
+  border-color: #f2c365;
+  background: #f4f7fa !important;
+  color: #07598e !important;
+  font-weight: 700;
+}
+
+.app-shell-figma .app-dashboard-menu .ant-menu-item-selected a,
+.app-shell-figma .app-dashboard-menu .ant-menu-item-selected .ant-menu-item-icon {
+  color: #07598e !important;
+}
+
+.app-shell-figma .app-dashboard-menu > .ant-menu-item-selected {
+  box-shadow: inset 3px 0 #f2c365;
+  border-color: transparent;
+  background: transparent !important;
+  color: #fff !important;
+  font-weight: 700;
+}
+
+.app-shell-figma .app-dashboard-menu > .ant-menu-item-selected a {
+  color: #fff !important;
+}
+
+.app-shell-figma .app-dashboard-menu > .ant-menu-item-selected .ant-menu-item-icon {
+  color: #ffd166 !important;
+}
+
+.app-shell-figma .app-dashboard-menu .ant-menu-submenu .ant-menu-item {
+  border-color: transparent;
+  background: transparent;
+}
+
+.app-shell-figma .app-dashboard-menu .ant-menu-submenu .ant-menu-item:hover:not(.ant-menu-item-selected) {
+  border-color: transparent;
+  background: #0a659d;
+}
+
+.app-shell-figma .app-dashboard-menu .ant-menu-submenu .ant-menu-item-selected {
+  box-shadow: inset 3px 0 #f2c365;
+  border-color: transparent;
+  background: transparent !important;
+  color: #fff !important;
+  font-weight: 700;
+}
+
+.app-shell-figma .app-dashboard-menu .ant-menu-submenu .ant-menu-item-selected a {
+  color: #fff !important;
+}
+
+.app-shell-figma .app-dashboard-menu .ant-menu-submenu .ant-menu-item-selected .ant-menu-item-icon {
+  color: #ffd166 !important;
+}
+
+.app-shell-figma .app-dashboard-menu .ant-menu-item:focus-visible,
+.app-shell-figma .app-dashboard-menu .ant-menu-submenu-title:focus-visible {
+  outline: 2px solid #f2c365;
+  outline-offset: -2px;
+}
+
+.app-shell-figma .dashboard-app-header .dashboard-scope-icon {
+  flex: 0 0 28px;
+  background: #fff;
+  color: #07598e;
+}
+
+.app-shell-figma .dashboard-app-header .dashboard-scope-copy strong {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.app-shell-figma .dashboard-app-header .dashboard-scope-copy small {
+  color: #e0edf5;
+  font-size: 11px;
+}
+
+.app-shell-figma .dashboard-app-header .dashboard-notification-button .anticon,
+.app-shell-figma .dashboard-app-header .dashboard-account-button,
+.app-shell-figma .dashboard-app-header .dashboard-account-details strong,
+.app-shell-figma .dashboard-app-header .dashboard-account-button > svg {
+  color: #fff;
+}
+
+.app-shell-figma .dashboard-app-header .dashboard-notification-button.ant-btn {
+  border-color: transparent;
+  background: transparent;
+  color: #fff;
+}
+
+.app-shell-figma .dashboard-app-header .dashboard-notification-button.ant-btn:hover {
+  background: #0a659d;
+}
+
+.app-shell-figma .dashboard-app-header .dashboard-account-details small {
+  color: #e0edf5;
+}
+
+.app-shell-figma .app-page-header {
+  align-items: flex-end;
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: 2px solid #c6cdd2;
+}
+
+.app-shell-figma .app-page-title,
+.app-shell-dashboard .dashboard-heading h1 {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  margin: 0 18px -2px 0;
+  padding: 5px 16px;
+  background: #07598e;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.app-shell-figma .app-page-title::after,
+.app-shell-dashboard .dashboard-heading h1::after {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  width: 18px;
+  height: 100%;
+  background: #96a0a7;
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+  content: '';
+}
+
+.app-shell-figma .app-page-description {
+  color: #46545c;
+}
+
+.app-shell-dashboard .dashboard-heading {
+  align-items: flex-end;
+  border-bottom: 2px solid #c6cdd2;
+}
+
+.app-shell-dashboard .dashboard-heading h1 {
+  flex: 0 1 auto;
+  font-size: clamp(18px, 2vw, 22px);
+}
+
+@media (max-width: 767px) {
+  .app-shell-figma .app-page-title,
+  .app-shell-dashboard .dashboard-heading h1 {
+    min-height: 34px;
+    padding: 5px 12px;
+    font-size: 17px;
+  }
+
+  .app-shell-figma .dashboard-app-header .dashboard-scope-copy strong {
+    font-size: 10px;
+  }
+
+  .app-shell-figma .dashboard-app-header .dashboard-scope-copy small {
+    font-size: 9px;
   }
 }
 

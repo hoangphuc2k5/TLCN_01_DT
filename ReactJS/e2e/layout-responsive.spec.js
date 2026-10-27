@@ -1,5 +1,11 @@
 import { test, expect } from '@playwright/test';
 
+async function openMenuGroup(page, label) {
+  const group = page.locator('.app-dashboard-menu .ant-menu-submenu-title').filter({ hasText: label });
+  await expect(group).toBeVisible();
+  if (await group.getAttribute('aria-expanded') !== 'true') await group.click();
+}
+
 async function login(page) {
   await page.goto('/login');
   await page.getByLabel('Email', { exact: true }).fill('teacher0@test.invalid');
@@ -26,6 +32,7 @@ test('layout resets route scroll and works at laptop and phone widths', async ({
     await content.evaluate(element => element.scrollTo(0, element.scrollHeight));
     await expect.poll(() => content.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
 
+    await openMenuGroup(page, 'HỌC VỤ');
     await page.getByRole('link', { name: 'Điểm danh' }).click();
     await expect(page).toHaveURL(/\/attendance$/);
     await expect.poll(() => content.evaluate(element => element.scrollTop)).toBe(0);
@@ -36,6 +43,7 @@ test('layout resets route scroll and works at laptop and phone widths', async ({
     await expect(menuButton).toBeVisible();
     await menuButton.click();
     await expect(page.locator('.app-mobile-drawer')).toBeVisible();
+    await openMenuGroup(page, 'HỌC VỤ');
     await page.getByRole('link', { name: 'Thông báo' }).click();
     await expect(page).toHaveURL(/\/announcements$/);
     await expect(page.locator('.ant-drawer-content-wrapper')).toBeHidden();

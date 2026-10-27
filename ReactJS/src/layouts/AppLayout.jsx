@@ -1,6 +1,7 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Layout, Menu, Typography, Button, Avatar, Space, Badge, Drawer, Grid } from 'antd';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Layout, Menu, Button, Drawer, Grid, Dropdown, Tooltip } from 'antd';
 import {
+  AppstoreOutlined,
   DashboardOutlined,
   BankOutlined,
   TeamOutlined,
@@ -9,6 +10,7 @@ import {
   CheckSquareOutlined,
   FormOutlined,
   DollarOutlined,
+  BellOutlined,
   NotificationOutlined,
   FileTextOutlined,
   UserOutlined,
@@ -25,6 +27,7 @@ import {
   ScheduleOutlined,
   SafetyCertificateOutlined,
   MenuOutlined,
+  DownOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -33,7 +36,9 @@ import { getPageMetadata } from '../constants/page-metadata';
 import { logout } from '../store/auth.slice';
 import { ROLES, ROLE_LABELS } from '../constants/roles';
 import { canVisit } from '../utils/permissions';
-import logo from '../Logo/icon.png';
+import accountAvatar from '../features/dashboard/assets/figma/account-avatar.svg';
+import brandLeafTeal from '../features/dashboard/assets/figma/brand-leaf-teal.svg';
+import brandLeafAmber from '../features/dashboard/assets/figma/brand-leaf-amber.svg';
 
 const { Header, Sider, Content } = Layout;
 const { useBreakpoint } = Grid;
@@ -46,6 +51,144 @@ const canManageRoles = (user) => {
     (p) => p.resource === 'roles' && (p.actions || []).includes('view')
   );
 };
+
+const dashboardNavByRole = {
+  [ROLES.SUPER_ADMIN]: [
+    ['CHUNG', [['Tổng quan', '/dashboard']]],
+    ['NGHIỆP VỤ', [['Trường học', '/schools'], ['Cụm trường', '/clusters'], ['Tài khoản', '/users'], ['Phân quyền', '/roles'], ['Thông báo', '/announcements'], ['Nhật ký hệ thống', '/audit-logs']]],
+    ['TÀI KHOẢN', [['Thông tin cá nhân', '/profile'], ['Trợ giúp', '/support']]],
+  ],
+  [ROLES.CLUSTER_ADMIN]: [
+    ['CHUNG', [['Tổng quan', '/dashboard']]],
+    ['NGHIỆP VỤ', [['Trường trong cụm', '/schools'], ['Tài khoản', '/users'], ['Học phí', '/fees'], ['Báo cáo', '/school-comparison'], ['Thông báo', '/announcements'], ['Hỗ trợ kỹ thuật', '/support']]],
+    ['TÀI KHOẢN', [['Thông tin cá nhân', '/profile'], ['Trợ giúp', '/messages']]],
+  ],
+  [ROLES.SCHOOL_ADMIN]: [
+    ['CHUNG', [['Tổng quan', '/dashboard']]],
+    ['NGHIỆP VỤ', [['Học sinh / nhân sự', '/users'], ['Lớp & môn', '/classes'], ['Điểm danh', '/attendance'], ['Điểm số', '/grades'], ['Học phí', '/fees'], ['Tuyển sinh', '/admissions'], ['Thông báo', '/announcements']]],
+    ['TÀI KHOẢN', [['Thông tin cá nhân', '/profile'], ['Trợ giúp', '/messages']]],
+  ],
+  [ROLES.ACADEMIC_AFFAIRS]: [
+    ['CHUNG', [['Tổng quan', '/dashboard']]],
+    ['NGHIỆP VỤ', [['Học sinh / giáo viên', '/users'], ['Lớp & môn', '/classes'], ['Điểm danh', '/attendance'], ['Thi online', '/exams'], ['Học liệu', '/materials'], ['Bài tập', '/assignments'], ['Hồ sơ học sinh', '/student-documents'], ['Giáo án', '/lesson-plans']]],
+    ['TÀI KHOẢN', [['Thông tin cá nhân', '/profile'], ['Trợ giúp', '/messages']]],
+  ],
+  [ROLES.SUBJECT_TEACHER]: [
+    ['CHUNG', [['Tổng quan', '/dashboard']]],
+    ['NGHIỆP VỤ', [['Lớp phụ trách', '/classes'], ['Điểm danh', '/attendance'], ['Nhập điểm', '/grades'], ['Thi online', '/exams'], ['Học liệu', '/materials'], ['Bài tập', '/assignments'], ['Sổ liên lạc', '/contact-book'], ['Lịch hẹn', '/appointments']]],
+    ['TÀI KHOẢN', [['Thông tin cá nhân', '/profile'], ['Trợ giúp', '/messages']]],
+  ],
+  [ROLES.HOMEROOM_TEACHER]: [
+    ['CHUNG', [['Tổng quan', '/dashboard']]],
+    ['NGHIỆP VỤ', [['Lớp chủ nhiệm', '/classes'], ['Điểm danh', '/attendance'], ['Điểm số', '/grades'], ['Hạnh kiểm', '/conduct'], ['Khen thưởng', '/rewards'], ['Hồ sơ học sinh', '/student-documents'], ['Sổ liên lạc', '/contact-book'], ['Sinh hoạt lớp', '/class-life']]],
+    ['TÀI KHOẢN', [['Thông tin cá nhân', '/profile'], ['Trợ giúp', '/messages']]],
+  ],
+  [ROLES.ACCOUNTANT]: [
+    ['CHUNG', [['Tổng quan', '/dashboard']]],
+    ['NGHIỆP VỤ', [['Học phí', '/fees'], ['Bảng lương', '/payroll'], ['Báo cáo thu', '/school-comparison']]],
+    ['TÀI KHOẢN', [['Thông tin cá nhân', '/profile'], ['Trợ giúp', '/messages']]],
+  ],
+  [ROLES.LIBRARIAN]: [
+    ['CHUNG', [['Tổng quan', '/dashboard']]],
+    ['NGHIỆP VỤ', [['Thư viện & mượn trả', '/library'], ['Cơ sở vật chất', '/facilities'], ['Yêu cầu chờ duyệt', '/equipment-maintenance']]],
+    ['TÀI KHOẢN', [['Thông tin cá nhân', '/profile'], ['Trợ giúp', '/messages']]],
+  ],
+  [ROLES.STUDENT]: [
+    ['CHUNG', [['Tổng quan', '/dashboard']]],
+    ['NGHIỆP VỤ', [['Kết quả học tập', '/grades'], ['Chuyên cần', '/attendance'], ['Học phí', '/fees'], ['Thi online', '/exams'], ['Học liệu', '/materials'], ['Bài tập', '/assignments'], ['Sổ liên lạc', '/contact-book'], ['Thư viện', '/library']]],
+    ['TÀI KHOẢN', [['Thông tin cá nhân', '/profile'], ['Trợ giúp', '/messages']]],
+  ],
+  [ROLES.PARENT]: [
+    ['CHUNG', [['Tổng quan', '/dashboard']]],
+    ['NGHIỆP VỤ', [['Điểm con', '/grades'], ['Điểm danh', '/attendance'], ['Học phí', '/fees'], ['Kết quả thi', '/exams'], ['Bài tập', '/assignments'], ['Sổ liên lạc', '/contact-book'], ['Lịch hẹn', '/appointments'], ['Thư viện', '/library']]],
+    ['TÀI KHOẢN', [['Thông tin cá nhân', '/profile'], ['Trợ giúp', '/messages']]],
+  ],
+};
+
+const dashboardMenuByRole = (role, user) => {
+  const sourceGroups = dashboardNavByRole[role] || [['CHUNG', [['Tổng quan', '/dashboard']]]];
+  const legacyItems = menuByRole(role, user);
+  const legacyItemsByPath = new Map(legacyItems.map((item) => [item.key, item]));
+  const entries = new Map();
+  for (const [, groupEntries] of sourceGroups) {
+    for (const [title, path] of groupEntries) if (!entries.has(path)) entries.set(path, title);
+  }
+  for (const item of legacyItems) {
+    if (!entries.has(item.key)) entries.set(item.key, item.label?.props?.children || item.key);
+  }
+
+  const groupLabels = ['TỔ CHỨC', 'NGƯỜI DÙNG & QUYỀN', 'HỌC VỤ', 'VẬN HÀNH', 'TÀI KHOẢN'];
+  const groupedEntries = new Map(groupLabels.map((label) => [label, []]));
+  const accountPaths = new Set(['/profile', '/messages', '/support']);
+  const organizationPaths = new Set(['/schools', '/clusters']);
+  const identityPaths = new Set(['/users', '/roles']);
+  const operationPaths = new Set(['/fees', '/payroll', '/facilities', '/equipment-maintenance', '/monitoring', '/jobs', '/audit-logs', '/subscriptions', '/templates', '/school-comparison']);
+  for (const [path, title] of entries) {
+    if (path === '/dashboard') continue;
+    const group = accountPaths.has(path) ? 'TÀI KHOẢN'
+      : organizationPaths.has(path) ? 'TỔ CHỨC'
+        : identityPaths.has(path) ? 'NGƯỜI DÙNG & QUYỀN'
+          : operationPaths.has(path) ? 'VẬN HÀNH' : 'HỌC VỤ';
+    groupedEntries.get(group).push([title, path]);
+  }
+  const dashboardIcons = {
+    '/dashboard': <DashboardOutlined />,
+    '/schools': <BankOutlined />,
+    '/clusters': <AppstoreOutlined />,
+    '/users': <TeamOutlined />,
+    '/roles': <SafetyCertificateOutlined />,
+    '/announcements': <NotificationOutlined />,
+    '/audit-logs': <AuditOutlined />,
+    '/subscriptions': <CloudServerOutlined />,
+    '/templates': <FileDoneOutlined />,
+    '/lesson-plans': <ReadOutlined />,
+    '/student-documents': <FileTextOutlined />,
+    '/payroll': <DollarOutlined />,
+    '/equipment-maintenance': <ToolOutlined />,
+    '/monitoring': <CloudServerOutlined />,
+    '/jobs': <CloudServerOutlined />,
+    '/library': <BookOutlined />,
+    '/classes': <ReadOutlined />,
+    '/attendance': <CheckSquareOutlined />,
+    '/grades': <FormOutlined />,
+    '/exams': <ExperimentOutlined />,
+    '/materials': <BookOutlined />,
+    '/assignments': <FormOutlined />,
+    '/contact-book': <MailOutlined />,
+    '/class-life': <ScheduleOutlined />,
+    '/appointments': <CalendarOutlined />,
+    '/conduct': <SmileOutlined />,
+    '/rewards': <SmileOutlined />,
+    '/admissions': <TeamOutlined />,
+    '/activities': <ScheduleOutlined />,
+    '/calendar': <CalendarOutlined />,
+    '/leave': <FileTextOutlined />,
+    '/timetable': <ScheduleOutlined />,
+    '/profile': <UserOutlined />,
+    '/messages': <MailOutlined />,
+    '/support': <CustomerServiceOutlined />,
+  };
+  const toMenuItem = ([title, path]) => ({
+    key: path,
+    icon: dashboardIcons[path] || legacyItemsByPath.get(path)?.icon || <ReadOutlined />,
+    label: <Link to={path}>{title}</Link>,
+  });
+  const dashboardItem = canVisit(user, '/dashboard') ? [toMenuItem([entries.get('/dashboard') || 'Tổng quan', '/dashboard'])] : [];
+  const collapsibleGroups = groupLabels.map((label) => ({
+    key: `section:${label}`,
+    label,
+    children: groupedEntries.get(label).filter(([, path]) => canVisit(user, path)).map(toMenuItem),
+  })).filter((group) => group.children.length);
+  return [...dashboardItem, ...collapsibleGroups];
+};
+
+const getSchoolYear = () => {
+  const now = new Date();
+  const start = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+  return `Năm học ${start} – ${start + 1}`;
+};
+
+const getInitials = (name) => String(name || 'EduMoet').trim().split(/\s+/).filter(Boolean).slice(-2).map((part) => part[0]).join('').toUpperCase();
 
 const menuByRole = (role, user) => {
   const common = [
@@ -201,27 +344,29 @@ const menuByRole = (role, user) => {
 };
 
 const AppLayout = () => {
-  const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const contentRef = useRef(null);
   const { user } = useSelector((s) => s.auth);
   const appName = useSelector((s) => s.auth.appName) || 'EduMoet';
-  const shortName = appName
-    .split(/\s+/)
-    .map((w) => w[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase() || 'EM';
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
   const screens = useBreakpoint();
   const compactNavigation = !screens.lg;
 
-  const items = useMemo(() => menuByRole(user?.role, user), [user]);
-
-  const selected = items.find((i) => location.pathname.startsWith(i.key))?.key || '/dashboard';
+  const isDashboard = location.pathname === '/dashboard';
+  const items = useMemo(() => dashboardMenuByRole(user?.role, user), [user]);
+  const selectableItems = items.flatMap((item) => item.children || [item]);
+  const selectedItem = selectableItems.find((item) => location.pathname.startsWith(item.key));
+  const selected = selectedItem?.key || '/dashboard';
+  const selectedGroup = items.find((item) => item.children?.some((child) => child.key === selected));
+  const defaultOpenGroup = selectedGroup?.key || items.find((item) => item.children)?.key;
+  const [openMenuGroups, setOpenMenuGroups] = useState(() => (defaultOpenGroup ? [defaultOpenGroup] : []));
   const pageMetadata = getPageMetadata(location.pathname);
+
+  useEffect(() => {
+    if (defaultOpenGroup) setOpenMenuGroups([defaultOpenGroup]);
+  }, [defaultOpenGroup, location.pathname]);
 
   useLayoutEffect(() => {
     contentRef.current?.scrollTo({ top: 0, left: 0 });
@@ -230,50 +375,41 @@ const AppLayout = () => {
   }, [location.pathname, location.search, location.hash]);
 
   const navigationMenu = (
-    <Menu mode="inline" selectedKeys={[selected]} items={items} onClick={() => setMobileMenuOpen(false)} />
+    <Menu className="app-dashboard-menu" mode="inline" selectedKeys={[selected]} openKeys={openMenuGroups} onOpenChange={setOpenMenuGroups} items={items} forceSubMenuRender onClick={() => setMobileMenuOpen(false)} />
   );
 
+  const dashboardScope = user?.role === ROLES.SUPER_ADMIN
+    ? 'Toàn hệ thống'
+    : user?.role === ROLES.CLUSTER_ADMIN
+      ? user?.clusterId?.name || 'Cụm trường'
+      : user?.schoolId?.name || 'Nhà trường';
+  const accountMenu = {
+    items: [
+      { key: 'profile', label: 'Thông tin cá nhân', icon: <UserOutlined /> },
+      { key: 'logout', label: 'Đăng xuất', icon: <LogoutOutlined /> },
+    ],
+    onClick: ({ key }) => {
+      if (key === 'profile') navigate('/profile');
+      if (key === 'logout') {
+        dispatch(logout());
+        navigate('/login');
+      }
+    },
+  };
+
   return (
-    <Layout className="app-shell">
+    <Layout className={`app-shell app-shell-figma${isDashboard ? ' app-shell-dashboard' : ''}`}>
       {!compactNavigation && (
         <Sider
           className="app-sider"
-          collapsible
-          collapsed={collapsed}
-          onCollapse={setCollapsed}
           theme="light"
-          width={240}
+          width={250}
         >
-          <div
-            className="app-brand"
-            onClick={() => navigate('/profile')}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') navigate('/profile');
-            }}
-            title="Thông tin tài khoản"
-          >
-            <img
-              src={logo}
-              alt={`Logo ${appName}`}
-              style={{
-                width: collapsed ? 40 : 56,
-                height: collapsed ? 40 : 56,
-                objectFit: 'contain',
-                marginBottom: collapsed ? 0 : 8,
-              }}
-            />
-            <Typography.Title level={collapsed ? 5 : 4} className="app-brand-title" style={{ margin: 0 }}>
-              {collapsed ? shortName : appName}
-            </Typography.Title>
-            {!collapsed && (
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                Quản lý đa trường
-              </Typography.Text>
-            )}
+          <div className="app-brand sidebar-brand" aria-label={appName}>
+            <span className="dashboard-brand-mark" aria-hidden="true"><img src={brandLeafTeal} alt="" /><img src={brandLeafAmber} alt="" /></span>
+            <strong>{appName}</strong>
           </div>
-          {navigationMenu}
+          <nav aria-label="Điều hướng chính">{navigationMenu}</nav>
         </Sider>
       )}
       <Drawer
@@ -285,57 +421,50 @@ const AppLayout = () => {
         onClose={() => setMobileMenuOpen(false)}
         styles={{ body: { padding: 0, overflowY: 'auto' } }}
       >
-        {navigationMenu}
+        <div className="app-brand sidebar-brand" aria-label={appName}>
+          <span className="dashboard-brand-mark" aria-hidden="true"><img src={brandLeafTeal} alt="" /><img src={brandLeafAmber} alt="" /></span>
+          <strong>{appName}</strong>
+        </div>
+        <nav aria-label="Điều hướng chính">{navigationMenu}</nav>
       </Drawer>
       <Layout className="app-main-layout">
-        <Header
-          className="app-header"
-        >
-          <Space size={compactNavigation ? 8 : 16} className="app-header-leading">
-            {compactNavigation && (
-              <Button
-                aria-label="Mở menu điều hướng"
-                icon={<MenuOutlined />}
-                onClick={() => setMobileMenuOpen(true)}
-              />
-            )}
-            <Typography.Text className="app-role-label" strong>
-              {user?.roleLabel || ROLE_LABELS[user?.role] || user?.role}
-              {user?.schoolId?.name ? ` · ${user.schoolId.name}` : ''}
-            </Typography.Text>
-          </Space>
-          <Space size={compactNavigation ? 8 : 16}>
-            <span
-              className="app-user-chip"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
-              onClick={() => navigate('/profile')}
-              title="Thông tin tài khoản"
-            >
-              <Badge dot>
-                <Avatar icon={<UserOutlined />} src={user?.avatar || undefined} />
-              </Badge>
-              <span className="app-user-name">{user?.name}</span>
-            </span>
-            <Button
-              icon={<LogoutOutlined />}
-              aria-label="Đăng xuất"
-              onClick={() => {
-                dispatch(logout());
-                navigate('/login');
-              }}
-              className="app-logout-button"
-            >
-              <span className="app-logout-label">Đăng xuất</span>
-            </Button>
-          </Space>
+        <Header className="app-header dashboard-app-header">
+          <div className="dashboard-header-content">
+              <div className="dashboard-header-left">
+                {compactNavigation && <Button aria-label="Mở menu điều hướng" icon={<MenuOutlined />} onClick={() => setMobileMenuOpen(true)} />}
+                <div className="dashboard-wordmark" aria-label={appName}>
+                  <span className="dashboard-brand-mark"><img src={brandLeafTeal} alt="" /><img src={brandLeafAmber} alt="" /></span>
+                  <strong>{appName}</strong>
+                </div>
+                {!compactNavigation && <span className="dashboard-header-divider" aria-hidden="true" />}
+                <div className="dashboard-scope-pill" aria-label="Phạm vi hiện tại">
+                  <span className="dashboard-scope-icon" aria-hidden="true">⌂</span>
+                  <span className="dashboard-scope-copy"><strong>{dashboardScope}</strong><small>Phạm vi hiện tại · {getSchoolYear()}</small></span>
+                </div>
+              </div>
+              <div className="dashboard-header-actions">
+                <Tooltip title="Thông báo" placement="bottom">
+                  <Button className="dashboard-notification-button" aria-label="Thông báo" onClick={() => navigate('/announcements')}>
+                    <BellOutlined aria-hidden="true" />
+                  </Button>
+                </Tooltip>
+                <Dropdown menu={accountMenu} trigger={['click']} placement="bottomRight">
+                  <button className="dashboard-account-button" type="button" title="Mở menu tài khoản">
+                    <span className="dashboard-account-avatar"><img src={accountAvatar} alt="" /><span aria-hidden="true">{getInitials(user?.name)}</span></span>
+                    <span className="dashboard-account-details"><strong>{user?.name || 'Người dùng'}</strong><small>{user?.roleLabel || ROLE_LABELS[user?.role] || user?.role}</small></span>
+                    <DownOutlined aria-hidden="true" />
+                  </button>
+                </Dropdown>
+              </div>
+          </div>
         </Header>
         <Content
           ref={contentRef}
-          className="app-content"
+          className={`app-content${isDashboard ? ' app-dashboard-content' : ''}`}
         >
-          <div className="app-content-panel">
+          <div className={`app-content-panel${isDashboard ? ' app-dashboard-panel' : ''}`}>
             <div className="app-route-frame">
-              {pageMetadata && <PageHeader title={pageMetadata.title} />}
+              {pageMetadata && !isDashboard && <PageHeader title={pageMetadata.title} />}
               <div className="app-route-content">
                 <Outlet />
               </div>
