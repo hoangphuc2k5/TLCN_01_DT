@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Layout, Menu, Typography, Button, Avatar, Space, Badge, Drawer, Grid } from 'antd';
+import { Layout, Menu, Typography, Button, Avatar, Space, Badge, Drawer, Grid, Dropdown } from 'antd';
 import {
   DashboardOutlined,
   BankOutlined,
@@ -25,6 +25,7 @@ import {
   ScheduleOutlined,
   SafetyCertificateOutlined,
   MenuOutlined,
+  DownOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -34,6 +35,13 @@ import { logout } from '../store/auth.slice';
 import { ROLES, ROLE_LABELS } from '../constants/roles';
 import { canVisit } from '../utils/permissions';
 import logo from '../Logo/icon.png';
+import notificationIcon from '../features/dashboard/assets/figma/notification-outline.svg';
+import notificationDot from '../features/dashboard/assets/figma/notification-dot.svg';
+import accountAvatar from '../features/dashboard/assets/figma/account-avatar.svg';
+import brandLeafTeal from '../features/dashboard/assets/figma/brand-leaf-teal.svg';
+import brandLeafAmber from '../features/dashboard/assets/figma/brand-leaf-amber.svg';
+import navDot from '../features/dashboard/assets/figma/nav-dot.svg';
+import navDotActive from '../features/dashboard/assets/figma/nav-dot-active.svg';
 
 const { Header, Sider, Content } = Layout;
 const { useBreakpoint } = Grid;
@@ -46,6 +54,77 @@ const canManageRoles = (user) => {
     (p) => p.resource === 'roles' && (p.actions || []).includes('view')
   );
 };
+
+const dashboardNavByRole = {
+  [ROLES.SUPER_ADMIN]: [
+    ['CHUNG', [['Tổng quan', '/dashboard']]],
+    ['NGHIỆP VỤ', [['Trường học', '/schools'], ['Cụm trường', '/clusters'], ['Tài khoản', '/users'], ['Phân quyền', '/roles'], ['Thông báo', '/announcements'], ['Nhật ký hệ thống', '/audit-logs']]],
+    ['TÀI KHOẢN', [['Thông tin cá nhân', '/profile'], ['Trợ giúp', '/support']]],
+  ],
+  [ROLES.CLUSTER_ADMIN]: [
+    ['CHUNG', [['Tổng quan', '/dashboard']]],
+    ['NGHIỆP VỤ', [['Trường trong cụm', '/schools'], ['Tài khoản', '/users'], ['Học phí', '/fees'], ['Báo cáo', '/school-comparison'], ['Thông báo', '/announcements'], ['Hỗ trợ kỹ thuật', '/support']]],
+    ['TÀI KHOẢN', [['Thông tin cá nhân', '/profile'], ['Trợ giúp', '/messages']]],
+  ],
+  [ROLES.SCHOOL_ADMIN]: [
+    ['CHUNG', [['Tổng quan', '/dashboard']]],
+    ['NGHIỆP VỤ', [['Học sinh / nhân sự', '/users'], ['Lớp & môn', '/classes'], ['Điểm danh', '/attendance'], ['Điểm số', '/grades'], ['Học phí', '/fees'], ['Tuyển sinh', '/admissions'], ['Thông báo', '/announcements']]],
+    ['TÀI KHOẢN', [['Thông tin cá nhân', '/profile'], ['Trợ giúp', '/messages']]],
+  ],
+  [ROLES.ACADEMIC_AFFAIRS]: [
+    ['CHUNG', [['Tổng quan', '/dashboard']]],
+    ['NGHIỆP VỤ', [['Học sinh / giáo viên', '/users'], ['Lớp & môn', '/classes'], ['Điểm danh', '/attendance'], ['Thi online', '/exams'], ['Học liệu', '/materials'], ['Bài tập', '/assignments'], ['Hồ sơ học sinh', '/student-documents'], ['Giáo án', '/lesson-plans']]],
+    ['TÀI KHOẢN', [['Thông tin cá nhân', '/profile'], ['Trợ giúp', '/messages']]],
+  ],
+  [ROLES.SUBJECT_TEACHER]: [
+    ['CHUNG', [['Tổng quan', '/dashboard']]],
+    ['NGHIỆP VỤ', [['Lớp phụ trách', '/classes'], ['Điểm danh', '/attendance'], ['Nhập điểm', '/grades'], ['Thi online', '/exams'], ['Học liệu', '/materials'], ['Bài tập', '/assignments'], ['Sổ liên lạc', '/contact-book'], ['Lịch hẹn', '/appointments']]],
+    ['TÀI KHOẢN', [['Thông tin cá nhân', '/profile'], ['Trợ giúp', '/messages']]],
+  ],
+  [ROLES.HOMEROOM_TEACHER]: [
+    ['CHUNG', [['Tổng quan', '/dashboard']]],
+    ['NGHIỆP VỤ', [['Lớp chủ nhiệm', '/classes'], ['Điểm danh', '/attendance'], ['Điểm số', '/grades'], ['Hạnh kiểm', '/conduct'], ['Khen thưởng', '/rewards'], ['Hồ sơ học sinh', '/student-documents'], ['Sổ liên lạc', '/contact-book'], ['Sinh hoạt lớp', '/class-life']]],
+    ['TÀI KHOẢN', [['Thông tin cá nhân', '/profile'], ['Trợ giúp', '/messages']]],
+  ],
+  [ROLES.ACCOUNTANT]: [
+    ['CHUNG', [['Tổng quan', '/dashboard']]],
+    ['NGHIỆP VỤ', [['Học phí', '/fees'], ['Bảng lương', '/payroll'], ['Báo cáo thu', '/school-comparison']]],
+    ['TÀI KHOẢN', [['Thông tin cá nhân', '/profile'], ['Trợ giúp', '/messages']]],
+  ],
+  [ROLES.LIBRARIAN]: [
+    ['CHUNG', [['Tổng quan', '/dashboard']]],
+    ['NGHIỆP VỤ', [['Thư viện & mượn trả', '/library'], ['Cơ sở vật chất', '/facilities'], ['Yêu cầu chờ duyệt', '/equipment-maintenance']]],
+    ['TÀI KHOẢN', [['Thông tin cá nhân', '/profile'], ['Trợ giúp', '/messages']]],
+  ],
+  [ROLES.STUDENT]: [
+    ['CHUNG', [['Tổng quan', '/dashboard']]],
+    ['NGHIỆP VỤ', [['Kết quả học tập', '/grades'], ['Chuyên cần', '/attendance'], ['Học phí', '/fees'], ['Thi online', '/exams'], ['Học liệu', '/materials'], ['Bài tập', '/assignments'], ['Sổ liên lạc', '/contact-book'], ['Thư viện', '/library']]],
+    ['TÀI KHOẢN', [['Thông tin cá nhân', '/profile'], ['Trợ giúp', '/messages']]],
+  ],
+  [ROLES.PARENT]: [
+    ['CHUNG', [['Tổng quan', '/dashboard']]],
+    ['NGHIỆP VỤ', [['Điểm con', '/grades'], ['Điểm danh', '/attendance'], ['Học phí', '/fees'], ['Kết quả thi', '/exams'], ['Bài tập', '/assignments'], ['Sổ liên lạc', '/contact-book'], ['Lịch hẹn', '/appointments'], ['Thư viện', '/library']]],
+    ['TÀI KHOẢN', [['Thông tin cá nhân', '/profile'], ['Trợ giúp', '/messages']]],
+  ],
+};
+
+const dashboardMenuByRole = (role, user) => (dashboardNavByRole[role] || []).map(([label, entries]) => ({
+  type: 'group',
+  label,
+  children: entries.filter(([, path]) => canVisit(user, path)).map(([title, path]) => ({
+    key: path,
+    icon: <span className="dashboard-menu-dot" aria-hidden="true"><img src={navDot} alt="" /><img src={navDotActive} alt="" /></span>,
+    label: <Link to={path}>{title}</Link>,
+  })),
+})).filter((group) => group.children.length);
+
+const getSchoolYear = () => {
+  const now = new Date();
+  const start = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+  return `Năm học ${start} – ${start + 1}`;
+};
+
+const getInitials = (name) => String(name || 'EduMoet').trim().split(/\s+/).filter(Boolean).slice(-2).map((part) => part[0]).join('').toUpperCase();
 
 const menuByRole = (role, user) => {
   const common = [
@@ -218,7 +297,8 @@ const AppLayout = () => {
   const screens = useBreakpoint();
   const compactNavigation = !screens.lg;
 
-  const items = useMemo(() => menuByRole(user?.role, user), [user]);
+  const isDashboard = location.pathname === '/dashboard';
+  const items = useMemo(() => (isDashboard ? dashboardMenuByRole(user?.role, user) : menuByRole(user?.role, user)), [isDashboard, user]);
 
   const selected = items.find((i) => location.pathname.startsWith(i.key))?.key || '/dashboard';
   const pageMetadata = getPageMetadata(location.pathname);
@@ -230,19 +310,38 @@ const AppLayout = () => {
   }, [location.pathname, location.search, location.hash]);
 
   const navigationMenu = (
-    <Menu mode="inline" selectedKeys={[selected]} items={items} onClick={() => setMobileMenuOpen(false)} />
+    <Menu className={isDashboard ? 'app-dashboard-menu' : undefined} mode="inline" selectedKeys={[selected]} items={items} onClick={() => setMobileMenuOpen(false)} />
   );
 
+  const dashboardScope = user?.role === ROLES.SUPER_ADMIN
+    ? 'Toàn hệ thống'
+    : user?.role === ROLES.CLUSTER_ADMIN
+      ? user?.clusterId?.name || 'Cụm trường'
+      : user?.schoolId?.name || 'Nhà trường';
+  const accountMenu = {
+    items: [
+      { key: 'profile', label: 'Thông tin cá nhân', icon: <UserOutlined /> },
+      { key: 'logout', label: 'Đăng xuất', icon: <LogoutOutlined /> },
+    ],
+    onClick: ({ key }) => {
+      if (key === 'profile') navigate('/profile');
+      if (key === 'logout') {
+        dispatch(logout());
+        navigate('/login');
+      }
+    },
+  };
+
   return (
-    <Layout className="app-shell">
+    <Layout className={`app-shell${isDashboard ? ' app-shell-dashboard' : ''}`}>
       {!compactNavigation && (
         <Sider
           className="app-sider"
-          collapsible
-          collapsed={collapsed}
+          collapsible={!isDashboard}
+          collapsed={isDashboard ? false : collapsed}
           onCollapse={setCollapsed}
           theme="light"
-          width={240}
+          width={isDashboard ? 250 : 240}
         >
           <div
             className="app-brand"
@@ -288,54 +387,63 @@ const AppLayout = () => {
         {navigationMenu}
       </Drawer>
       <Layout className="app-main-layout">
-        <Header
-          className="app-header"
-        >
-          <Space size={compactNavigation ? 8 : 16} className="app-header-leading">
-            {compactNavigation && (
-              <Button
-                aria-label="Mở menu điều hướng"
-                icon={<MenuOutlined />}
-                onClick={() => setMobileMenuOpen(true)}
-              />
-            )}
-            <Typography.Text className="app-role-label" strong>
-              {user?.roleLabel || ROLE_LABELS[user?.role] || user?.role}
-              {user?.schoolId?.name ? ` · ${user.schoolId.name}` : ''}
-            </Typography.Text>
-          </Space>
-          <Space size={compactNavigation ? 8 : 16}>
-            <span
-              className="app-user-chip"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
-              onClick={() => navigate('/profile')}
-              title="Thông tin tài khoản"
-            >
-              <Badge dot>
-                <Avatar icon={<UserOutlined />} src={user?.avatar || undefined} />
-              </Badge>
-              <span className="app-user-name">{user?.name}</span>
-            </span>
-            <Button
-              icon={<LogoutOutlined />}
-              aria-label="Đăng xuất"
-              onClick={() => {
-                dispatch(logout());
-                navigate('/login');
-              }}
-              className="app-logout-button"
-            >
-              <span className="app-logout-label">Đăng xuất</span>
-            </Button>
-          </Space>
+        <Header className={`app-header${isDashboard ? ' dashboard-app-header' : ''}`}>
+          {isDashboard ? (
+            <div className="dashboard-header-content">
+              <div className="dashboard-header-left">
+                {compactNavigation && <Button aria-label="Mở menu điều hướng" icon={<MenuOutlined />} onClick={() => setMobileMenuOpen(true)} />}
+                <div className="dashboard-wordmark" aria-label={appName}>
+                  <span className="dashboard-brand-mark"><img src={brandLeafTeal} alt="" /><img src={brandLeafAmber} alt="" /></span>
+                  <strong>{appName}</strong>
+                </div>
+                {!compactNavigation && <span className="dashboard-header-divider" aria-hidden="true" />}
+                <div className="dashboard-scope-pill">
+                  <span className="dashboard-scope-icon" aria-hidden="true">⌂</span>
+                  <span className="dashboard-scope-copy"><strong>{dashboardScope}</strong><small>{getSchoolYear()}</small></span>
+                  {!compactNavigation && <DownOutlined className="dashboard-scope-chevron" />}
+                </div>
+              </div>
+              <div className="dashboard-header-actions">
+                <Button className="dashboard-notification-button" aria-label="Mở thông báo" onClick={() => navigate('/announcements')}>
+                  <img src={notificationIcon} alt="" />
+                  <img className="dashboard-notification-dot" src={notificationDot} alt="" />
+                </Button>
+                <Dropdown menu={accountMenu} trigger={['click']} placement="bottomRight">
+                  <button className="dashboard-account-button" type="button" aria-label="Mở menu tài khoản">
+                    <span className="dashboard-account-avatar"><img src={accountAvatar} alt="" /><span>{getInitials(user?.name)}</span></span>
+                    <DownOutlined />
+                  </button>
+                </Dropdown>
+              </div>
+            </div>
+          ) : (
+            <>
+              <Space size={compactNavigation ? 8 : 16} className="app-header-leading">
+                {compactNavigation && <Button aria-label="Mở menu điều hướng" icon={<MenuOutlined />} onClick={() => setMobileMenuOpen(true)} />}
+                <Typography.Text className="app-role-label" strong>
+                  {user?.roleLabel || ROLE_LABELS[user?.role] || user?.role}
+                  {user?.schoolId?.name ? ` · ${user.schoolId.name}` : ''}
+                </Typography.Text>
+              </Space>
+              <Space size={compactNavigation ? 8 : 16}>
+                <span className="app-user-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} onClick={() => navigate('/profile')} title="Thông tin tài khoản">
+                  <Badge dot><Avatar icon={<UserOutlined />} src={user?.avatar || undefined} /></Badge>
+                  <span className="app-user-name">{user?.name}</span>
+                </span>
+                <Button icon={<LogoutOutlined />} aria-label="Đăng xuất" onClick={() => { dispatch(logout()); navigate('/login'); }} className="app-logout-button">
+                  <span className="app-logout-label">Đăng xuất</span>
+                </Button>
+              </Space>
+            </>
+          )}
         </Header>
         <Content
           ref={contentRef}
-          className="app-content"
+          className={`app-content${isDashboard ? ' app-dashboard-content' : ''}`}
         >
-          <div className="app-content-panel">
+          <div className={`app-content-panel${isDashboard ? ' app-dashboard-panel' : ''}`}>
             <div className="app-route-frame">
-              {pageMetadata && <PageHeader title={pageMetadata.title} />}
+              {pageMetadata && !isDashboard && <PageHeader title={pageMetadata.title} />}
               <div className="app-route-content">
                 <Outlet />
               </div>

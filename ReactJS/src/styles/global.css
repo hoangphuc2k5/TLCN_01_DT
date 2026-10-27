@@ -34,6 +34,330 @@ body {
   border-right: 1px solid var(--ui-color-border, #dfe6e9);
 }
 
+.app-shell-dashboard .app-sider {
+  box-sizing: border-box;
+  flex: 0 0 250px !important;
+  width: 250px !important;
+  max-width: 250px !important;
+  min-width: 250px !important;
+  padding-top: 72px;
+  border-right: 0;
+  background: #fff;
+}
+
+.app-shell-dashboard .app-brand {
+  display: none;
+}
+
+.app-shell-dashboard .app-main-layout {
+  padding-top: 72px;
+}
+
+.app-shell-dashboard .dashboard-app-header {
+  position: fixed;
+  z-index: 1000;
+  top: 0;
+  right: 0;
+  left: 0;
+  width: 100%;
+  height: 72px;
+  flex: 0 0 72px;
+  padding: 0 24px;
+  border-bottom: 1px solid #dbe5e8;
+  background: #fff;
+}
+
+.dashboard-header-content,
+.dashboard-header-left,
+.dashboard-header-actions,
+.dashboard-wordmark,
+.dashboard-scope-pill,
+.dashboard-account-button {
+  display: flex;
+  align-items: center;
+}
+
+.dashboard-header-content {
+  width: 100%;
+  height: 100%;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.dashboard-header-left {
+  min-width: 0;
+  gap: 24px;
+}
+
+.dashboard-wordmark {
+  width: 140px;
+  flex: 0 0 140px;
+  gap: 8px;
+  color: #0f4c5c;
+  font-size: 19px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.dashboard-wordmark strong {
+  font-weight: 700;
+}
+
+.dashboard-brand-mark {
+  position: relative;
+  display: inline-flex;
+  width: 30px;
+  height: 28px;
+  align-items: center;
+  flex: 0 0 30px;
+}
+
+.dashboard-brand-mark img {
+  position: absolute;
+  display: block;
+  width: 14px;
+  height: 24px;
+}
+
+.dashboard-brand-mark img:first-child {
+  left: 0;
+  top: 2px;
+}
+
+.dashboard-brand-mark img:last-child {
+  left: 14px;
+  top: 0;
+}
+
+.dashboard-header-divider {
+  width: 1px;
+  height: 44px;
+  flex: 0 0 1px;
+  background: #dbe5e8;
+}
+
+.dashboard-scope-pill {
+  width: min(310px, 32vw);
+  min-width: 0;
+  height: 44px;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid #dbe5e8;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.dashboard-scope-icon {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  place-items: center;
+  border-radius: 7px;
+  background: #e3f5f2;
+  color: #0f4c5c;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.dashboard-scope-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dashboard-scope-copy strong,
+.dashboard-scope-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-scope-copy strong {
+  color: #1f2933;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.dashboard-scope-copy small {
+  color: #61727a;
+  font-size: 9px;
+}
+
+.dashboard-scope-chevron {
+  color: #61727a;
+  font-size: 10px;
+}
+
+.dashboard-header-actions {
+  flex: 0 0 auto;
+  gap: 20px;
+}
+
+.dashboard-notification-button.ant-btn {
+  position: relative;
+  display: grid;
+  width: 32px;
+  height: 38px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  box-shadow: none;
+}
+
+.dashboard-notification-button img:first-child {
+  display: block;
+  width: 19px;
+  height: 19px;
+}
+
+.dashboard-notification-button .dashboard-notification-dot {
+  position: absolute;
+  top: 4px;
+  right: 1px;
+  width: 8px;
+  height: 8px;
+}
+
+.dashboard-account-button {
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #61727a;
+  cursor: pointer;
+}
+
+.dashboard-account-button:focus-visible,
+.dashboard-notification-button:focus-visible {
+  outline: 2px solid #0f4c5c;
+  outline-offset: 3px;
+}
+
+.dashboard-account-button > svg {
+  font-size: 10px;
+}
+
+.dashboard-account-avatar {
+  position: relative;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  color: #0f4c5c;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.dashboard-account-avatar img {
+  position: absolute;
+  inset: 0;
+  width: 38px;
+  height: 38px;
+}
+
+.dashboard-account-avatar span {
+  position: relative;
+  z-index: 1;
+}
+
+.app-shell-dashboard .app-content {
+  margin: 0;
+  padding: 28px 30px 34px;
+  background: #f5f7f9;
+}
+
+.app-shell-dashboard .app-content-panel {
+  min-height: 0;
+  overflow: visible;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.app-shell-dashboard .app-route-frame {
+  gap: 0;
+}
+
+.app-dashboard-menu.ant-menu-inline {
+  border-inline-end: 0;
+  background: transparent;
+}
+
+.app-dashboard-menu .ant-menu-item-group {
+  margin: 0 14px 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #dbe5e8;
+}
+
+.app-dashboard-menu .ant-menu-item-group:last-child {
+  border-bottom: 0;
+}
+
+.app-dashboard-menu .ant-menu-item-group-title {
+  padding: 18px 10px 9px;
+  color: #61727a;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.app-dashboard-menu .ant-menu-item-group-list {
+  margin: 0;
+}
+
+.app-dashboard-menu .ant-menu-item {
+  width: 100%;
+  height: 40px;
+  margin: 0;
+  padding-inline: 14px !important;
+  border-radius: 8px;
+  line-height: 40px;
+}
+
+.app-dashboard-menu .ant-menu-item::after {
+  display: none;
+}
+
+.app-dashboard-menu .ant-menu-item-selected {
+  box-shadow: inset 3px 0 #059694;
+  background: #e3f5f2 !important;
+  color: #0f4c5c !important;
+  font-weight: 600;
+}
+
+.app-dashboard-menu .dashboard-menu-dot {
+  position: relative;
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  vertical-align: middle;
+}
+
+.app-dashboard-menu .dashboard-menu-dot img {
+  position: absolute;
+  inset: 0;
+  width: 13px;
+  height: 13px;
+}
+
+.app-dashboard-menu .dashboard-menu-dot img:last-child,
+.app-dashboard-menu .ant-menu-item-selected .dashboard-menu-dot img:first-child {
+  display: none;
+}
+
+.app-dashboard-menu .ant-menu-item-selected .dashboard-menu-dot img:last-child {
+  display: block;
+}
+
+.app-dashboard-menu .ant-menu-title-content {
+  margin-inline-start: 10px !important;
+  font-size: 12px;
+}
+
 .app-brand {
   padding: 16px;
   text-align: center;
@@ -220,6 +544,97 @@ body {
 
   .attendance-form .ant-btn {
     width: 100%;
+  }
+}
+
+@media (max-width: 991px) {
+  .app-shell-dashboard .app-sider {
+    display: none;
+  }
+
+  .app-shell-dashboard .app-main-layout {
+    padding-top: 56px;
+  }
+
+  .app-shell-dashboard .dashboard-app-header {
+    height: 56px;
+    flex-basis: 56px;
+    padding: 0 12px;
+  }
+
+  .dashboard-header-left {
+    gap: 10px;
+  }
+
+  .dashboard-wordmark {
+    width: auto;
+    flex-basis: auto;
+    gap: 6px;
+    font-size: 15px;
+  }
+
+  .dashboard-brand-mark {
+    transform: scale(.8);
+    transform-origin: left center;
+    width: 25px;
+    flex-basis: 25px;
+  }
+
+  .dashboard-scope-pill {
+    width: min(220px, 38vw);
+    height: 38px;
+    gap: 7px;
+    padding: 0 8px;
+  }
+
+  .dashboard-scope-icon {
+    width: 24px;
+    height: 24px;
+    flex-basis: 24px;
+  }
+
+  .dashboard-scope-copy strong {
+    font-size: 10px;
+  }
+
+  .dashboard-scope-copy small {
+    font-size: 8px;
+  }
+
+  .dashboard-header-actions {
+    gap: 8px;
+  }
+
+  .dashboard-account-avatar,
+  .dashboard-account-avatar img {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+@media (max-width: 767px) {
+  .app-shell-dashboard .app-content {
+    padding: 16px 12px 24px;
+  }
+
+  .dashboard-header-left {
+    gap: 4px;
+  }
+
+  .dashboard-wordmark {
+    font-size: 14px;
+  }
+
+  .dashboard-scope-pill {
+    width: clamp(80px, 25vw, 130px);
+  }
+
+  .dashboard-notification-button.ant-btn {
+    width: 26px;
+  }
+
+  .dashboard-notification-button .dashboard-notification-dot {
+    right: 0;
   }
 }
 
