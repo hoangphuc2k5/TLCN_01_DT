@@ -14,6 +14,7 @@ require('../communication/notification.routes').register1(router);
 require('../platform/dashboard.routes').register2(router);
 require('../../admin/tenant.routes').register1(router);
 require('../../admin/user.routes').register1(router);
+require('../../admin/school-transfer.routes').register1(router);
 require('../../admin/role.routes').register1(router);
 require('../../admin/academic.routes').register1(router);
 require('../../teacher/attendance.routes').register1(router);
