@@ -18,6 +18,10 @@ const SchoolTransfers = () => {
   const [busy, setBusy] = useState(false);
   const [form] = Form.useForm();
   const [decisionForm] = Form.useForm();
+  const studentId = Form.useWatch('studentId', form);
+  const selectedStudent = students.find(student => student._id === studentId);
+  const currentSchoolId = selectedStudent?.schoolId?._id || selectedStudent?.schoolId;
+  const destinationSchools = schools.filter(school => String(school._id) !== String(currentSchoolId));
   const load = async () => {
     try {
       const result = await axios.get('/v1/api/school-transfers');
@@ -83,8 +87,8 @@ const SchoolTransfers = () => {
     ]} />
     <Modal open={creating} title="Tạo yêu cầu chuyển trường" okText="Tạo yêu cầu" cancelText="Hủy" onCancel={() => setCreating(false)} onOk={() => form.submit()} confirmLoading={busy}>
       <Form form={form} layout="vertical" onFinish={values => submit('/v1/api/school-transfers', { ...values, requestedDate: values.requestedDate.toISOString() }, () => setCreating(false))}>
-        <Form.Item name="studentId" label="Học sinh" rules={[{ required: true }]}><Select showSearch optionFilterProp="label" options={students.map(s => ({ value: s._id, label: `${s.name} (${s.code || s.email})` }))} /></Form.Item>
-        <Form.Item name="toSchoolId" label="Trường đến" rules={[{ required: true }]}><Select showSearch optionFilterProp="label" options={schools.map(s => ({ value: s._id, label: `${s.name} (${s.code})` }))} /></Form.Item>
+        <Form.Item name="studentId" label="Học sinh" rules={[{ required: true }]}><Select showSearch optionFilterProp="label" onChange={() => form.setFieldValue('toSchoolId', undefined)} options={students.map(s => ({ value: s._id, label: `${s.name} (${s.code || s.email})` }))} /></Form.Item>
+        <Form.Item name="toSchoolId" label="Trường đến" rules={[{ required: true }]}><Select showSearch optionFilterProp="label" disabled={!currentSchoolId} placeholder="Chọn học sinh trước, sau đó chọn trường đến" options={destinationSchools.map(s => ({ value: s._id, label: `${s.name} (${s.code})` }))} /></Form.Item>
         <Form.Item name="requestedDate" label="Ngày dự kiến chuyển" rules={[{ required: true }]}><DatePicker format="DD/MM/YYYY" /></Form.Item>
         <Form.Item name="reason" label="Lý do" rules={[{ required: true, whitespace: true, max: 1000 }]}><Input.TextArea maxLength={1000} /></Form.Item>
       </Form>

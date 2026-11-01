@@ -19,9 +19,11 @@ test('source releases a student and destination accepts into its class through t
     await login(source, 'admin0@test.invalid');
     await source.getByRole('button', { name: 'Tạo yêu cầu chuyển trường', exact: true }).click();
     let dialog = source.getByRole('dialog');
+    await expect(dialog.getByLabel('Trường đến', { exact: true })).toBeDisabled();
     await dialog.getByLabel('Học sinh', { exact: true }).click();
     await source.getByText('peer 0 (QA-PEER0)', { exact: true }).click();
     await dialog.getByLabel('Trường đến', { exact: true }).click();
+    await expect(source.getByRole('option', { name: 'QA School 0 (QA0)', exact: true })).toHaveCount(0);
     await source.getByText('QA School 1 (QA1)', { exact: true }).click();
     await dialog.getByLabel('Ngày dự kiến chuyển', { exact: true }).fill('01/11/2026');
     await dialog.getByLabel('Ngày dự kiến chuyển', { exact: true }).press('Enter');
@@ -60,4 +62,21 @@ test('source releases a student and destination accepts into its class through t
   } finally {
     await Promise.allSettled([sourceContext.close(), destinationContext.close()]);
   }
+});
+
+test('cluster admin destinations follow the selected student and clear the previous choice', async ({ page }) => {
+  await login(page, 'clusteradmin@test.invalid');
+  await page.getByRole('button', { name: 'Tạo yêu cầu chuyển trường', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Học sinh', { exact: true }).click();
+  await page.getByText('student 0 (QA-ST0)', { exact: true }).click();
+  await dialog.getByLabel('Trường đến', { exact: true }).click();
+  await expect(page.getByRole('option', { name: 'QA School 0 (QA0)', exact: true })).toHaveCount(0);
+  await page.getByText('QA School 1 (QA1)', { exact: true }).click();
+  await dialog.getByText('student 0 (QA-ST0)', { exact: true }).click();
+  await page.getByText('student 1 (QA-ST1)', { exact: true }).click();
+  await expect(dialog.locator('.ant-select-selection-item').filter({ hasText: 'QA School 1 (QA1)' })).toHaveCount(0);
+  await dialog.getByLabel('Trường đến', { exact: true }).click();
+  await expect(page.getByRole('option', { name: 'QA School 1 (QA1)', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('option', { name: 'QA School 0 (QA0)', exact: true })).toHaveCount(1);
 });
