@@ -60,16 +60,17 @@ Khi hoàn thành phần việc được giao, AI Assistant chỉ được thực
    - Frontend: npm test & npm run build (ReactJS)
        │
        ▼
-4. Commit thay đổi có ý nghĩa (Conventional Commits)
+4. Commit thay đổi có ý nghĩa (Conventional Commits), nếu phù hợp với yêu cầu.
        │
        ▼
-5. Push nhánh mới lên remote:
-   git push origin <ten-nhanh-moi>
+5. Báo cáo kết quả và tên nhánh hiện tại cho người dùng.
        │
        ▼
-6. DỪNG LẠI TẠI ĐÂY!
-   - Báo cáo kết quả và cung cấp đường link tạo PR/MR trên GitHub cho người dùng.
-   - CHỜ NGƯỜI DÙNG TỰ MỞ PR VÀ TỰ BẤM MERGE THỦ CÔNG TRÊN WEB.
+6. DỪNG LẠI; KHÔNG TỰ PUSH.
+   - Chỉ push khi người dùng yêu cầu rõ ràng việc push.
+   - Ngay trước khi push, phải thông báo chính xác tên nhánh sẽ được push.
+   - Nếu chưa có yêu cầu push rõ ràng, để thay đổi trên local và chờ chỉ dẫn tiếp theo.
+   - Không tự tạo PR/MR; chờ người dùng yêu cầu riêng nếu cần.
 ```
 
 ---
@@ -80,7 +81,7 @@ Khi hoàn thành phần việc được giao, AI Assistant chỉ được thực
 | :--- | :---: | :--- |
 | Tạo nhánh mới từ `Develop` | ✅ **BẮT BUỘC** | Mỗi task một nhánh riêng |
 | Code và commit trên nhánh tính năng mới | ✅ **CHO PHÉP** | Commit message rõ ràng, đúng quy ước |
-| Push nhánh tính năng mới lên `origin` | ✅ **CHO PHÉP** | Để tạo dữ liệu cho PR |
+| Push nhánh tính năng mới lên `origin` | ⚠️ **CHỈ KHI NGƯỜI DÙNG YÊU CẦU RÕ** | Trước khi push phải thông báo chính xác tên nhánh; không tự push |
 | Chạy test, linter, build trên nhánh tính năng | ✅ **BẮT BUỘC** | Phải xanh 100% trước khi thông báo |
 | Code thẳng trên nhánh `Develop` hoặc `main` | ❌ **NGHIÊM CẤM** | Làm bẩn lịch sử và mất tính an toàn |
 | Commit trực tiếp vào `Develop` | ❌ **NGHIÊM CẤM** | Không thể hiện được quy trình PR review |

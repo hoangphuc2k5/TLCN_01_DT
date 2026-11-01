@@ -1,0 +1,15 @@
+.exam-status-tag.ant-tag {
+  font-weight: 600;
+}
+
+.exam-status-tag--published.ant-tag {
+  border-color: #95de64;
+  background: #f6ffed;
+  color: #237804;
+}
+
+.exam-status-tag--draft.ant-tag {
+  border-color: #ffc069;
+  background: #fff7e6;
+  color: #ad4e00;
+}

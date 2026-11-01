@@ -1,11 +1,18 @@
 import { test, expect } from '@playwright/test';
 
+async function openMenuGroup(page, label) {
+  const group = page.locator('.app-dashboard-menu .ant-menu-submenu-title').filter({ hasText: label });
+  await expect(group).toBeVisible();
+  if (await group.getAttribute('aria-expanded') !== 'true') await group.click();
+}
+
 async function login(page, account) {
   await page.goto('/login');
   await page.getByLabel('Email', { exact: true }).fill(`${account}@test.invalid`);
   await page.getByLabel('Mật khẩu', { exact: true }).fill('Phase0@Test123');
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
+  await openMenuGroup(page, 'VẬN HÀNH');
   await page.getByRole('link', { name: 'Tác vụ nền', exact: true }).click();
 }
 test('job reader sees only own school and cannot retry or cancel', async ({ page }) => {

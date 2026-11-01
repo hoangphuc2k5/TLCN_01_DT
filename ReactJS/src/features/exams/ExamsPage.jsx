@@ -18,6 +18,7 @@ import ImportExcelButton from '../../components/ImportExcelButton';
 import ExamAttemptModal from './ExamAttemptModal';
 import ExamBuilderModal from './ExamBuilderModal';
 import useExamQuestionDrafts from './useExamQuestionDrafts';
+import './exams.css';
 
 const ExamsPage = () => {
   const { user } = useSelector((s) => s.auth);
@@ -181,7 +182,11 @@ const ExamsPage = () => {
           {
             title: 'Trạng thái',
             dataIndex: 'status',
-            render: (v) => <Tag color={v === 'PUBLISHED' ? 'green' : 'orange'}>{v === 'PUBLISHED' ? 'Đã mở' : 'Bản nháp'}</Tag>,
+            render: (v) => (
+              <Tag className={`exam-status-tag ${v === 'PUBLISHED' ? 'exam-status-tag--published' : 'exam-status-tag--draft'}`}>
+                {v === 'PUBLISHED' ? 'Đã mở' : 'Bản nháp'}
+              </Tag>
+            ),
           },
           {
             title: 'Thao tác',
