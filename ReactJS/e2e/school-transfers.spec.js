@@ -21,7 +21,7 @@ test('source releases a student and destination accepts into its class through t
     let dialog = source.getByRole('dialog');
     await expect(dialog.getByLabel('Trường đến', { exact: true })).toBeDisabled();
     await dialog.getByLabel('Học sinh', { exact: true }).click();
-    await source.getByText('peer 0 (QA-PEER0)', { exact: true }).click();
+    await source.getByText('transfer 0 (QA-TR0)', { exact: true }).click();
     await dialog.getByLabel('Trường đến', { exact: true }).click();
     await expect(source.getByRole('option', { name: 'QA School 0 (QA0)', exact: true })).toHaveCount(0);
     await source.getByText('QA School 1 (QA1)', { exact: true }).click();
@@ -30,7 +30,7 @@ test('source releases a student and destination accepts into its class through t
     await dialog.getByLabel('Lý do', { exact: true }).fill('Gia đình chuyển nơi ở');
     await dialog.getByRole('button', { name: 'Tạo yêu cầu', exact: true }).click();
     await expect(dialog).not.toBeVisible();
-    const row = source.getByRole('row').filter({ hasText: 'peer 0' });
+    const row = source.getByRole('row').filter({ hasText: 'transfer 0' });
     await expect(row).toContainText('Chờ trường đi duyệt');
     await row.getByRole('button', { name: 'Duyệt chuyển đi', exact: true }).click();
     dialog = source.getByRole('dialog');
@@ -38,7 +38,7 @@ test('source releases a student and destination accepts into its class through t
     await expect(dialog).not.toBeVisible();
     await expect(row).toContainText('Chờ tiếp nhận');
     await login(destination, 'admin1@test.invalid');
-    const incoming = destination.getByRole('row').filter({ hasText: 'peer 0' });
+    const incoming = destination.getByRole('row').filter({ hasText: 'transfer 0' });
     await expect(incoming.getByRole('button', { name: 'Duyệt chuyển đi', exact: true })).toHaveCount(0);
     await incoming.getByRole('button', { name: 'Chi tiết', exact: true }).click();
     await expect(destination.getByRole('dialog')).toContainText('Điểm bàn giao');
@@ -54,11 +54,11 @@ test('source releases a student and destination accepts into its class through t
     await destination.reload();
     await destination.getByRole('tab', { name: 'Người dùng', exact: true }).click();
     await destination.getByRole('listitem', { name: '2', exact: true }).click();
-    await expect(destination.getByRole('row').filter({ hasText: 'peer0@test.invalid' })).toContainText('QA School 1');
+    await expect(destination.getByRole('row').filter({ hasText: 'transfer0@test.invalid' })).toContainText('QA School 1');
     const token = await source.evaluate(() => localStorage.getItem('access_token'));
     const remaining = await (await source.request.get('/v1/api/users?role=STUDENT', { headers: { authorization: `Bearer ${token}` } })).json();
     expect(remaining.EC).toBe(0);
-    expect(remaining.data.some(student => student.email === 'peer0@test.invalid')).toBe(false);
+    expect(remaining.data.some(student => student.email === 'transfer0@test.invalid')).toBe(false);
   } finally {
     await Promise.allSettled([sourceContext.close(), destinationContext.close()]);
   }
