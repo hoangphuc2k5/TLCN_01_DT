@@ -39,6 +39,7 @@ import { canVisit } from '../utils/permissions';
 import accountAvatar from '../features/dashboard/assets/figma/account-avatar.svg';
 import brandLeafTeal from '../features/dashboard/assets/figma/brand-leaf-teal.svg';
 import brandLeafAmber from '../features/dashboard/assets/figma/brand-leaf-amber.svg';
+import brandLogo from '../Logo/icon.png';
 
 const { Header, Sider, Content } = Layout;
 const { useBreakpoint } = Grid;
@@ -406,7 +407,7 @@ const AppLayout = () => {
           width={250}
         >
           <div className="app-brand sidebar-brand" aria-label={appName}>
-            <span className="dashboard-brand-mark" aria-hidden="true"><img src={brandLeafTeal} alt="" /><img src={brandLeafAmber} alt="" /></span>
+            <img className="sidebar-brand-logo" src={brandLogo} alt="" />
             <strong>{appName}</strong>
           </div>
           <nav aria-label="Điều hướng chính">{navigationMenu}</nav>
@@ -422,7 +423,7 @@ const AppLayout = () => {
         styles={{ body: { padding: 0, overflowY: 'auto' } }}
       >
         <div className="app-brand sidebar-brand" aria-label={appName}>
-          <span className="dashboard-brand-mark" aria-hidden="true"><img src={brandLeafTeal} alt="" /><img src={brandLeafAmber} alt="" /></span>
+          <img className="sidebar-brand-logo" src={brandLogo} alt="" />
           <strong>{appName}</strong>
         </div>
         <nav aria-label="Điều hướng chính">{navigationMenu}</nav>
