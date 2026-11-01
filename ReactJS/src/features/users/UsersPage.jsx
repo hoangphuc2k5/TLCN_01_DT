@@ -7,7 +7,10 @@ import {
   Table,
   Tabs,
   message,
-  Popconfirm,} from 'antd';
+  Popconfirm,
+  Select,
+} from 'antd';
+import { SearchOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
 import {
@@ -25,6 +28,16 @@ import { can } from '../../utils/permissions';
 import UserDialogs from './UserDialogs';
 import RolesPage from '../roles/RolesPage';
 import SchoolTransfers from './SchoolTransfers';
+import { enumLabel } from '../../utils/enum-labels';
+
+const USER_STATUSES = ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'PENDING'];
+
+const normalizeSearchValue = (value) => String(value ?? '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/[đĐ]/g, 'd')
+  .toLocaleLowerCase('vi-VN')
+  .trim();
 
 const UsersPage = () => {
   const me = useSelector((s) => s.auth.user);
@@ -45,6 +58,9 @@ const UsersPage = () => {
   const [transferClasses, setTransferClasses] = useState([]);
   const [transferring, setTransferring] = useState(false);
   const [transferForm] = Form.useForm();
+  const [searchText, setSearchText] = useState('');
+  const [roleFilter, setRoleFilter] = useState();
+  const [statusFilter, setStatusFilter] = useState();
 
   const load = async () => {
     const [usersRes, rolesRes] = await Promise.all([getUsersApi(), getAssignableRolesApi()]);
@@ -105,25 +121,82 @@ const UsersPage = () => {
     return map;
   }, [roleOptions]);
 
+  const userRoleOptions = useMemo(() => [...new Set(rows.map((row) => row.role).filter(Boolean))]
+    .sort((a, b) => (roleLabelMap[a] || a).localeCompare(roleLabelMap[b] || b, 'vi'))
+    .map((value) => ({
+      value,
+      label: rows.find((row) => row.role === value)?.roleLabel || roleLabelMap[value] || value,
+    })), [rows, roleLabelMap]);
+
+  const filteredRows = useMemo(() => {
+    const query = normalizeSearchValue(searchText);
+    return rows.filter((row) => {
+      if (roleFilter && row.role !== roleFilter) return false;
+      if (statusFilter && row.status !== statusFilter) return false;
+      if (!query) return true;
+      const roleLabel = row.roleLabel || roleLabelMap[row.role] || row.role;
+      return [row.code, row.name, row.email, row.schoolId?.name, roleLabel, enumLabel(row.status)]
+        .some((value) => normalizeSearchValue(value).includes(query));
+    });
+  }, [rows, roleFilter, statusFilter, searchText, roleLabelMap]);
+
+  const hasUserFilters = Boolean(searchText.trim() || roleFilter || statusFilter);
+
   const usersTab = (
     <div>
-      <Space style={{ marginBottom: 16 }}>
-        <Button
-          type="primary"
-          disabled={!can(me, 'users', 'create')}
-          onClick={() => {
-            setEditing(null);
-            form.resetFields();
-            setOpen(true);
-          }}
-        >
-          Thêm người dùng
-        </Button>
-        {can(me, 'users', 'create') && can(me, 'users', 'update') && <ImportExcelButton type="users" onDone={load} label="Import Excel" />}
-      </Space>
+      <div className="users-toolbar">
+        <Space className="users-toolbar-actions">
+          <Button
+            type="primary"
+            disabled={!can(me, 'users', 'create')}
+            onClick={() => {
+              setEditing(null);
+              form.resetFields();
+              setOpen(true);
+            }}
+          >
+            Thêm người dùng
+          </Button>
+          {can(me, 'users', 'create') && can(me, 'users', 'update') && <ImportExcelButton type="users" onDone={load} label="Import Excel" />}
+        </Space>
+        <div className="users-filters" role="search" aria-label="Tìm và lọc người dùng">
+          <Input
+            allowClear
+            aria-label="Tìm người dùng"
+            placeholder="Tìm mã, họ tên, email, trường..."
+            prefix={<SearchOutlined aria-hidden="true" />}
+            value={searchText}
+            onChange={(event) => setSearchText(event.target.value)}
+          />
+          <Select
+            allowClear
+            showSearch
+            aria-label="Lọc theo vai trò"
+            optionFilterProp="label"
+            placeholder="Tất cả vai trò"
+            value={roleFilter}
+            onChange={setRoleFilter}
+            options={userRoleOptions}
+          />
+          <Select
+            allowClear
+            aria-label="Lọc theo trạng thái"
+            placeholder="Tất cả trạng thái"
+            value={statusFilter}
+            onChange={setStatusFilter}
+            options={USER_STATUSES.map((value) => ({ value, label: `${value} · ${enumLabel(value)}` }))}
+          />
+          {hasUserFilters && <Button onClick={() => {
+            setSearchText('');
+            setRoleFilter(undefined);
+            setStatusFilter(undefined);
+          }}>Xóa lọc</Button>}
+        </div>
+      </div>
       <Table
         rowKey="_id"
-        dataSource={rows}
+        className="users-table"
+        dataSource={filteredRows}
         columns={[
           { title: 'Mã', dataIndex: 'code' },
           { title: 'Họ tên', dataIndex: 'name' },
@@ -202,7 +275,7 @@ const UsersPage = () => {
               ),
           },
         ]}
-        scroll={{ x: 1100 }}
+        scroll={{ x: 1100, y: 'min(62vh, 640px)' }}
       />
       <UserDialogs open={open} setOpen={setOpen} editing={editing} form={form} onSubmit={onSubmit} onResetPassword={onResetPassword} roleOptions={roleOptions} transferStudent={transferStudent} setTransferStudent={setTransferStudent} transferring={transferring} setTransferring={setTransferring} transferForm={transferForm} transferClasses={transferClasses} load={load} />
     </div>
