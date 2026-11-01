@@ -24,6 +24,7 @@ import { ROLE_LABELS, canManageLevel } from '../../constants/roles';
 import { can } from '../../utils/permissions';
 import UserDialogs from './UserDialogs';
 import RolesPage from '../roles/RolesPage';
+import SchoolTransfers from './SchoolTransfers';
 
 const UsersPage = () => {
   const me = useSelector((s) => s.auth.user);
@@ -207,13 +208,12 @@ const UsersPage = () => {
     </div>
   );
 
-  if (!canManageRoles) return usersTab;
-
   return (
     <Tabs
       items={[
         { key: 'users', label: 'Người dùng', children: usersTab },
-        { key: 'roles', label: 'Vai trò', children: <RolesPage /> },
+        ...(['SUPER_ADMIN', 'CLUSTER_ADMIN', 'SCHOOL_ADMIN'].includes(me?.role) ? [{ key: 'school-transfers', label: 'Chuyển trường', children: <SchoolTransfers /> }] : []),
+        ...(canManageRoles ? [{ key: 'roles', label: 'Vai trò', children: <RolesPage /> }] : []),
       ]}
     />
   );
