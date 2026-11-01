@@ -29,7 +29,7 @@ body {
 .app-sider {
   height: 100vh;
   height: 100dvh;
-  overflow-y: auto;
+  overflow: hidden;
   overscroll-behavior: contain;
   border-right: 1px solid var(--ui-color-border, #dfe6e9);
 }
@@ -44,9 +44,24 @@ body {
   background: #07598e;
 }
 
+.app-shell-figma .app-sider > .ant-layout-sider-children {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.app-shell-figma .app-sider > .ant-layout-sider-children > nav {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .app-shell-figma .app-brand {
   display: flex;
   height: 118px;
+  flex: 0 0 118px;
   align-items: center;
   justify-content: center;
   flex-direction: column;
@@ -55,6 +70,12 @@ body {
   color: #fff;
   font-size: 18px;
   font-weight: 700;
+}
+
+.app-shell-figma .sidebar-brand-logo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
 }
 
 .app-shell-figma .app-brand .dashboard-brand-mark {
