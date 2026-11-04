@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
 import { Alert, Button, DatePicker, Descriptions, Form, Input, Modal, Select, Space, Table, Tag, message } from 'antd';
 import axios from '../../config/http-client';
 import { getClassesApi, getUsersApi } from '../../services/api.service';
@@ -8,6 +9,8 @@ import { can } from '../../utils/permissions';
 const labels = { PENDING: 'Chờ trường đi duyệt', APPROVED: 'Chờ tiếp nhận', ACCEPTED: 'Đã tiếp nhận', REJECTED: 'Đã từ chối', CANCELLED: 'Đã hủy' };
 const SchoolTransfers = () => {
   const me = useSelector(state => state.auth.user);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const transferId = searchParams.get('transferId');
   const [rows, setRows] = useState([]);
   const [schools, setSchools] = useState([]);
   const [students, setStudents] = useState([]);
@@ -30,6 +33,31 @@ const SchoolTransfers = () => {
     } catch (error) { message.error(error.message); }
   };
   useEffect(() => { load(); }, []);
+  useEffect(() => {
+    if (!transferId) return undefined;
+    let active = true;
+    setDetail(null);
+    const openDetail = async () => {
+      try {
+        const [result, listResult] = await Promise.all([
+          axios.get(`/v1/api/school-transfers/${encodeURIComponent(transferId)}`),
+          axios.get('/v1/api/school-transfers'),
+        ]);
+        if (!active) return;
+        if (result?.EC === 0) {
+          setDetail(result.data);
+          if (listResult?.EC === 0) setRows(listResult.data || []);
+        }
+        else message.error(result?.EM || 'Không tải được hồ sơ chuyển trường');
+      } catch (error) { if (active) message.error(error.message); }
+    };
+    openDetail();
+    return () => { active = false; };
+  }, [transferId]);
+  const closeDetail = () => {
+    setDetail(null);
+    setSearchParams(current => { const next = new URLSearchParams(current); next.delete('transferId'); return next; }, { replace: true });
+  };
   const manages = school => me.role === 'SUPER_ADMIN' || (me.role === 'CLUSTER_ADMIN'
     ? me.clusterId && String(me.clusterId?._id || me.clusterId) === String(school?.clusterId?._id || school?.clusterId)
     : String(me.schoolId?._id || me.schoolId) === String(school?._id || school));
@@ -73,10 +101,9 @@ const SchoolTransfers = () => {
       { title: 'Ngày dự kiến', render: (_, r) => new Date(r.requestedDate).toLocaleDateString('vi-VN') },
       { title: 'Trạng thái', render: (_, r) => <Tag>{labels[r.status]}</Tag> },
       { title: 'Thao tác', render: (_, r) => <Space wrap>
-        <Button size="small" onClick={async () => {
-          try { const result = await axios.get(`/v1/api/school-transfers/${r._id}`); if (result?.EC === 0) setDetail(result.data); else message.error(result?.EM); }
-          catch (error) { message.error(error.message); }
-        }}>Chi tiết</Button>
+        <Button size="small" onClick={() => setSearchParams(current => {
+          const next = new URLSearchParams(current); next.set('tab', 'school-transfers'); next.set('transferId', r._id); return next;
+        })}>Chi tiết</Button>
         {can(me, 'users', 'update') && r.open && <>
           {r.status === 'PENDING' && manages(r.fromSchoolId) && <Button size="small" onClick={() => startDecision(r, 'approve')}>Duyệt chuyển đi</Button>}
           {r.status === 'APPROVED' && manages(r.toSchoolId) && <Button size="small" type="primary" onClick={() => startDecision(r, 'accept')}>Tiếp nhận</Button>}
@@ -101,7 +128,7 @@ const SchoolTransfers = () => {
         {decision?.action === 'accept' && <Alert type="warning" message="Tiếp nhận có hiệu lực ngay và thu hồi phiên đăng nhập cũ của học sinh. Liên kết phụ huynh được giữ; tài khoản phụ huynh khác trường cần quản trị viên rà soát quyền riêng." />}
       </Form>
     </Modal>
-    <Modal open={!!detail} title="Hồ sơ chuyển trường" onCancel={() => setDetail(null)} footer={null} width={850}>
+    <Modal open={!!detail} title="Hồ sơ chuyển trường" onCancel={closeDetail} footer={null} width={850}>
       {detail && <>
         <Descriptions column={1} items={[{ key: 'student', label: 'Học sinh', children: detail.studentName }, { key: 'status', label: 'Trạng thái', children: labels[detail.status] }, { key: 'reason', label: 'Lý do', children: detail.reason }]} />
         <h3>Lịch sử xử lý</h3>

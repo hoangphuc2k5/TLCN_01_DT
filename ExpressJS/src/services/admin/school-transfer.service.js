@@ -30,6 +30,27 @@ class SchoolTransferService {
       return value.trim();
     };
     const event = (action, actor, note = '') => ({ action, actorId: actor._id, at: new Date(), note });
+    const notifySchool = async (request, actor, action, receiving, note, session) => {
+      if (action !== 'approve' && action !== 'accept' && !(action === 'reject' && receiving)) return [];
+      const schoolId = action === 'approve' ? request.toSchoolId : request.fromSchoolId;
+      const recipients = await repo.activeSchoolAdmins(schoolId, session);
+      if (!recipients.length) return [];
+      const from = await repo.school(request.fromSchoolId, session);
+      const to = await repo.school(request.toSchoolId, session);
+      const classroom = action === 'accept' ? await repo.classroom(request.toClassId, session) : null;
+      const title = action === 'approve' ? 'Yêu cầu tiếp nhận học sinh chuyển trường'
+        : action === 'accept' ? 'Học sinh chuyển trường đã được tiếp nhận' : 'Yêu cầu chuyển trường bị từ chối';
+      const message = action === 'approve'
+        ? `${from?.name || 'Trường đi'} đề nghị chuyển học sinh ${request.studentName} đến trường bạn. Vui lòng xem hồ sơ và xác nhận tiếp nhận.`
+        : action === 'accept'
+          ? `${to?.name || 'Trường đến'} đã tiếp nhận học sinh ${request.studentName} vào lớp ${classroom?.name || ''}.`
+          : `${to?.name || 'Trường đến'} đã từ chối tiếp nhận học sinh ${request.studentName}. Lý do: ${note}`;
+      return repo.createNotifications(recipients.map(recipient => ({
+        userId: recipient._id, schoolId, title, message: `${message} Người thực hiện: ${actor.name || 'Quản trị viên'}.`,
+        type: 'SCHOOL_TRANSFER', emailState: 'NOT_REQUESTED',
+        meta: { transferId: request._id, studentId: request.studentId, status: request.status, actorId: actor._id },
+      })), session);
+    };
     this.schools = async actor => { admin(actor); return repo.schools(); };
     this.list = async actor => {
       admin(actor);
@@ -82,7 +103,7 @@ class SchoolTransferService {
       const receiving = action === 'accept' || (action === 'reject' && initial.status === 'APPROVED');
       const schoolId = receiving ? initial.toSchoolId : initial.fromSchoolId;
       await manages(actor, schoolId);
-      return transaction(schoolId, async session => {
+      const result = await transaction(schoolId, async session => {
         await repo.lockStudent(initial.studentId, session);
         const request = await repo.find(initial._id, session);
         await manages(actor, receiving ? request.toSchoolId : request.fromSchoolId, session);
@@ -115,8 +136,15 @@ class SchoolTransferService {
         }
         request.history.push(event(action.toUpperCase(), actor, note));
         await request.save({ session });
-        return { _id: request._id, status: request.status };
+        const notifications = await notifySchool(request, actor, action, receiving, note, session);
+        return { data: { _id: request._id, status: request.status }, notifications };
       });
+      // Transaction retries may execute the callback again; publish only the committed result.
+      for (const notification of result.notifications) {
+        try { dependencies.eventBus.emit('notification.created', notification.toObject()); }
+        catch (error) { dependencies.logger.error('[school-transfer] notification.created', error.message); }
+      }
+      return result.data;
     };
   }
 }

@@ -2,9 +2,9 @@ const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const mongoose = require('mongoose');
 const { MongoMemoryReplSet } = require('mongodb-memory-server');
-const { models, services } = require('../../config/container');
+const { models, services, eventBus } = require('../../config/container');
 const service = services['school-transfer'];
-let mongo, from, to, other, source, target, fromAdmin, toAdmin, stranger, student, grade;
+let mongo, from, to, other, source, target, fromAdmin, toAdmin, secondAdmin, stranger, student, grade;
 const fails = status => error => error.statusCode === status;
 const payload = () => ({ studentId: student._id, toSchoolId: to._id, reason: 'Gia đình chuyển nơi ở', requestedDate: '2026-11-01' });
 const freshStudent = async () => models.user.create({ name: 'Student', email: `${new mongoose.Types.ObjectId()}@test.invalid`, role: 'STUDENT', schoolId: from._id, clusterId: from.clusterId, classId: source._id });
@@ -15,6 +15,11 @@ before(async () => {
   const years = await models['academic-year'].create([from, to].map(s => ({ schoolId: s._id, name: '2026-2027', startDate: '2026-08-01', endDate: '2027-06-30' })));
   [source, target] = await models.class.create([from, to].map((s, i) => ({ schoolId: s._id, academicYearId: years[i]._id, name: '10A', gradeLevel: 10 })));
   [fromAdmin, toAdmin, stranger] = await models.user.create([from, to, other].map(s => ({ name: s.name, email: `${s.code}@test.invalid`, role: 'SCHOOL_ADMIN', schoolId: s._id, clusterId: s.clusterId })));
+  secondAdmin = await models.user.create({ name: 'Second receiver', email: 'second-admin@test.invalid', role: 'SCHOOL_ADMIN', schoolId: to._id });
+  await models.user.create([
+    { name: 'Inactive', email: 'inactive-admin@test.invalid', role: 'SCHOOL_ADMIN', schoolId: to._id, status: 'INACTIVE' },
+    { name: 'Teacher', email: 'teacher-notice@test.invalid', role: 'SUBJECT_TEACHER', schoolId: to._id },
+  ]);
   student = await freshStudent();
   const subject = await models.subject.create({ schoolId: from._id, name: 'Math', code: 'MATH' });
   grade = await models.grade.create({ schoolId: from._id, studentId: student._id, academicYearId: years[0]._id, classId: source._id, subjectId: subject._id, teacherId: fromAdmin._id, semester: 1, scores: [{ type: 'MIDTERM', score: 8 }], average: 8 });
@@ -39,6 +44,7 @@ test('deduplicates concurrent requests and scopes visibility to the two schools'
   await assert.rejects(service.decide(toAdmin, request._id, { action: 'approve' }), fails(403));
   await assert.rejects(service.decide(toAdmin, request._id, { action: 'accept', classId: target._id }), fails(409));
   assert.equal((await service.list({ role: 'CLUSTER_ADMIN', clusterId: from.clusterId })).length, 1);
+  assert.equal(await models.notification.countDocuments({ type: 'SCHOOL_TRANSFER' }), 0);
 });
 test('source approval releases academic snapshot without moving student', async () => {
   const request = await models['school-transfer'].findOne({ studentId: student._id, open: true });
@@ -50,6 +56,15 @@ test('source approval releases academic snapshot without moving student', async 
   assert.equal(String((await models.user.findById(student._id)).schoolId), String(from._id));
   await assert.rejects(service.decide(fromAdmin, request._id, { action: 'approve' }), fails(409));
   await assert.rejects(service.decide(fromAdmin, request._id, { action: 'accept', classId: target._id }), fails(403));
+  const notices = await models.notification.find({ 'meta.transferId': request._id, 'meta.status': 'APPROVED' }).select('+emailState');
+  assert.deepEqual(notices.map(n => String(n.userId)).sort(), [toAdmin, secondAdmin].map(u => String(u._id)).sort());
+  for (const notice of notices) {
+    assert.equal(String(notice.schoolId), String(to._id));
+    assert.equal(notice.emailState, 'NOT_REQUESTED');
+    assert.equal(notice.isRead, false);
+    assert.match(notice.message, /FROM.*Student/);
+    assert.equal(notice.meta.status, 'APPROVED');
+  }
 });
 test('invalid classes and full destinations roll back acceptance', async () => {
   const request = await models['school-transfer'].findOne({ studentId: student._id, open: true });
@@ -58,6 +73,7 @@ test('invalid classes and full destinations roll back acceptance', async () => {
   await assert.rejects(service.decide(toAdmin, request._id, { action: 'accept', classId: target._id }), fails(409));
   assert.equal((await models['school-transfer'].findById(request._id)).status, 'APPROVED');
   assert.equal(String((await models.user.findById(student._id)).schoolId), String(from._id));
+  assert.equal(await models.notification.countDocuments({ 'meta.transferId': request._id, 'meta.status': 'ACCEPTED' }), 0);
   await models.class.updateOne({ _id: target._id }, { maxStudents: 45, gradeLevel: 11 });
   await assert.rejects(service.decide(toAdmin, request._id, { action: 'accept', classId: target._id }), fails(400));
   await models.class.updateOne({ _id: target._id }, { gradeLevel: 10 });
@@ -77,6 +93,17 @@ test('accepts once, refreshes snapshot, preserves old records and parent links, 
   assert.equal(String((await models.grade.findById(grade._id)).schoolId), String(from._id));
   assert.equal((await service.detail(toAdmin, request._id)).handover.grades[0].average, 9);
   assert.equal(String((await models.user.findById(parent._id)).parentOf[0]), String(student._id));
+  const notices = await models.notification.find({ 'meta.transferId': request._id, 'meta.status': 'ACCEPTED' });
+  assert.equal(notices.length, 1);
+  assert.equal(String(notices[0].userId), String(fromAdmin._id));
+  assert.equal(String(notices[0].schoolId), String(from._id));
+  assert.match(notices[0].message, /TO.*Student.*10A/);
+  const personal = await services.dashboard.listNotifications(fromAdmin);
+  assert.ok(personal.some(n => String(n._id) === String(notices[0]._id)));
+  assert.ok(!(await services.dashboard.listNotifications(stranger)).some(n => n.type === 'SCHOOL_TRANSFER'));
+  await services.dashboard.markRead(fromAdmin, notices[0]._id);
+  assert.equal((await models.notification.findById(notices[0]._id)).isRead, true);
+  await assert.rejects(services.dashboard.markRead(toAdmin, notices[0]._id), fails(403));
 });
 test('source cancels stale requests; destination rejects only after approval', async () => {
   student = await freshStudent();
@@ -92,6 +119,12 @@ test('source cancels stale requests; destination rejects only after approval', a
   await service.decide(toAdmin, request._id, { action: 'reject', note: 'Không tiếp nhận' });
   assert.equal((await service.detail(fromAdmin, request._id)).status, 'REJECTED');
   assert.equal(String((await models.user.findById(student._id)).schoolId), String(from._id));
+  const rejected = await models.notification.find({ 'meta.transferId': request._id, 'meta.status': 'REJECTED' });
+  assert.equal(rejected.length, 1);
+  assert.equal(String(rejected[0].userId), String(fromAdmin._id));
+  assert.match(rejected[0].message, /Không tiếp nhận/);
+  await assert.rejects(service.decide(toAdmin, request._id, { action: 'reject', note: 'Again' }), fails(403));
+  assert.equal(await models.notification.countDocuments({ 'meta.transferId': request._id, 'meta.status': 'REJECTED' }), 1);
 });
 test('serializes competing transfers against the last class place', async () => {
   const requests = [];
@@ -106,4 +139,44 @@ test('serializes competing transfers against the last class place', async () => 
   assert.equal(results.filter(r => r.status === 'fulfilled').length, 1);
   assert.equal(results.find(r => r.status === 'rejected').reason.statusCode, 409);
   assert.equal(await models.user.countDocuments({ classId: target._id, role: 'STUDENT' }), 2);
+});
+
+test('notification failure rolls back reception and sends no live event; retry emits only committed notices', async () => {
+  await models.class.updateOne({ _id: target._id }, { maxStudents: 45 });
+  const pupil = await freshStudent();
+  const request = await service.create(fromAdmin, { ...payload(), studentId: pupil._id });
+  await service.decide(fromAdmin, request._id, { action: 'approve' });
+  const emitted = [];
+  const listener = notice => { if (String(notice.meta?.transferId) === String(request._id)) emitted.push(notice); };
+  eventBus.on('notification.created', listener);
+  const original = models.notification.create;
+  try {
+    models.notification.create = async function (...args) {
+      await original.apply(this, args);
+      throw new Error('Simulated notification persistence failure');
+    };
+    await assert.rejects(service.decide(toAdmin, request._id, { action: 'accept', classId: target._id }), /Simulated notification/);
+    models.notification.create = original;
+    assert.equal((await models['school-transfer'].findById(request._id)).status, 'APPROVED');
+    assert.equal(String((await models.user.findById(pupil._id)).schoolId), String(from._id));
+    assert.equal(await models.notification.countDocuments({ 'meta.transferId': request._id, 'meta.status': 'ACCEPTED' }), 0);
+    assert.equal(emitted.length, 0);
+    await service.decide(toAdmin, request._id, { action: 'accept', classId: target._id });
+    assert.equal(emitted.length, 1);
+    assert.ok(await models.notification.findById(emitted[0]._id));
+    await assert.rejects(service.decide(toAdmin, request._id, { action: 'accept', classId: target._id }), fails(409));
+    assert.equal(emitted.length, 1);
+  } finally {
+    models.notification.create = original;
+    eventBus.off('notification.created', listener);
+  }
+});
+
+test('no notifications are sent for cancelled or source-rejected requests', async () => {
+  for (const action of ['cancel', 'reject']) {
+    const pupil = await freshStudent();
+    const request = await service.create(fromAdmin, { ...payload(), studentId: pupil._id });
+    await service.decide(fromAdmin, request._id, { action, note: 'Trường đi dừng xử lý' });
+    assert.equal(await models.notification.countDocuments({ 'meta.transferId': request._id }), 0);
+  }
 });
