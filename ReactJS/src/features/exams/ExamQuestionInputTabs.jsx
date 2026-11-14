@@ -72,6 +72,7 @@ const ExamQuestionInputTabs = ({
           children: (
             <Card size="small" style={{ background: '#fafafa', marginBottom: 16 }}>
               <Form
+                component={false}
                 form={manualForm}
                 layout="vertical"
                 initialValues={{ type: 'MCQ', points: 0.25, correctKey: 'A', sectionKey: sections[0]?.key }}
@@ -145,7 +146,7 @@ const ExamQuestionInputTabs = ({
                 )}
 
                 <div style={{ textAlign: 'right' }}>
-                  <Button type="primary" htmlType="submit" icon={<PlusOutlined />}>Thêm câu</Button>
+                  <Button type="primary" htmlType="button" onClick={() => manualForm.submit()} icon={<PlusOutlined />}>Thêm câu</Button>
                 </div>
               </Form>
             </Card>
