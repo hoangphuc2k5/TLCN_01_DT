@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Form, message } from 'antd';
 import { downloadImportTemplateApi, parseExamQuestionsApi } from '../../services/api/files.api';
 import { parseTextExam } from '../../utils/exam-parser';
+import { assignQuestionsToSections, defaultQuestionPoints } from './exam-question.utils';
 
 const useExamQuestionDrafts = () => {
   const [questions, setQuestions] = useState([]);
@@ -33,12 +34,8 @@ const useExamQuestionDrafts = () => {
     try {
       const res = await parseExamQuestionsApi(file);
       if (res?.EC === 0) {
-        const parsed = (res.data?.questions || []).map((q, idx) => ({
-          ...q,
-          _tempId: `xl_${Date.now()}_${idx}`,
-          sectionKey: sections.find(section => !section.questionType || section.questionType === q.type)?.key || '',
-          order: questions.length + idx,
-        }));
+        const parsed = assignQuestionsToSections(res.data?.questions || [], sections, questions.length)
+          .map((question, index) => ({ ...question, _tempId: `xl_${Date.now()}_${index}` }));
         setQuestions((prev) => [...prev, ...parsed]);
         message.success(`Đã nạp ${parsed.length} câu hỏi từ file Excel`);
       } else {
@@ -61,11 +58,7 @@ const useExamQuestionDrafts = () => {
     if (!parsed.length) {
       return message.warning('Không tìm thấy câu hỏi hợp lệ trong đoạn văn bản');
     }
-    const assigned = parsed.map((question, idx) => ({
-      ...question,
-      sectionKey: sections.find(section => !section.questionType || section.questionType === question.type)?.key || '',
-      order: questions.length + idx,
-    }));
+    const assigned = assignQuestionsToSections(parsed, sections, questions.length);
     setQuestions((prev) => [...prev, ...assigned]);
     message.success(`Đã bóc tách thành công ${parsed.length} câu hỏi`);
     setPastedText('');
@@ -97,7 +90,7 @@ const useExamQuestionDrafts = () => {
         correctKeys,
         sectionKey: values.sectionKey || '',
         order: questions.filter(question => question.sectionKey === values.sectionKey).length,
-        points: Number(values.points) || 1,
+        points: Number(values.points) || defaultQuestionPoints(type),
       };
       setQuestions((prev) => [...prev, newQ]);
     } else if (type === 'TRUE_FALSE_4') {
@@ -115,7 +108,7 @@ const useExamQuestionDrafts = () => {
         statements,
         sectionKey: values.sectionKey || '',
         order: questions.filter(question => question.sectionKey === values.sectionKey).length,
-        points: Number(values.points) || 1,
+        points: Number(values.points) || defaultQuestionPoints(type),
       }]);
     } else if (type === 'SHORT_ANSWER') {
       const acceptedAnswers = String(values.acceptedAnswers || '').split(/\r?\n/u).map(value => value.trim()).filter(Boolean);
@@ -127,7 +120,7 @@ const useExamQuestionDrafts = () => {
         acceptedAnswers,
         sectionKey: values.sectionKey || '',
         order: questions.filter(question => question.sectionKey === values.sectionKey).length,
-        points: Number(values.points) || 0.25,
+        points: Number(values.points) || defaultQuestionPoints(type),
       }]);
     } else {
       const newQ = {
@@ -138,12 +131,12 @@ const useExamQuestionDrafts = () => {
         correctKey: '',
         sectionKey: values.sectionKey || '',
         order: questions.filter(question => question.sectionKey === values.sectionKey).length,
-        points: Number(values.points) || 2,
+        points: Number(values.points) || defaultQuestionPoints(type),
       };
       setQuestions((prev) => [...prev, newQ]);
     }
     manualForm.resetFields();
-    manualForm.setFieldsValue({ type: manualType, points: manualType === 'MCQ' ? 0.25 : manualType === 'TRUE_FALSE_4' ? 1 : manualType === 'SHORT_ANSWER' ? 0.25 : 2, correctKey: 'A', sectionKey: selectedSection?.key || sections[0]?.key });
+    manualForm.setFieldsValue({ type: manualType, points: defaultQuestionPoints(manualType), correctKey: 'A', sectionKey: selectedSection?.key || sections[0]?.key });
     message.success('Đã thêm câu hỏi vào đề');
   };
 

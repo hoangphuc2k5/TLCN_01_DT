@@ -20,6 +20,7 @@ import ExamAttemptModal from './ExamAttemptModal';
 import ExamBuilderModal from './ExamBuilderModal';
 import EssayGradingModal from './EssayGradingModal';
 import useExamQuestionDrafts from './useExamQuestionDrafts';
+import { buildAttemptAnswers } from './exam-question.utils';
 import './exams.css';
 
 const ExamsPage = () => {
@@ -92,13 +93,7 @@ const ExamsPage = () => {
   const submit = async () => {
     if (submitting || !attemptId || !taking) return;
     setSubmitting(true);
-    const payload = (taking.questions || []).map((q) => ({
-      questionId: q._id,
-      answerKey: answers[q._id]?.answerKey || '',
-      answerKeys: answers[q._id]?.answerKeys || [],
-      answerFlags: answers[q._id]?.answerFlags || [],
-      answerText: answers[q._id]?.answerText || '',
-    }));
+    const payload = buildAttemptAnswers(taking.questions || [], answers);
     const res = await submitAttemptApi(attemptId, payload);
     if (res?.EC === 0) {
       message.success(
@@ -133,14 +128,7 @@ const ExamsPage = () => {
   useEffect(() => {
     if (!taking || !attemptId || !Object.keys(answers).length) return undefined;
     const timer = window.setTimeout(async () => {
-      const payload = (taking.questions || [])
-        .map((q) => ({
-          questionId: q._id,
-          answerKey: answers[q._id]?.answerKey || '',
-          answerKeys: answers[q._id]?.answerKeys || [],
-          answerFlags: answers[q._id]?.answerFlags || [],
-          answerText: answers[q._id]?.answerText || '',
-        }))
+      const payload = buildAttemptAnswers(taking.questions || [], answers)
         .filter((answer) => answer.answerKey || answer.answerKeys.length || answer.answerFlags.some(value => typeof value === 'boolean') || answer.answerText);
       if (!payload.length) return;
       const result = await saveAttemptDraftApi(attemptId, payload);

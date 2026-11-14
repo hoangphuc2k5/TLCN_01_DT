@@ -15,6 +15,11 @@ async function choose(page, label, option, index = 0) {
   await page.locator('.ant-select-item-option').filter({ hasText: option }).last().click();
 }
 
+async function ensureChecked(locator) {
+  if (!(await locator.isChecked())) await locator.click();
+  await expect(locator).toBeChecked();
+}
+
 test('teacher builds and publishes a THPT exam; student submits all three parts for ten points', async ({ browser }) => {
   test.setTimeout(60000);
   const teacherContext = await browser.newContext();
@@ -111,8 +116,8 @@ test('custom multi-select exam waits for essay grading and publishes the normali
     await teacherPage.getByLabel('Phương án B').fill('3');
     await teacherPage.getByLabel('Phương án C').fill('4');
     const correctAnswers = dialog.locator('.ant-form-item').filter({ hasText: 'Các đáp án đúng' });
-    await correctAnswers.getByRole('checkbox', { name: 'A', exact: true }).check();
-    await correctAnswers.getByRole('checkbox', { name: 'C', exact: true }).check();
+    await ensureChecked(correctAnswers.getByRole('checkbox', { name: 'A', exact: true }));
+    await ensureChecked(correctAnswers.getByRole('checkbox', { name: 'C', exact: true }));
     await teacherPage.getByRole('button', { name: /Thêm câu/ }).click();
 
     await choose(teacherPage, 'Dạng câu hỏi', 'Tự luận');
@@ -134,8 +139,8 @@ test('custom multi-select exam waits for essay grading and publishes the normali
     await studentPage.goto('/exams');
     const studentExamRow = studentPage.getByRole('row').filter({ hasText: examTitle });
     await studentExamRow.getByRole('button', { name: 'Làm bài', exact: true }).click();
-    await studentPage.getByRole('checkbox', { name: 'A. 2', exact: true }).check();
-    await studentPage.getByRole('checkbox', { name: 'C. 4', exact: true }).check();
+    await ensureChecked(studentPage.getByRole('checkbox', { name: 'A. 2', exact: true }));
+    await ensureChecked(studentPage.getByRole('checkbox', { name: 'C. 4', exact: true }));
     await studentPage.getByLabel('Trả lời câu 2').fill('Chọn các số chia hết cho hai.');
     const submitted = studentPage.waitForResponse(response => response.url().includes('/submit') && response.request().method() === 'POST');
     await studentPage.getByRole('button', { name: 'Nộp bài', exact: true }).click();
@@ -220,8 +225,8 @@ test('wrong or blank answers earn zero and a blank essay does not wait for gradi
     await teacherPage.getByLabel('Phương án B').fill('3');
     await teacherPage.getByLabel('Phương án C').fill('4');
     const correctAnswers = dialog.locator('.ant-form-item').filter({ hasText: 'Các đáp án đúng' });
-    await correctAnswers.getByRole('checkbox', { name: 'A', exact: true }).check();
-    await correctAnswers.getByRole('checkbox', { name: 'C', exact: true }).check();
+    await ensureChecked(correctAnswers.getByRole('checkbox', { name: 'A', exact: true }));
+    await ensureChecked(correctAnswers.getByRole('checkbox', { name: 'C', exact: true }));
     await teacherPage.getByRole('button', { name: /Thêm câu/ }).click();
 
     await choose(teacherPage, 'Dạng câu hỏi', 'Trả lời ngắn');
