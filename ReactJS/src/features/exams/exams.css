@@ -13,3 +13,54 @@
   background: #fff7e6;
   color: #ad4e00;
 }
+
+.exam-attempt-section + .exam-attempt-section {
+  border-top: 1px solid #e5e7eb;
+  margin-top: 20px;
+  padding-top: 18px;
+}
+
+.exam-attempt-question {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 14px 0;
+}
+
+.exam-attempt-question__prompt {
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.exam-attempt-choice.ant-radio-wrapper {
+  display: flex;
+  align-items: flex-start;
+  min-height: 36px;
+  padding: 6px 0;
+  white-space: normal;
+}
+
+.exam-attempt-true-false {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.exam-attempt-true-false__row {
+  align-items: center;
+  border: 1px solid #edf0f3;
+  border-radius: 8px;
+  display: grid;
+  gap: 10px 18px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 10px 12px;
+}
+
+.exam-attempt-true-false__row > span {
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+  .exam-attempt-true-false__row {
+    grid-template-columns: 1fr;
+  }
+}

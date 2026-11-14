@@ -8,6 +8,13 @@ function createExamService(dependencies) {
   const Subject = "subject";
   const cache = dependencies.services["role-permission-cache"];
   const { randomInt } = require('node:crypto');
+  const {
+    gradeAnswers,
+    validateExamSections,
+    validateExamQuestions,
+    validatePublishTotal,
+    roundScore,
+  } = require('../../../utils/common/academics/exam-question.util');
   
   const MIN_DURATION_MINUTES = 1;
   const MAX_DURATION_MINUTES = 24 * 60;
@@ -52,30 +59,29 @@ function createExamService(dependencies) {
     }
     return result;
   };
-  
-  const gradeAnswers = (exam, answers) => {
-    let score = 0;
-    const graded = answers.map((a) => {
-      const q = (exam.questions || []).find((x) => String(x._id) === String(a.questionId));
-      if (!q) return { ...a, isCorrect: null, pointsAwarded: 0 };
-      if (q.type === 'MCQ') {
-        const ok = Boolean(a.answerKey) && a.answerKey === q.correctKey;
-        const pointsAwarded = ok ? q.points || 1 : 0;
-        score += pointsAwarded;
-        return { ...a, isCorrect: ok, pointsAwarded };
-      }
-      return { ...a, isCorrect: null, pointsAwarded: 0 };
-    });
-    return { graded, score };
+
+  const buildQuestionOrder = (exam) => {
+    const questions = [...(exam.questions || [])];
+    const sections = [...(exam.sections || [])].sort((a, b) => a.order - b.order);
+    if (!sections.length) {
+      const ordered = questions.sort((a, b) => (a.order || 0) - (b.order || 0));
+      return (exam.shuffleQuestions ? shuffle(ordered) : ordered).map(question => question._id);
+    }
+    const grouped = sections.map(section => questions
+      .filter(question => question.sectionKey === section.key)
+      .sort((a, b) => (a.order || 0) - (b.order || 0)));
+    const unsectioned = questions.filter(question => !sections.some(section => section.key === question.sectionKey))
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+    return [...grouped, unsectioned].flatMap(group => (exam.shuffleQuestions ? shuffle(group) : group).map(question => question._id));
   };
   
   const attemptDeadline = (attempt, exam) => attempt.expiresAt || new Date(new Date(attempt.startedAt).getTime() + (exam.durationMinutes || 45) * 60 * 1000);
   
   const expireAttempt = async (attempt, exam, now = new Date()) => {
     if (attempt.status !== 'IN_PROGRESS' || attemptDeadline(attempt, exam) > now) return attempt;
-    const answers = Array.isArray(attempt.answers) ? attempt.answers.map(a => ({ questionId: a.questionId, answerKey: a.answerKey || '', answerText: a.answerText || '' })) : [];
-    const { graded, score } = gradeAnswers(exam, answers);
-    return persistence.expireAttemptFindOneAndUpdate({ _id: attempt._id, status: 'IN_PROGRESS' }, { answers: graded, score, status: 'SUBMITTED', submittedAt: now, autoSubmitted: true, submissionReason: 'TIMEOUT' }, { new: true, runValidators: true });
+    const answers = Array.isArray(attempt.answers) ? attempt.answers.map(a => ({ questionId: a.questionId, answerKey: a.answerKey || '', answerKeys: a.answerKeys || [], answerFlags: a.answerFlags || [], answerText: a.answerText || '' })) : [];
+    const { graded, score, pendingManualGrading } = gradeAnswers(exam, answers);
+    return persistence.expireAttemptFindOneAndUpdate({ _id: attempt._id, status: 'IN_PROGRESS' }, { answers: graded, score, pendingManualGrading, status: 'SUBMITTED', submittedAt: now, autoSubmitted: true, submissionReason: 'TIMEOUT' }, { new: true, runValidators: true });
   };
   const validateAttemptAnswers = (exam, answers) => {
     if (!Array.isArray(answers)) throw new ApiError(400, 'answers phải là danh sách');
@@ -86,13 +92,38 @@ function createExamService(dependencies) {
       }
       questionIds.add(String(answer.questionId));
     }
-    return answers.map(answer => ({ questionId: answer.questionId, answerKey: answer.answerKey || '', answerText: answer.answerText || '' }));
+    return answers.map(answer => {
+      const question = exam.questions.find(item => String(item._id) === String(answer.questionId));
+      const safe = { questionId: answer.questionId };
+      if (question.type === 'MCQ') {
+        const answerKey = answer.answerKey || '';
+        if (answerKey && !(question.options || []).some(option => option.key === answerKey)) throw new ApiError(400, 'Đáp án trắc nghiệm không hợp lệ');
+        safe.answerKey = answerKey;
+      } else if (question.type === 'MCQ_MULTI') {
+        const answerKeys = answer.answerKeys || [];
+        if (!Array.isArray(answerKeys) || new Set(answerKeys).size !== answerKeys.length || answerKeys.some(key => !(question.options || []).some(option => option.key === key))) throw new ApiError(400, 'Danh sách đáp án không hợp lệ');
+        safe.answerKeys = answerKeys;
+      } else if (question.type === 'TRUE_FALSE_4') {
+        const answerFlags = answer.answerFlags || [];
+        if (!Array.isArray(answerFlags) || answerFlags.length > 4 || answerFlags.some(value => value !== null && typeof value !== 'boolean')) throw new ApiError(400, 'Câu Đúng/Sai cần tối đa 4 lựa chọn Đúng/Sai');
+        safe.answerFlags = answerFlags;
+      } else {
+        const answerText = answer.answerText || '';
+        if (typeof answerText !== 'string' || answerText.length > 20000) throw new ApiError(400, 'Câu trả lời văn bản không hợp lệ');
+        safe.answerText = answerText;
+      }
+      return safe;
+    });
   };
   const presentAttempt = (actor, attempt, showResults) => {
     const result = attempt.toObject ? attempt.toObject() : attempt;
-    if (personalActor(actor) && !showResults) {
+    const rawScore = result.score;
+    const hasPendingManual = Number(result.pendingManualGrading || 0) > 0;
+    result.scoreOutOfTen = rawScore == null || !result.maxScore || hasPendingManual ? null : roundScore((rawScore / result.maxScore) * 10);
+    if (personalActor(actor) && (!showResults || hasPendingManual)) {
       result.score = null;
-      result.answers = (result.answers || []).map(a => pick(a, ['questionId', 'answerKey', 'answerText']));
+      result.scoreOutOfTen = null;
+      result.answers = (result.answers || []).map(a => pick(a, ['questionId', 'answerKey', 'answerKeys', 'answerFlags', 'answerText']));
     }
     return result;
   };
@@ -101,7 +132,7 @@ function createExamService(dependencies) {
     const filter = await examScope(actor);
     if (query.classId) filter.classId = objectId(query.classId, 'classId');
     if (query.status) filter.status = query.status;
-    return persistence.listExamsFind(filter, personalActor(actor) || !(await cache.canAccess(actor.role, 'exams', 'update')) ? '-questions.correctKey' : '', { createdAt: -1 });
+    return persistence.listExamsFind(filter, personalActor(actor) || !(await cache.canAccess(actor.role, 'exams', 'update')) ? '-questions.correctKey -questions.correctKeys -questions.acceptedAnswers -questions.statements.correctAnswer' : '', { createdAt: -1 });
   };
   
   const getExam = async (actor, id) => {
@@ -111,7 +142,8 @@ function createExamService(dependencies) {
     if (personalActor(actor) || !(await cache.canAccess(actor.role, 'exams', 'update'))) {
       const obj = exam.toObject();
       obj.questions = (obj.questions || []).map((q) => {
-        const { correctKey: _correctKey, ...rest } = q;
+        const { correctKey: _correctKey, correctKeys: _correctKeys, acceptedAnswers: _acceptedAnswers, ...rest } = q;
+        rest.statements = (rest.statements || []).map(({ correctAnswer: _correctAnswer, ...statement }) => statement);
         return rest;
       });
       return obj;
@@ -122,11 +154,23 @@ function createExamService(dependencies) {
   const createExam = async (actor, data) => {
     if (!data.title) throw new ApiError(400, 'Thiếu tiêu đề');
     validateExamSettings(data);
+    if (data.template !== undefined && !['CUSTOM', 'THPT_2025'].includes(data.template)) throw new ApiError(400, 'Mẫu đề không hợp lệ');
+    const sectionsError = validateExamSections(data.sections);
+    if (sectionsError) throw new ApiError(400, sectionsError);
+    const questionsError = validateExamQuestions(data.questions || [], data.sections || []);
+    if (questionsError) throw new ApiError(400, questionsError);
+    if (data.status === 'PUBLISHED') {
+      if (!(data.questions || []).length) throw new ApiError(400, 'Đề thi cần ít nhất một câu hỏi trước khi mở');
+      const totalError = validatePublishTotal(data, data.questions || []);
+      if (totalError) throw new ApiError(400, totalError);
+    }
     const schoolId = await targetSchool(actor, data.schoolId);
     await validateExamRefs(actor, data, schoolId);
     return persistence.createExamCreate({
       schoolId,
       title: data.title,
+      template: data.template || 'CUSTOM',
+      sections: data.sections || [],
       subjectId: data.subjectId || null,
       classId: data.classId || null,
       createdBy: actor._id,
@@ -149,6 +193,8 @@ function createExamService(dependencies) {
     }
     const allowed = [
       'title',
+      'template',
+      'sections',
       'subjectId',
       'classId',
       'startAt',
@@ -161,7 +207,21 @@ function createExamService(dependencies) {
       'status',
     ];
     validateExamSettings(data);
-    await validateExamRefs(actor, { ...exam.toObject(), ...pick(data, allowed) }, exam.schoolId);
+    const updated = { ...exam.toObject(), ...pick(data, allowed) };
+    if (!['CUSTOM', 'THPT_2025'].includes(updated.template)) throw new ApiError(400, 'Mẫu đề không hợp lệ');
+    const shouldValidateQuestions = data.questions !== undefined || data.sections !== undefined || data.template !== undefined || data.status === 'PUBLISHED';
+    if (shouldValidateQuestions) {
+      const sectionsError = validateExamSections(updated.sections);
+      if (sectionsError) throw new ApiError(400, sectionsError);
+      const questionsError = validateExamQuestions(updated.questions || [], updated.sections || []);
+      if (questionsError) throw new ApiError(400, questionsError);
+    }
+    if (updated.status === 'PUBLISHED') {
+      if (!(updated.questions || []).length) throw new ApiError(400, 'Đề thi cần ít nhất một câu hỏi trước khi mở');
+      const totalError = validatePublishTotal(updated, updated.questions || []);
+      if (totalError) throw new ApiError(400, totalError);
+    }
+    await validateExamRefs(actor, updated, exam.schoolId);
     if (data.questions !== undefined && await persistence.updateExamExists({ examId: exam._id })) throw new ApiError(409, 'Không sửa câu hỏi khi đã có bài làm');
     for (const key of allowed) {
       if (data[key] !== undefined) exam[key] = data[key];
@@ -186,8 +246,7 @@ function createExamService(dependencies) {
   
     const durationDeadline = new Date(now.getTime() + (exam.durationMinutes || 45) * 60 * 1000);
     const expiresAt = exam.endAt && exam.endAt < durationDeadline ? exam.endAt : durationDeadline;
-    const questionIds = (exam.questions || []).map(q => q._id);
-    const questionOrder = exam.shuffleQuestions ? shuffle(questionIds) : questionIds;
+    const questionOrder = buildQuestionOrder(exam);
     try { return await persistence.startAttemptCreate({
       schoolId: exam.schoolId,
       examId,
@@ -215,9 +274,9 @@ function createExamService(dependencies) {
     const now = new Date();
     const timedOut = attemptDeadline(attempt, exam) <= now;
     const selectedAnswers = timedOut ? (attempt.answers || []) : validateAttemptAnswers(exam, answers);
-    const { graded, score } = gradeAnswers(exam, selectedAnswers);
+    const { graded, score, pendingManualGrading } = gradeAnswers(exam, selectedAnswers);
   
-    const saved = await persistence.savedFindOneAndUpdate({ _id: attempt._id, status: 'IN_PROGRESS', studentId: actor._id }, { answers: graded, score, status: 'SUBMITTED', submittedAt: now, autoSubmitted: timedOut, submissionReason: timedOut ? 'TIMEOUT' : 'MANUAL' }, { new: true, runValidators: true });
+    const saved = await persistence.savedFindOneAndUpdate({ _id: attempt._id, status: 'IN_PROGRESS', studentId: actor._id }, { answers: graded, score, pendingManualGrading, status: 'SUBMITTED', submittedAt: now, autoSubmitted: timedOut, submissionReason: timedOut ? 'TIMEOUT' : 'MANUAL' }, { new: true, runValidators: true });
     if (!saved) throw new ApiError(409, 'Bài đã được nộp');
     return presentAttempt(actor, saved, exam.showResults);
   };
@@ -255,15 +314,15 @@ function createExamService(dependencies) {
       const g = grades.find((x) => String(x.questionId) === String(a.questionId));
       if (!g) return a;
       return {
-        questionId: a.questionId,
-        answerKey: a.answerKey,
-        answerText: a.answerText,
+        ...(a.toObject ? a.toObject() : a),
         isCorrect: g.pointsAwarded > 0,
         pointsAwarded: Number(g.pointsAwarded) || 0,
       };
     });
     attempt.score = attempt.answers.reduce((sum, answer) => sum + (answer.pointsAwarded || 0), 0);
-    attempt.status = 'GRADED';
+    const essayQuestionIds = new Set(exam.questions.filter(question => question.type === 'ESSAY').map(question => String(question._id)));
+    attempt.pendingManualGrading = attempt.answers.filter(answer => essayQuestionIds.has(String(answer.questionId)) && String(answer.answerText || '').trim() && answer.isCorrect == null).length;
+    attempt.status = attempt.pendingManualGrading ? 'SUBMITTED' : 'GRADED';
     await persistence.gradeEssaySave(attempt);
     return attempt;
   };

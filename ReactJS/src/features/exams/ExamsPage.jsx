@@ -7,6 +7,7 @@ import {
   getExamApi,
   getExamsApi,
   getSubjectsApi,
+  gradeAttemptApi,
   saveAttemptDraftApi,
   startAttemptApi,
   submitAttemptApi,
@@ -17,6 +18,7 @@ import { can } from '../../utils/permissions';
 import ImportExcelButton from '../../components/ImportExcelButton';
 import ExamAttemptModal from './ExamAttemptModal';
 import ExamBuilderModal from './ExamBuilderModal';
+import EssayGradingModal from './EssayGradingModal';
 import useExamQuestionDrafts from './useExamQuestionDrafts';
 import './exams.css';
 
@@ -36,11 +38,15 @@ const ExamsPage = () => {
   const [remainingSeconds, setRemainingSeconds] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [answers, setAnswers] = useState({});
+  const [gradingAttempt, setGradingAttempt] = useState(null);
+  const [gradingExam, setGradingExam] = useState(null);
+  const [essayGrades, setEssayGrades] = useState({});
+  const [gradingBusy, setGradingBusy] = useState(false);
   const submitRef = useRef(null);
   const [form] = Form.useForm();
   const {
-    questions, setQuestions, importLoading, pastedText, setPastedText, manualForm, manualType, setManualType,
-    downloadTemplate, handleUploadExcel, handleParseText, handleAddManual, removeQuestion, mcqCount, essayCount, totalPoints,
+    questions, setQuestions, template, setTemplate, sections, setSections, importLoading, pastedText, setPastedText, manualForm, manualType, setManualType,
+    downloadTemplate, handleUploadExcel, handleParseText, handleAddManual, removeQuestion, updateQuestion, mcqCount, essayCount, totalPoints,
   } = useExamQuestionDrafts();
 
   const load = useCallback(async () => {
@@ -76,7 +82,7 @@ const ExamsPage = () => {
         Object.fromEntries(
           (start.data.answers || []).map((answer) => [
             answer.questionId,
-            { answerKey: answer.answerKey || '', answerText: answer.answerText || '' },
+            { answerKey: answer.answerKey || '', answerKeys: answer.answerKeys || [], answerFlags: answer.answerFlags || [], answerText: answer.answerText || '' },
           ])
         )
       );
@@ -89,14 +95,18 @@ const ExamsPage = () => {
     const payload = (taking.questions || []).map((q) => ({
       questionId: q._id,
       answerKey: answers[q._id]?.answerKey || '',
+      answerKeys: answers[q._id]?.answerKeys || [],
+      answerFlags: answers[q._id]?.answerFlags || [],
       answerText: answers[q._id]?.answerText || '',
     }));
     const res = await submitAttemptApi(attemptId, payload);
     if (res?.EC === 0) {
       message.success(
-        res.data.score == null
-          ? 'Nộp bài thành công — điểm chưa công bố'
-          : `Nộp bài thành công — Điểm MCQ: ${res.data.score}/${res.data.maxScore}`
+        res.data.pendingManualGrading
+          ? 'Đã nộp bài — bài tự luận đang chờ giáo viên chấm'
+          : res.data.score == null
+            ? 'Nộp bài thành công — điểm chưa công bố'
+            : `Nộp bài thành công — ${res.data.score}/${res.data.maxScore}${res.data.scoreOutOfTen != null ? ` (${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 }).format(res.data.scoreOutOfTen)}/10)` : ''}`
       );
       setTaking(null);
       setAttemptId(null);
@@ -127,9 +137,11 @@ const ExamsPage = () => {
         .map((q) => ({
           questionId: q._id,
           answerKey: answers[q._id]?.answerKey || '',
+          answerKeys: answers[q._id]?.answerKeys || [],
+          answerFlags: answers[q._id]?.answerFlags || [],
           answerText: answers[q._id]?.answerText || '',
         }))
-        .filter((answer) => answer.answerKey || answer.answerText);
+        .filter((answer) => answer.answerKey || answer.answerKeys.length || answer.answerFlags.some(value => typeof value === 'boolean') || answer.answerText);
       if (!payload.length) return;
       const result = await saveAttemptDraftApi(attemptId, payload);
       if (result?.EC !== 0 && result?.EM) message.warning(result.EM);
@@ -144,6 +156,31 @@ const ExamsPage = () => {
     return `${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`;
   };
 
+  const openEssayGrading = async attempt => {
+    const examId = attempt.examId?._id || attempt.examId;
+    const response = await getExamApi(examId);
+    if (response?.EC !== 0) return message.error(response?.EM || 'Không tải được đề thi');
+    setGradingAttempt(attempt);
+    setGradingExam(response.data);
+    setEssayGrades(Object.fromEntries((attempt.answers || []).map(answer => [String(answer.questionId), answer.pointsAwarded || 0])));
+  };
+
+  const saveEssayGrades = async () => {
+    if (!gradingAttempt || !gradingExam || gradingBusy) return;
+    setGradingBusy(true);
+    const grades = (gradingExam.questions || [])
+      .filter(question => question.type === 'ESSAY')
+      .map(question => ({ questionId: question._id, pointsAwarded: Number(essayGrades[String(question._id)] || 0) }));
+    const response = await gradeAttemptApi(gradingAttempt._id, grades);
+    if (response?.EC === 0) {
+      message.success('Đã lưu điểm tự luận');
+      setGradingAttempt(null);
+      setGradingExam(null);
+      load();
+    } else message.error(response?.EM || 'Không lưu được điểm');
+    setGradingBusy(false);
+  };
+
   return (
     <div>
       {canManage && (
@@ -153,6 +190,11 @@ const ExamsPage = () => {
             onClick={() => {
               form.resetFields();
               setQuestions([]);
+              setTemplate('CUSTOM');
+              const section = { key: `section_${Date.now()}`, title: 'Phần 1', instructions: '', order: 0, questionType: null };
+              setSections([section]);
+              manualForm.resetFields();
+              manualForm.setFieldsValue({ type: 'MCQ', points: 0.25, correctKey: 'A', sectionKey: section.key });
               setPastedText('');
               setOpen(true);
             }}
@@ -227,15 +269,22 @@ const ExamsPage = () => {
           { title: 'HS', render: (_, r) => r.studentId?.name },
           {
             title: 'Điểm',
-            render: (_, r) => (r.score == null ? 'Chưa công bố' : `${r.score}/${r.maxScore}`),
+            render: (_, r) => (r.pendingManualGrading ? 'Chờ chấm tự luận' : r.score == null ? 'Chưa công bố' : `${r.score}/${r.maxScore}${r.scoreOutOfTen != null ? ` · ${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 }).format(r.scoreOutOfTen)}/10` : ''}`),
           },
           { title: 'TT', dataIndex: 'status' },
+          {
+            title: 'Thao tác',
+            render: (_, attempt) => can(user, 'exams', 'update') && (attempt.pendingManualGrading > 0 || attempt.status === 'GRADED')
+              ? <Button size="small" onClick={() => openEssayGrading(attempt)}>{attempt.status === 'GRADED' ? 'Xem / sửa điểm' : 'Chấm tự luận'}</Button>
+              : null,
+          },
         ]}
       />
 
       <ExamAttemptModal taking={taking} setTaking={setTaking} setAttemptId={setAttemptId} setDeadlineAt={setDeadlineAt} submit={submit} submitting={submitting} remainingSeconds={remainingSeconds} formatRemaining={formatRemaining} answers={answers} setAnswers={setAnswers} />
+      <EssayGradingModal open={Boolean(gradingAttempt)} attempt={gradingAttempt} exam={gradingExam} grades={essayGrades} setGrades={setEssayGrades} saving={gradingBusy} onCancel={() => { setGradingAttempt(null); setGradingExam(null); }} onSubmit={saveEssayGrades} />
 
-      <ExamBuilderModal open={open} setOpen={setOpen} form={form} questions={questions} setQuestions={setQuestions} classes={classes} subjects={subjects} downloadTemplate={downloadTemplate} importLoading={importLoading} handleUploadExcel={handleUploadExcel} pastedText={pastedText} setPastedText={setPastedText} handleParseText={handleParseText} manualForm={manualForm} handleAddManual={handleAddManual} manualType={manualType} setManualType={setManualType} mcqCount={mcqCount} essayCount={essayCount} totalPoints={totalPoints} removeQuestion={removeQuestion} load={load} />
+      <ExamBuilderModal open={open} setOpen={setOpen} form={form} questions={questions} setQuestions={setQuestions} template={template} setTemplate={setTemplate} sections={sections} setSections={setSections} classes={classes} subjects={subjects} downloadTemplate={downloadTemplate} importLoading={importLoading} handleUploadExcel={handleUploadExcel} pastedText={pastedText} setPastedText={setPastedText} handleParseText={handleParseText} manualForm={manualForm} handleAddManual={handleAddManual} manualType={manualType} setManualType={setManualType} mcqCount={mcqCount} essayCount={essayCount} totalPoints={totalPoints} removeQuestion={removeQuestion} updateQuestion={updateQuestion} load={load} />
     </div>
   );
 };
