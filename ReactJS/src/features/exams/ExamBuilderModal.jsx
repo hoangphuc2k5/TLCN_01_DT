@@ -25,33 +25,7 @@ const ExamBuilderModal = ({ open, setOpen, form, questions, setQuestions, templa
           form={form}
           layout="vertical"
           onFinish={async (v) => {
-            let finalQuestions = questions.map(({ _tempId, ...rest }) => rest);
-            // Backward compatibility if user entered q1 in simple mode
-            if (!finalQuestions.length && v.q1) {
-              finalQuestions = [
-                {
-                  type: 'MCQ',
-                  prompt: v.q1,
-                  options: [
-                    { key: 'A', text: v.a1 || 'A' },
-                    { key: 'B', text: v.b1 || 'B' },
-                    { key: 'C', text: v.c1 || 'C' },
-                  ],
-                  correctKey: v.correct1 || 'A',
-                  points: 1,
-                },
-                ...(v.essay
-                  ? [
-                      {
-                        type: 'ESSAY',
-                        prompt: v.essay,
-                        options: [],
-                        points: 2,
-                      },
-                    ]
-                  : []),
-              ];
-            }
+            const finalQuestions = questions.map(({ _tempId, ...rest }) => rest);
 
             if (!finalQuestions.length) {
               return message.error('Vui lòng thêm ít nhất 1 câu hỏi cho đề thi (từ file Excel, dán văn bản hoặc thêm thủ công)');

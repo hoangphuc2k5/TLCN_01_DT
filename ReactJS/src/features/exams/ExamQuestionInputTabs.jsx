@@ -1,5 +1,6 @@
 import { Button, Card, Checkbox, Form, Input, InputNumber, Select, Space, Tabs, Typography, Upload } from 'antd';
 import { DownloadOutlined, FileExcelOutlined, FileTextOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons';
+import { defaultQuestionPoints } from './exam-question.utils';
 
 const TYPE_OPTIONS = [
   { value: 'MCQ', label: 'Trắc nghiệm một đáp án' },
@@ -8,8 +9,6 @@ const TYPE_OPTIONS = [
   { value: 'SHORT_ANSWER', label: 'Trả lời ngắn' },
   { value: 'ESSAY', label: 'Tự luận' },
 ];
-
-const defaultPoints = type => type === 'TRUE_FALSE_4' ? 1 : type === 'SHORT_ANSWER' || type === 'MCQ' ? 0.25 : type === 'ESSAY' ? 2 : 1;
 
 const ExamQuestionInputTabs = ({
   downloadTemplate, importLoading, handleUploadExcel, pastedText, setPastedText, handleParseText,
@@ -25,7 +24,7 @@ const ExamQuestionInputTabs = ({
     manualForm.setFieldValue('sectionKey', key);
     if (section?.questionType) {
       setManualType(section.questionType);
-      manualForm.setFieldsValue({ type: section.questionType, points: defaultPoints(section.questionType) });
+      manualForm.setFieldsValue({ type: section.questionType, points: defaultQuestionPoints(section.questionType) });
     }
   };
 
@@ -89,7 +88,7 @@ const ExamQuestionInputTabs = ({
                       options={TYPE_OPTIONS}
                       onChange={value => {
                         setManualType(value);
-                        manualForm.setFieldValue('points', defaultPoints(value));
+                        manualForm.setFieldValue('points', defaultQuestionPoints(value));
                       }}
                     />
                   </Form.Item>
