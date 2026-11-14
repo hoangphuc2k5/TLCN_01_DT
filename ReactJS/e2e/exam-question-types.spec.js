@@ -74,13 +74,14 @@ test('teacher builds and publishes a THPT exam; student submits all three parts 
     await studentExamRow.getByRole('button', { name: 'Làm bài', exact: true }).click();
     await studentPage.getByRole('radio', { name: 'A. 2', exact: true }).check();
     for (let index = 0; index < 4; index += 1) {
-      await studentPage.getByRole('radio', { name: index === 1 || index === 3 ? 'Sai' : 'Đúng', exact: true }).nth(index).check();
+      const answer = index === 3 ? 'Đúng' : index === 1 ? 'Sai' : 'Đúng';
+      await studentPage.getByRole('radio', { name: answer, exact: true }).nth(index).check();
     }
     await studentPage.getByLabel('Trả lời câu 1').fill('hà nội');
     const submitted = studentPage.waitForResponse(response => response.url().includes('/submit') && response.request().method() === 'POST');
     await studentPage.getByRole('button', { name: 'Nộp bài', exact: true }).click();
     expect((await submitted).status()).toBe(200);
-    await expect(studentPage.getByText(/Nộp bài thành công.*10\/10.*10\/10/)).toBeVisible();
+    await expect(studentPage.getByText(/Nộp bài thành công.*8\.5\/10.*8,5\/10/)).toBeVisible();
   } finally {
     await teacherContext.close().catch(() => {});
     await studentContext.close().catch(() => {});
@@ -166,8 +167,12 @@ test('teacher cannot open a THPT exam whose maximum is not ten points', async ({
   const examTitle = `QA invalid THPT total ${Date.now()}`;
   await login(page, 'teacher0');
   await page.goto('/exams');
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: 'Tạo đề thi', exact: true }).click();
   const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+  expect((await dialog.boundingBox()).width).toBeLessThanOrEqual(390);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   await dialog.getByLabel('Tiêu đề đề thi').fill(examTitle);
   await choose(page, 'Lớp học', 'QA Class 0');
   await choose(page, 'Môn học', 'QA Math');
@@ -178,6 +183,8 @@ test('teacher cannot open a THPT exam whose maximum is not ten points', async ({
   await page.getByLabel('Phương án A').fill('Đúng');
   await page.getByLabel('Phương án B').fill('Sai');
   await page.getByRole('button', { name: /Thêm câu/ }).click();
+  await expect(dialog.getByText('Câu hỏi chưa đủ điểm.')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   const created = page.waitForResponse(response => response.url().endsWith('/v1/api/exams') && response.request().method() === 'POST');
   await dialog.getByRole('button', { name: 'Tạo đề thi', exact: true }).click();
   expect((await created).status()).toBe(201);
@@ -187,4 +194,70 @@ test('teacher cannot open a THPT exam whose maximum is not ten points', async ({
   expect((await publishAttempt).status()).toBe(400);
   await expect(page.getByText(/tổng điểm tối đa bằng 10/)).toBeVisible();
   await expect(examRow.getByText('Bản nháp', { exact: true })).toBeVisible();
+});
+
+test('wrong or blank answers earn zero and a blank essay does not wait for grading', async ({ browser }) => {
+  test.setTimeout(60000);
+  const teacherContext = await browser.newContext();
+  const studentContext = await browser.newContext();
+  const teacherPage = await teacherContext.newPage();
+  const studentPage = await studentContext.newPage();
+  const examTitle = `QA wrong and blank answers ${Date.now()}`;
+
+  try {
+    await login(teacherPage, 'teacher0');
+    await teacherPage.goto('/exams');
+    await teacherPage.getByRole('button', { name: 'Tạo đề thi', exact: true }).click();
+    const dialog = teacherPage.getByRole('dialog');
+    await dialog.getByLabel('Tiêu đề đề thi').fill(examTitle);
+    await choose(teacherPage, 'Lớp học', 'QA Class 0');
+    await choose(teacherPage, 'Môn học', 'QA Math');
+
+    await choose(teacherPage, 'Dạng câu hỏi', 'Trắc nghiệm nhiều đáp án');
+    await teacherPage.getByLabel('Nội dung câu hỏi / câu dẫn').fill('Chọn hai số chẵn.');
+    await teacherPage.getByLabel('Điểm tối đa').fill('2.5');
+    await teacherPage.getByLabel('Phương án A').fill('2');
+    await teacherPage.getByLabel('Phương án B').fill('3');
+    await teacherPage.getByLabel('Phương án C').fill('4');
+    const correctAnswers = dialog.locator('.ant-form-item').filter({ hasText: 'Các đáp án đúng' });
+    await correctAnswers.getByRole('checkbox', { name: 'A', exact: true }).check();
+    await correctAnswers.getByRole('checkbox', { name: 'C', exact: true }).check();
+    await teacherPage.getByRole('button', { name: /Thêm câu/ }).click();
+
+    await choose(teacherPage, 'Dạng câu hỏi', 'Trả lời ngắn');
+    await teacherPage.getByLabel('Nội dung câu hỏi / câu dẫn').fill('Thủ đô của Việt Nam là gì?');
+    await teacherPage.getByLabel('Điểm tối đa').fill('4.5');
+    await teacherPage.getByLabel('Đáp án được chấp nhận (mỗi đáp án một dòng)').fill('Hà Nội');
+    await teacherPage.getByRole('button', { name: /Thêm câu/ }).click();
+
+    await choose(teacherPage, 'Dạng câu hỏi', 'Tự luận');
+    await teacherPage.getByLabel('Nội dung câu hỏi / câu dẫn').fill('Nêu lý do.');
+    await teacherPage.getByLabel('Điểm tối đa').fill('3');
+    await teacherPage.getByRole('button', { name: /Thêm câu/ }).click();
+    await expect(dialog.getByText('Tổng điểm: 10đ')).toBeVisible();
+
+    const created = teacherPage.waitForResponse(response => response.url().endsWith('/v1/api/exams') && response.request().method() === 'POST');
+    await dialog.getByRole('button', { name: 'Tạo đề thi', exact: true }).click();
+    expect((await created).status()).toBe(201);
+    const examRow = teacherPage.getByRole('row').filter({ hasText: examTitle });
+    const published = teacherPage.waitForResponse(response => response.url().includes('/v1/api/exams/') && response.request().method() === 'PUT');
+    await examRow.getByRole('button', { name: 'Mở đề', exact: true }).click();
+    expect((await published).status()).toBe(200);
+
+    await login(studentPage, 'student0');
+    await studentPage.goto('/exams');
+    const studentExamRow = studentPage.getByRole('row').filter({ hasText: examTitle });
+    await studentExamRow.getByRole('button', { name: 'Làm bài', exact: true }).click();
+    await studentPage.getByRole('checkbox', { name: 'A. 2', exact: true }).check();
+    await studentPage.getByLabel('Trả lời câu 2').fill('Sai đáp án');
+    const submitted = studentPage.waitForResponse(response => response.url().includes('/submit') && response.request().method() === 'POST');
+    await studentPage.getByRole('button', { name: 'Nộp bài', exact: true }).click();
+    expect((await submitted).status()).toBe(200);
+    await expect(studentPage.getByText(/Nộp bài thành công.*0\/10.*0\/10/)).toBeVisible();
+    await expect(studentPage.getByText('bài tự luận đang chờ giáo viên chấm')).toHaveCount(0);
+    await expect(studentPage.getByRole('cell', { name: /0\/10.*0\/10/ })).toBeVisible();
+  } finally {
+    await teacherContext.close().catch(() => {});
+    await studentContext.close().catch(() => {});
+  }
 });
