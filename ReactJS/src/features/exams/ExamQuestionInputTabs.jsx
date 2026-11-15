@@ -10,10 +10,11 @@ const TYPE_OPTIONS = [
   { value: 'ESSAY', label: 'Tự luận' },
 ];
 
-const ExamQuestionInputTabs = ({
-  downloadTemplate, importLoading, handleUploadExcel, pastedText, setPastedText, handleParseText,
-  manualForm, handleAddManual, manualType, setManualType, sections,
-}) => {
+const ExamQuestionInputTabs = ({ draft }) => {
+  const {
+    downloadTemplate, importLoading, handleUploadExcel, pastedText, setPastedText, handleParseText,
+    manualForm, handleAddManual, manualType, setManualType, sections,
+  } = draft;
   const activeSectionKey = Form.useWatch('sectionKey', manualForm);
   const activeSection = sections.find(section => section.key === activeSectionKey);
   const forcedType = activeSection?.questionType;

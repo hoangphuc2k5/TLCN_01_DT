@@ -13,6 +13,17 @@ const useExamQuestionDrafts = () => {
   const [manualForm] = Form.useForm();
   const [manualType, setManualType] = useState('MCQ');
 
+  const resetDraft = () => {
+    const section = { key: `section_${Date.now()}`, title: 'Phần 1', instructions: '', order: 0, questionType: null };
+    setQuestions([]);
+    setTemplate('CUSTOM');
+    setSections([section]);
+    setManualType('MCQ');
+    setPastedText('');
+    manualForm.resetFields();
+    manualForm.setFieldsValue({ type: 'MCQ', points: 0.25, correctKey: 'A', sectionKey: section.key });
+  };
+
   // Download template Excel for questions
   const downloadTemplate = async () => {
     try {
@@ -158,7 +169,11 @@ const useExamQuestionDrafts = () => {
   );
 
 
-  return { questions, setQuestions, template, setTemplate, sections, setSections, importLoading, pastedText, setPastedText, manualForm, manualType, setManualType, downloadTemplate, handleUploadExcel, handleParseText, handleAddManual, removeQuestion, updateQuestion, mcqCount, essayCount, totalPoints };
+  return {
+    questions, setQuestions, template, setTemplate, sections, setSections, importLoading, pastedText, setPastedText,
+    manualForm, manualType, setManualType, downloadTemplate, handleUploadExcel, handleParseText, handleAddManual,
+    removeQuestion, updateQuestion, mcqCount, essayCount, totalPoints, resetDraft,
+  };
 };
 
 export default useExamQuestionDrafts;

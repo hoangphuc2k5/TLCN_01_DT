@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Button, Form, Space, Table, Tag, message } from 'antd';
+import { Button, Form, Space, Typography, message } from 'antd';
 import { useSelector } from 'react-redux';
 import {
   getAttemptsApi,
@@ -16,8 +16,12 @@ import {
 import { ROLES } from '../../constants/roles';
 import { can } from '../../utils/permissions';
 import ImportExcelButton from '../../components/ImportExcelButton';
+import PageShell from '../../components/layout/PageShell';
+import { createExamApi } from '../../services/api/learning.api';
 import ExamAttemptModal from './ExamAttemptModal';
 import ExamBuilderModal from './ExamBuilderModal';
+import ExamAttemptsTable from './ExamAttemptsTable';
+import ExamListTable from './ExamListTable';
 import EssayGradingModal from './EssayGradingModal';
 import useExamQuestionDrafts from './useExamQuestionDrafts';
 import { buildAttemptAnswers } from './exam-question.utils';
@@ -30,6 +34,8 @@ const ExamsPage = () => {
 
   const [exams, setExams] = useState([]);
   const [attempts, setAttempts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [savingExam, setSavingExam] = useState(false);
   const [classes, setClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [open, setOpen] = useState(false);
@@ -45,15 +51,21 @@ const ExamsPage = () => {
   const [gradingBusy, setGradingBusy] = useState(false);
   const submitRef = useRef(null);
   const [form] = Form.useForm();
-  const {
-    questions, setQuestions, template, setTemplate, sections, setSections, importLoading, pastedText, setPastedText, manualForm, manualType, setManualType,
-    downloadTemplate, handleUploadExcel, handleParseText, handleAddManual, removeQuestion, updateQuestion, mcqCount, essayCount, totalPoints,
-  } = useExamQuestionDrafts();
+  const draft = useExamQuestionDrafts();
 
   const load = useCallback(async () => {
-    const [e, a] = await Promise.all([getExamsApi(), getAttemptsApi()]);
-    if (e?.EC === 0) setExams(e.data || []);
-    if (a?.EC === 0) setAttempts(a.data || []);
+    setLoading(true);
+    try {
+      const [examResponse, attemptResponse] = await Promise.all([getExamsApi(), getAttemptsApi()]);
+      if (examResponse?.EC === 0) setExams(examResponse.data || []);
+      else message.error(examResponse?.EM || 'Không tải được danh sách đề thi');
+      if (attemptResponse?.EC === 0) setAttempts(attemptResponse.data || []);
+      else message.error(attemptResponse?.EM || 'Không tải được lịch sử bài làm');
+    } catch {
+      message.error('Không tải được dữ liệu thi trực tuyến');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -66,6 +78,56 @@ const ExamsPage = () => {
       load();
     })();
   }, [canManage, load]);
+
+  const openExamBuilder = () => {
+    form.resetFields();
+    form.setFieldsValue({ durationMinutes: 45 });
+    draft.resetDraft();
+    setOpen(true);
+  };
+
+  const createExam = async values => {
+    if (savingExam) return;
+    setSavingExam(true);
+    try {
+      const questions = draft.questions.map(({ _tempId, ...question }) => question);
+      const response = await createExamApi({
+        title: values.title,
+        template: draft.template,
+        sections: draft.sections,
+        classId: values.classId || null,
+        subjectId: values.subjectId || null,
+        status: 'DRAFT',
+        questions,
+        durationMinutes: values.durationMinutes || 45,
+      });
+      if (response?.EC !== 0) {
+        message.error(response?.EM || 'Tạo đề thi thất bại');
+        return;
+      }
+      message.success(response.EM || 'Tạo đề thi thành công');
+      setOpen(false);
+      form.resetFields();
+      draft.resetDraft();
+      await load();
+    } catch {
+      message.error('Tạo đề thi thất bại');
+    } finally {
+      setSavingExam(false);
+    }
+  };
+
+  const publishExam = async exam => {
+    try {
+      const response = await updateExamApi(exam._id, { status: 'PUBLISHED' });
+      if (response?.EC === 0) {
+        message.success('Đã mở đề');
+        await load();
+      } else message.error(response?.EM || 'Không mở được đề thi');
+    } catch {
+      message.error('Không mở được đề thi');
+    }
+  };
 
   const startExam = async (examId) => {
     const start = await startAttemptApi(examId);
@@ -170,110 +232,42 @@ const ExamsPage = () => {
   };
 
   return (
-    <div>
-      {canManage && (
-        <Space style={{ marginBottom: 16 }}>
-          <Button
-            type="primary"
-            onClick={() => {
-              form.resetFields();
-              setQuestions([]);
-              setTemplate('CUSTOM');
-              const section = { key: `section_${Date.now()}`, title: 'Phần 1', instructions: '', order: 0, questionType: null };
-              setSections([section]);
-              manualForm.resetFields();
-              manualForm.setFieldsValue({ type: 'MCQ', points: 0.25, correctKey: 'A', sectionKey: section.key });
-              setPastedText('');
-              setOpen(true);
-            }}
-          >
-            Tạo đề thi
-          </Button>
+    <PageShell
+      title="Thi trực tuyến"
+      description="Quản lý đề thi, theo dõi bài làm và thực hiện bài kiểm tra theo cấu trúc đã giao."
+      actions={canManage && (
+        <Space wrap>
+          <Button type="primary" onClick={openExamBuilder}>Tạo đề thi</Button>
           <ImportExcelButton type="exams" onDone={load} label="Import đề thi (Excel)" />
         </Space>
       )}
+    >
+      <section className="exam-page-section" aria-labelledby="exam-list-heading">
+        <Typography.Title id="exam-list-heading" level={4}>Danh sách đề thi</Typography.Title>
+        <ExamListTable
+          exams={exams}
+          loading={loading}
+          isStudent={isStudent}
+          canPublish={can(user, 'exams', 'update')}
+          onStartExam={startExam}
+          onPublishExam={publishExam}
+        />
+      </section>
 
-      <Table
-        rowKey="_id"
-        dataSource={exams}
-        style={{ marginBottom: 24 }}
-        columns={[
-          { title: 'Đề thi', dataIndex: 'title' },
-          { title: 'Môn', render: (_, r) => r.subjectId?.name || '-' },
-          { title: 'Lớp', render: (_, r) => r.classId?.name || '-' },
-          {
-            title: 'Số câu',
-            render: (_, r) => `${r.questions?.length || 0} câu`,
-          },
-          {
-            title: 'Thời gian',
-            render: (_, r) => `${r.durationMinutes || 45} phút`,
-          },
-          {
-            title: 'Trạng thái',
-            dataIndex: 'status',
-            render: (v) => (
-              <Tag className={`exam-status-tag ${v === 'PUBLISHED' ? 'exam-status-tag--published' : 'exam-status-tag--draft'}`}>
-                {v === 'PUBLISHED' ? 'Đã mở' : 'Bản nháp'}
-              </Tag>
-            ),
-          },
-          {
-            title: 'Thao tác',
-            render: (_, r) => (
-              <Space>
-                {isStudent && r.status === 'PUBLISHED' && (
-                  <Button size="small" type="primary" onClick={() => startExam(r._id)}>
-                    Làm bài
-                  </Button>
-                )}
-                {can(user, 'exams', 'update') && r.status === 'DRAFT' && (
-                  <Button
-                    size="small"
-                    onClick={async () => {
-                      const res = await updateExamApi(r._id, { status: 'PUBLISHED' });
-                      if (res?.EC === 0) {
-                        message.success('Đã mở đề');
-                        load();
-                      } else message.error(res?.EM);
-                    }}
-                  >
-                    Mở đề
-                  </Button>
-                )}
-              </Space>
-            ),
-          },
-        ]}
-      />
-
-      <strong>Lịch sử bài làm</strong>
-      <Table
-        style={{ marginTop: 8 }}
-        rowKey="_id"
-        dataSource={attempts}
-        columns={[
-          { title: 'Đề', render: (_, r) => r.examId?.title },
-          { title: 'HS', render: (_, r) => r.studentId?.name },
-          {
-            title: 'Điểm',
-            render: (_, r) => (r.pendingManualGrading ? 'Chờ chấm tự luận' : r.score == null ? 'Chưa công bố' : `${r.score}/${r.maxScore}${r.scoreOutOfTen != null ? ` · ${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 }).format(r.scoreOutOfTen)}/10` : ''}`),
-          },
-          { title: 'TT', dataIndex: 'status' },
-          {
-            title: 'Thao tác',
-            render: (_, attempt) => can(user, 'exams', 'update') && (attempt.pendingManualGrading > 0 || attempt.status === 'GRADED')
-              ? <Button size="small" onClick={() => openEssayGrading(attempt)}>{attempt.status === 'GRADED' ? 'Xem / sửa điểm' : 'Chấm tự luận'}</Button>
-              : null,
-          },
-        ]}
-      />
+      <section className="exam-page-section" aria-labelledby="exam-attempts-heading">
+        <Typography.Title id="exam-attempts-heading" level={4}>Lịch sử bài làm</Typography.Title>
+        <ExamAttemptsTable
+          attempts={attempts}
+          loading={loading}
+          canGrade={can(user, 'exams', 'update')}
+          onGradeAttempt={openEssayGrading}
+        />
+      </section>
 
       <ExamAttemptModal taking={taking} setTaking={setTaking} setAttemptId={setAttemptId} setDeadlineAt={setDeadlineAt} submit={submit} submitting={submitting} remainingSeconds={remainingSeconds} formatRemaining={formatRemaining} answers={answers} setAnswers={setAnswers} />
       <EssayGradingModal open={Boolean(gradingAttempt)} attempt={gradingAttempt} exam={gradingExam} grades={essayGrades} setGrades={setEssayGrades} saving={gradingBusy} onCancel={() => { setGradingAttempt(null); setGradingExam(null); }} onSubmit={saveEssayGrades} />
-
-      <ExamBuilderModal open={open} setOpen={setOpen} form={form} questions={questions} setQuestions={setQuestions} template={template} setTemplate={setTemplate} sections={sections} setSections={setSections} classes={classes} subjects={subjects} downloadTemplate={downloadTemplate} importLoading={importLoading} handleUploadExcel={handleUploadExcel} pastedText={pastedText} setPastedText={setPastedText} handleParseText={handleParseText} manualForm={manualForm} handleAddManual={handleAddManual} manualType={manualType} setManualType={setManualType} mcqCount={mcqCount} essayCount={essayCount} totalPoints={totalPoints} removeQuestion={removeQuestion} updateQuestion={updateQuestion} load={load} />
-    </div>
+      <ExamBuilderModal open={open} setOpen={setOpen} form={form} draft={draft} classes={classes} subjects={subjects} onSubmit={createExam} saving={savingExam} />
+    </PageShell>
   );
 };
 
