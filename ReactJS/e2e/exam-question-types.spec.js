@@ -253,7 +253,9 @@ test('wrong or blank answers earn zero and a blank essay does not wait for gradi
     await studentPage.goto('/exams');
     const studentExamRow = studentPage.getByRole('row').filter({ hasText: examTitle });
     await studentExamRow.getByRole('button', { name: 'Làm bài', exact: true }).click();
-    await studentPage.getByRole('checkbox', { name: 'A. 2', exact: true }).check();
+    const selectedAnswer = studentPage.getByRole('checkbox', { name: 'A. 2', exact: true });
+    await studentPage.getByText('A. 2', { exact: true }).click();
+    await expect(selectedAnswer).toBeChecked();
     await studentPage.getByLabel('Trả lời câu 2').fill('Sai đáp án');
     const submitted = studentPage.waitForResponse(response => response.url().includes('/submit') && response.request().method() === 'POST');
     await studentPage.getByRole('button', { name: 'Nộp bài', exact: true }).click();
