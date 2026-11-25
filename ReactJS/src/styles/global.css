@@ -568,6 +568,38 @@ body {
   min-width: max-content;
 }
 
+.users-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.users-toolbar-actions {
+  flex: 0 0 auto;
+}
+
+.users-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(160px, 190px) minmax(170px, 200px) auto;
+  align-items: center;
+  gap: 8px;
+  width: min(100%, 820px);
+  margin-left: auto;
+}
+
+.users-filters .ant-input-affix-wrapper,
+.users-filters .ant-select-selector {
+  min-height: 40px;
+}
+
+.users-table .ant-table-body {
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+}
+
 .app-mobile-drawer .ant-drawer-body {
   overscroll-behavior: contain;
 }
@@ -708,6 +740,25 @@ body {
 }
 
 @media (max-width: 767px) {
+  .users-toolbar {
+    align-items: stretch;
+  }
+
+  .users-toolbar-actions,
+  .users-filters {
+    width: 100%;
+  }
+
+  .users-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-left: 0;
+  }
+
+  .users-filters > .ant-input-affix-wrapper,
+  .users-filters > .ant-btn {
+    grid-column: 1 / -1;
+  }
+
   .app-header {
     flex-basis: 56px;
     padding: 0 var(--ui-space-sm, 8px);
