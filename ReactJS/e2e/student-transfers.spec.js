@@ -1,20 +1,5 @@
 import { test, expect } from '@playwright/test';
 
-const openStudentTransferDialog = async (page) => {
-  const row = page.getByRole('row').filter({ hasText: 'peer0@test.invalid' });
-
-  for (let attempt = 0; attempt < 10 && !(await row.isVisible()); attempt += 1) {
-    const nextPage = page.getByRole('listitem', { name: 'Trang Kế', exact: true });
-    if (!(await nextPage.isVisible())) break;
-    const nextButton = nextPage.getByRole('button');
-    if (!(await nextButton.isEnabled())) break;
-    await nextButton.click();
-  }
-
-  await expect(row).toBeVisible();
-  await row.getByRole('button', { name: 'Chuyển lớp', exact: true }).click();
-};
-
 test('admin transfers a student through the UI and reloads persisted class history', async ({ page }) => {
   await page.goto('/login');
   await page.getByLabel('Email', { exact: true }).fill('admin1@test.invalid');
