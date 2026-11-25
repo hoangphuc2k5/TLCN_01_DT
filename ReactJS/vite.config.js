@@ -5,17 +5,25 @@ import react from '@vitejs/plugin-react-swc'
 export default defineConfig({
   plugins: [react()],
   build: {
-    chunkSizeWarningLimit: 550,
+    chunkSizeWarningLimit: 650,
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules')) {
+          const normalizedId = id.replaceAll('\\', '/');
+          const antdComponent = normalizedId.match(/\/node_modules\/antd\/es\/([^/]+)\//)?.[1];
+          if (antdComponent) {
+            if (['form', 'date-picker', 'input', 'input-number', 'select', 'upload', 'radio', 'checkbox'].includes(antdComponent)) {
+              return 'vendor-antd-form-fields';
+            }
+            if (['table', 'tree', 'list', 'pagination'].includes(antdComponent)) return 'vendor-antd-data';
+          }
+          if (normalizedId.includes('/node_modules/')) {
             if (
-              id.includes('react') ||
-              id.includes('react-dom') ||
-              id.includes('react-router-dom') ||
-              id.includes('@reduxjs') ||
-              id.includes('react-redux')
+              normalizedId.includes('/node_modules/react/') ||
+              normalizedId.includes('/node_modules/react-dom/') ||
+              normalizedId.includes('/node_modules/react-router-dom/') ||
+              normalizedId.includes('/node_modules/@reduxjs/') ||
+              normalizedId.includes('/node_modules/react-redux/')
             ) {
               return 'vendor-react';
             }
