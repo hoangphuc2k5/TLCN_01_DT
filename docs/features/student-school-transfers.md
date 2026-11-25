@@ -24,6 +24,14 @@ Trường đi có thể hủy yêu cầu còn mở. Trường đi được từ 
 
 MongoDB phải chạy replica set. Tiếp nhận dùng transaction, khóa trường đích và khóa học sinh theo cơ chế đang dùng cho chuyển lớp/ghi điểm. Hai yêu cầu tiếp nhận qua luồng này không thể cùng chiếm chỗ cuối của lớp. Tạo học sinh hoặc sửa sức chứa qua các luồng khác vẫn theo các ràng buộc hiện có của hệ thống.
 
+## Thông báo trong ứng dụng
+
+- Khi trường đi **duyệt chuyển đi**, mỗi quản trị trường nhận đang hoạt động nhận một thông báo yêu cầu tiếp nhận.
+- Khi trường nhận **tiếp nhận** hoặc **từ chối**, mỗi quản trị trường đi đang hoạt động nhận kết quả; nội dung gồm học sinh, trường xử lý, lớp tiếp nhận hoặc lý do từ chối và người thực hiện.
+- Chuông trên thanh đầu trang hiển thị danh sách thông báo cá nhân và số chưa đọc (trong 50 thông báo mới nhất). Bấm thông báo chuyển trường để đánh dấu đã đọc và mở trực tiếp tab Chuyển trường cùng hồ sơ liên quan. Liên kết Thông báo chung vẫn mở trang thông báo chung hiện có.
+- Dùng API thông báo và luồng SSE hiện có; tải lại khi quay lại cửa sổ và định kỳ 30 giây nếu mất kết nối. Không cần cấu hình kênh mới; thông báo chuyển trường không yêu cầu gửi email/SMS/Zalo/push ngoài ứng dụng.
+- Thông báo lưu cùng transaction với quyết định và chỉ phát sự kiện trực tiếp sau commit. Lỗi ghi thông báo hoàn tác cả quyết định; thao tác trùng hoặc giao dịch retry không tạo thêm thông báo. Tạo yêu cầu chưa duyệt, từ chối ở trường đi hoặc hủy yêu cầu không gửi thông báo mới.
+
 ## API
 
 | Method | Đường dẫn | Chức năng |
@@ -49,3 +57,9 @@ Kết quả kiểm tra local ngày 01/11/2026:
 - Playwright `school-transfers.spec.js`: 1/1; hai tài khoản trường đi/trường đến xử lý qua giao diện và kiểm tra dữ liệu sau reload.
 - Lint backend đạt với cấu hình/rules của dự án, dùng ESLint cài riêng trong worktree frontend do bộ dependency backend có sẵn chưa chứa ESLint.
 - Không chạy vào cơ sở dữ liệu thực tế hoặc triển khai lên môi trường dùng chung.
+
+Cập nhật thông báo ngày 04/11/2026:
+
+- Backend `npm test`: 313/313; bộ chuyển trường có 9 kiểm thử, gồm giới hạn người nhận, không gửi email, đọc thông báo đúng tài khoản, chống trùng và rollback cả quyết định/thông báo khi lỗi ghi dữ liệu.
+- Frontend `npm test`: 20/20; lint đạt; build đạt, còn cảnh báo chunk lớn.
+- Playwright `school-transfers.spec.js` và `layout-responsive.spec.js`: 4/4, gồm nhận thông báo hai chiều khi hai trường đang mở ứng dụng, bấm chuông mở đúng hồ sơ và kiểm tra giao diện laptop/điện thoại.

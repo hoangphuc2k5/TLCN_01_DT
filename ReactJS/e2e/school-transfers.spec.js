@@ -17,11 +17,12 @@ test('source releases a student and destination accepts into its class through t
   const destination = await destinationContext.newPage();
   try {
     await login(source, 'admin0@test.invalid');
+    await login(destination, 'admin1@test.invalid');
     await source.getByRole('button', { name: 'Tạo yêu cầu chuyển trường', exact: true }).click();
     let dialog = source.getByRole('dialog');
     await expect(dialog.getByLabel('Trường đến', { exact: true })).toBeDisabled();
     await dialog.getByLabel('Học sinh', { exact: true }).click();
-    await source.getByText('peer 0 (QA-PEER0)', { exact: true }).click();
+    await source.getByText('transfer 0 (QA-TR0)', { exact: true }).click();
     await dialog.getByLabel('Trường đến', { exact: true }).click();
     await expect(source.getByRole('option', { name: 'QA School 0 (QA0)', exact: true })).toHaveCount(0);
     await source.getByText('QA School 1 (QA1)', { exact: true }).click();
@@ -30,17 +31,23 @@ test('source releases a student and destination accepts into its class through t
     await dialog.getByLabel('Lý do', { exact: true }).fill('Gia đình chuyển nơi ở');
     await dialog.getByRole('button', { name: 'Tạo yêu cầu', exact: true }).click();
     await expect(dialog).not.toBeVisible();
-    const row = source.getByRole('row').filter({ hasText: 'peer 0' });
+    const row = source.getByRole('tabpanel', { name: 'Chuyển trường', exact: true }).getByRole('row').filter({ hasText: 'peer 0' });
     await expect(row).toContainText('Chờ trường đi duyệt');
     await row.getByRole('button', { name: 'Duyệt chuyển đi', exact: true }).click();
     dialog = source.getByRole('dialog');
     await dialog.getByRole('button', { name: 'Xác nhận', exact: true }).click();
     await expect(dialog).not.toBeVisible();
     await expect(row).toContainText('Chờ tiếp nhận');
-    await login(destination, 'admin1@test.invalid');
-    const incoming = destination.getByRole('row').filter({ hasText: 'peer 0' });
+    const destinationBell = destination.getByRole('button', { name: 'Thông báo', exact: true });
+    await expect(destinationBell).toHaveAttribute('title', '1 thông báo chưa đọc');
+    await destinationBell.click();
+    await expect(destination.getByText(/QA School 0 đề nghị chuyển học sinh peer 0/)).toBeVisible();
+    await destination.getByRole('button', { name: /Yêu cầu tiếp nhận học sinh chuyển trường/ }).click();
+    await expect(destination).toHaveURL(/\/users\?tab=school-transfers&transferId=/);
+    await expect(destinationBell).toHaveAttribute('title', 'Thông báo');
+    await expect(destination.getByRole('tab', { name: 'Chuyển trường', exact: true })).toHaveAttribute('aria-selected', 'true');
+    const incoming = destination.getByRole('tabpanel', { name: 'Chuyển trường', exact: true }).getByRole('row').filter({ hasText: 'peer 0' });
     await expect(incoming.getByRole('button', { name: 'Duyệt chuyển đi', exact: true })).toHaveCount(0);
-    await incoming.getByRole('button', { name: 'Chi tiết', exact: true }).click();
     await expect(destination.getByRole('dialog')).toContainText('Điểm bàn giao');
     await expect(destination.getByRole('dialog')).toContainText('QA Math');
     await destination.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
@@ -51,14 +58,22 @@ test('source releases a student and destination accepts into its class through t
     await dialog.getByRole('button', { name: 'Xác nhận', exact: true }).click();
     await expect(dialog).not.toBeVisible();
     await expect(incoming).toContainText('Đã tiếp nhận');
+    const sourceBell = source.getByRole('button', { name: 'Thông báo', exact: true });
+    await expect(sourceBell).toHaveAttribute('title', '1 thông báo chưa đọc');
+    await sourceBell.click();
+    await source.getByRole('button', { name: /Học sinh chuyển trường đã được tiếp nhận/ }).click();
+    await expect(source.getByRole('dialog')).toContainText('Đã tiếp nhận');
+    await source.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
+    await expect(sourceBell).toHaveAttribute('title', 'Thông báo');
+    await expect(row).toContainText('Đã tiếp nhận');
     await destination.reload();
     await destination.getByRole('tab', { name: 'Người dùng', exact: true }).click();
     await destination.getByRole('listitem', { name: '2', exact: true }).click();
-    await expect(destination.getByRole('row').filter({ hasText: 'peer0@test.invalid' })).toContainText('QA School 1');
+    await expect(destination.getByRole('row').filter({ hasText: 'transfer0@test.invalid' })).toContainText('QA School 1');
     const token = await source.evaluate(() => localStorage.getItem('access_token'));
     const remaining = await (await source.request.get('/v1/api/users?role=STUDENT', { headers: { authorization: `Bearer ${token}` } })).json();
     expect(remaining.EC).toBe(0);
-    expect(remaining.data.some(student => student.email === 'peer0@test.invalid')).toBe(false);
+    expect(remaining.data.some(student => student.email === 'transfer0@test.invalid')).toBe(false);
   } finally {
     await Promise.allSettled([sourceContext.close(), destinationContext.close()]);
   }

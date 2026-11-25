@@ -1,186 +1,95 @@
-import { Button, Divider, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
-import { DeleteOutlined } from '@ant-design/icons';
-import { createExamApi } from '../../services/api/learning.api';
+import { Button, Divider, Form, Input, InputNumber, Modal, Select, Space, message } from 'antd';
 import ExamQuestionInputTabs from './ExamQuestionInputTabs';
+import ExamQuestionList from './ExamQuestionList';
+import ExamSectionsEditor from './ExamSectionsEditor';
 
-const ExamBuilderModal = ({ open, setOpen, form, questions, setQuestions, classes, subjects, downloadTemplate, importLoading, handleUploadExcel, pastedText, setPastedText, handleParseText, manualForm, handleAddManual, manualType, setManualType, mcqCount, essayCount, totalPoints, removeQuestion, load }) => (
-  <Modal
-        open={open}
-        title="Tạo đề thi mới (Hỗ trợ nhập File Excel / Word)"
-        onCancel={() => setOpen(false)}
-        onOk={() => form.submit()}
-        okText="Tạo đề thi"
-        cancelText="Hủy"
-        width={840}
-        destroyOnHidden
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={async (v) => {
-            let finalQuestions = questions.map(({ _tempId, ...rest }) => rest);
-            // Backward compatibility if user entered q1 in simple mode
-            if (!finalQuestions.length && v.q1) {
-              finalQuestions = [
-                {
-                  type: 'MCQ',
-                  prompt: v.q1,
-                  options: [
-                    { key: 'A', text: v.a1 || 'A' },
-                    { key: 'B', text: v.b1 || 'B' },
-                    { key: 'C', text: v.c1 || 'C' },
-                  ],
-                  correctKey: v.correct1 || 'A',
-                  points: 1,
-                },
-                ...(v.essay
-                  ? [
-                      {
-                        type: 'ESSAY',
-                        prompt: v.essay,
-                        options: [],
-                        points: 2,
-                      },
-                    ]
-                  : []),
-              ];
-            }
+const createCustomSections = () => [{ key: `section_${Date.now()}`, title: 'Phần 1', instructions: '', order: 0, questionType: null }];
+const createThptSections = () => [
+  { key: 'thpt_part_1', title: 'Phần I - Trắc nghiệm nhiều lựa chọn', instructions: '', order: 0, questionType: 'MCQ' },
+  { key: 'thpt_part_2', title: 'Phần II - Trắc nghiệm Đúng/Sai', instructions: '', order: 1, questionType: 'TRUE_FALSE_4' },
+  { key: 'thpt_part_3', title: 'Phần III - Trả lời ngắn', instructions: '', order: 2, questionType: 'SHORT_ANSWER' },
+];
 
-            if (!finalQuestions.length) {
-              return message.error('Vui lòng thêm ít nhất 1 câu hỏi cho đề thi (từ file Excel, dán văn bản hoặc thêm thủ công)');
-            }
+const ExamBuilderModal = ({ open, setOpen, form, draft, classes, subjects, onSubmit, saving }) => {
+  const handleFinish = values => {
+    if (!draft.questions.length) {
+      return message.error('Vui lòng thêm ít nhất 1 câu hỏi cho đề thi (từ file Excel, dán văn bản hoặc thêm thủ công)');
+    }
+    return onSubmit(values);
+  };
 
-            const res = await createExamApi({
-              title: v.title,
-              classId: v.classId || null,
-              subjectId: v.subjectId || null,
-              status: 'DRAFT',
-              questions: finalQuestions,
-              durationMinutes: v.durationMinutes || 45,
-            });
-            if (res?.EC === 0) {
-              message.success(res.EM || 'Tạo đề thi thành công');
-              setOpen(false);
-              form.resetFields();
-              setQuestions([]);
-              load();
-            } else {
-              message.error(res?.EM || 'Tạo đề thi thất bại');
-            }
-          }}
-        >
-          <Space orientation="horizontal" size="middle" style={{ width: '100%' }} wrap>
-            <Form.Item
-              name="title"
-              label="Tiêu đề đề thi"
-              rules={[{ required: true, message: 'Vui lòng nhập tiêu đề đề thi' }]}
-              style={{ minWidth: 260, flex: 2 }}
-            >
-              <Input placeholder="VD: Kiểm tra 1 tiết - Môn Toán HK1" />
-            </Form.Item>
-            <Form.Item name="classId" label="Lớp học" style={{ minWidth: 150, flex: 1 }}>
-              <Select allowClear placeholder="Chọn lớp" options={classes.map((c) => ({ value: c._id, label: c.name }))} />
-            </Form.Item>
-            <Form.Item name="subjectId" label="Môn học" style={{ minWidth: 150, flex: 1 }}>
-              <Select allowClear placeholder="Chọn môn" options={subjects.map((s) => ({ value: s._id, label: s.name }))} />
-            </Form.Item>
-            <Form.Item
-              name="durationMinutes"
-              label="Thời gian (phút)"
-              initialValue={45}
-              rules={[{ required: true }]}
-              style={{ minWidth: 120, flex: 1 }}
-            >
-              <InputNumber min={5} max={180} style={{ width: '100%' }} />
-            </Form.Item>
-          </Space>
-
-          <Divider style={{ margin: '12px 0' }}>Phương thức thêm câu hỏi vào đề</Divider>
-
-          <ExamQuestionInputTabs downloadTemplate={downloadTemplate} importLoading={importLoading} handleUploadExcel={handleUploadExcel} pastedText={pastedText} setPastedText={setPastedText} handleParseText={handleParseText} manualForm={manualForm} handleAddManual={handleAddManual} manualType={manualType} setManualType={setManualType} />
-
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              margin: '16px 0 8px',
-            }}
+  return (
+    <Modal
+      open={open}
+      title="Tạo đề thi mới"
+      onCancel={() => setOpen(false)}
+      onOk={() => form.submit()}
+      confirmLoading={saving}
+      okText="Tạo đề thi"
+      cancelText="Hủy"
+      width={840}
+      destroyOnHidden
+    >
+      <Form form={form} layout="vertical" onFinish={handleFinish}>
+        <Space className="exam-builder__metadata" size="middle" wrap>
+          <Form.Item
+            name="title"
+            label="Tiêu đề đề thi"
+            rules={[{ required: true, message: 'Vui lòng nhập tiêu đề đề thi' }]}
           >
-            <Typography.Text strong>
-              Danh sách câu hỏi trong đề ({questions.length} câu: {mcqCount} trắc nghiệm, {essayCount} tự luận — Tổng điểm: {totalPoints}đ)
-            </Typography.Text>
-            {questions.length > 0 && (
-              <Button danger size="small" onClick={() => setQuestions([])}>
-                Xóa tất cả
-              </Button>
-            )}
-          </div>
+            <Input placeholder="VD: Kiểm tra 1 tiết - Môn Toán HK1" />
+          </Form.Item>
+          <Form.Item name="classId" label="Lớp học">
+            <Select allowClear placeholder="Chọn lớp" options={classes.map(item => ({ value: item._id, label: item.name }))} />
+          </Form.Item>
+          <Form.Item name="subjectId" label="Môn học">
+            <Select allowClear placeholder="Chọn môn" options={subjects.map(item => ({ value: item._id, label: item.name }))} />
+          </Form.Item>
+          <Form.Item
+            name="durationMinutes"
+            label="Thời gian (phút)"
+            initialValue={45}
+            rules={[{ required: true }]}
+          >
+            <InputNumber min={5} max={180} style={{ width: '100%' }} />
+          </Form.Item>
+        </Space>
 
-          <Table
-            size="small"
-            rowKey={(r) => r._tempId || r.prompt}
-            dataSource={questions}
-            pagination={{ pageSize: 5 }}
-            locale={{ emptyText: 'Chưa có câu hỏi nào. Hãy tải file Excel hoặc dán văn bản ở trên.' }}
-            columns={[
-              {
-                title: 'STT',
-                width: 50,
-                render: (_, __, idx) => idx + 1,
-              },
-              {
-                title: 'Loại',
-                width: 110,
-                dataIndex: 'type',
-                render: (type) =>
-                  type === 'MCQ' ? <Tag color="blue">Trắc nghiệm</Tag> : <Tag color="orange">Tự luận</Tag>,
-              },
-              {
-                title: 'Nội dung & Đáp án',
-                render: (_, r) => (
-                  <div>
-                    <div>
-                      <strong>{r.prompt}</strong>
-                    </div>
-                    {r.type === 'MCQ' && (
-                      <Space wrap size="small" style={{ marginTop: 4 }}>
-                        {(r.options || []).map((opt) => (
-                          <Tag
-                            key={opt.key}
-                            color={opt.key === r.correctKey ? 'green' : undefined}
-                            style={{ fontWeight: opt.key === r.correctKey ? 600 : 400 }}
-                          >
-                            {opt.key}. {opt.text} {opt.key === r.correctKey && '✓'}
-                          </Tag>
-                        ))}
-                      </Space>
-                    )}
-                  </div>
-                ),
-              },
-              {
-                title: 'Điểm',
-                width: 70,
-                dataIndex: 'points',
-                render: (pts) => `${pts}đ`,
-              },
-              {
-                title: '',
-                width: 50,
-                render: (_, r) => (
-                  <Button
-                    type="text"
-                    danger
-                    icon={<DeleteOutlined />}
-                    onClick={() => removeQuestion(r._tempId)}
-                  />
-                ),
-              },
+        <Form.Item label="Cấu trúc đề" className="exam-builder__template">
+          <Select
+            value={draft.template}
+            onChange={value => {
+              if (draft.questions.length) return message.warning('Chọn cấu trúc đề trước khi thêm câu hỏi');
+              draft.setTemplate(value);
+              draft.setSections(value === 'THPT_2025' ? createThptSections() : createCustomSections());
+              draft.setManualType('MCQ');
+              draft.manualForm.setFieldsValue({
+                type: 'MCQ',
+                sectionKey: value === 'THPT_2025' ? 'thpt_part_1' : undefined,
+                points: 0.25,
+              });
+            }}
+            options={[
+              { value: 'CUSTOM', label: 'Đề tự thiết kế' },
+              { value: 'THPT_2025', label: 'Mẫu cấu trúc THPT' },
             ]}
           />
-        </Form>
-      </Modal>
-);
+        </Form.Item>
+
+        <ExamSectionsEditor
+          template={draft.template}
+          sections={draft.sections}
+          setSections={draft.setSections}
+          questions={draft.questions}
+          totalPoints={draft.totalPoints}
+        />
+
+        <Divider>Phương thức thêm câu hỏi vào đề</Divider>
+        <ExamQuestionInputTabs draft={draft} />
+        <ExamQuestionList draft={draft} />
+      </Form>
+    </Modal>
+  );
+};
 
 export default ExamBuilderModal;

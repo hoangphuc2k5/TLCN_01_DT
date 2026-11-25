@@ -5,6 +5,10 @@ class SchoolTransferRepository {
   student(id, session) { return this.models.user.findOne({ _id: id, role: 'STUDENT' }).session(session || null); }
   classroom(id, session) { return this.models.class.findById(id).session(session || null); }
   year(id, session) { return this.models['academic-year'].findById(id).session(session || null); }
+  activeSchoolAdmins(schoolId, session) {
+    return this.models.user.find({ schoolId, role: 'SCHOOL_ADMIN', status: 'ACTIVE' }).select('_id').session(session).lean();
+  }
+  createNotifications(data, session) { return this.models.notification.create(data, { session, ordered: true }); }
   lockStudent(id, session) { return this.models.user.updateOne({ _id: id }, { $inc: { academicRevision: 1 } }, { session }); }
   create(data, session) { return this.models['school-transfer'].create([data], { session }).then(rows => rows[0]); }
   find(id, session) { return this.models['school-transfer'].findById(id).session(session || null); }
