@@ -8,11 +8,13 @@ export const markNotificationReadApi = (id) =>
 
 export const deliverNotificationApi = (id, channels = ['SMS', 'ZALO', 'PUSH']) => axios.post(`/v1/api/notifications/${id}/deliver`, { channels });
 
-export const openNotificationStream = async onMessage => {
-  const response = await fetch(`${apiOrigin()}/v1/api/notifications/stream`, { headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}`, Accept: 'text/event-stream' } });
+export const openNotificationStream = async (onMessage, { signal } = {}) => {
+  const response = await fetch(`${apiOrigin()}/v1/api/notifications/stream`, { signal, headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}`, Accept: 'text/event-stream' } });
   if (!response.ok || !response.body) throw new Error('Notification stream unavailable');
   const reader = response.body.getReader(); const decoder = new TextDecoder(); let buffer = '';
-  while (true) { const { done, value } = await reader.read(); if (done) break; buffer += decoder.decode(value, { stream: true }); const events = buffer.split('\n\n'); buffer = events.pop() || ''; for (const event of events) { const line = event.split('\n').find(item => item.startsWith('data:')); if (line) { try { onMessage(JSON.parse(line.slice(5).trim())); } catch { /* ignore malformed event */ } } } }
+  try {
+    while (true) { const { done, value } = await reader.read(); if (done) break; buffer += decoder.decode(value, { stream: true }); const events = buffer.split('\n\n'); buffer = events.pop() || ''; for (const event of events) { const line = event.split('\n').find(item => item.startsWith('data:')); if (line) { try { onMessage(JSON.parse(line.slice(5).trim())); } catch { /* ignore malformed event */ } } } }
+  } finally { reader.releaseLock(); }
   return true;
 };
 

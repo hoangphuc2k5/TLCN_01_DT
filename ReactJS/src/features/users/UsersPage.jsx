@@ -9,6 +9,7 @@ import {
   message,
   Popconfirm,} from 'antd';
 import dayjs from 'dayjs';
+import { useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
   createUserApi,
@@ -28,6 +29,7 @@ import SchoolTransfers from './SchoolTransfers';
 
 const UsersPage = () => {
   const me = useSelector((s) => s.auth.user);
+  const [searchParams, setSearchParams] = useSearchParams();
   const myLevel = me?.roleLevel ?? 0;
   const canManageRoles =
     me?.role === 'SUPER_ADMIN' ||
@@ -210,6 +212,14 @@ const UsersPage = () => {
 
   return (
     <Tabs
+      activeKey={searchParams.get('tab') === 'school-transfers' && ['SUPER_ADMIN', 'CLUSTER_ADMIN', 'SCHOOL_ADMIN'].includes(me?.role)
+        ? 'school-transfers' : searchParams.get('tab') === 'roles' && canManageRoles ? 'roles' : 'users'}
+      onChange={key => setSearchParams(current => {
+        const next = new URLSearchParams(current);
+        next.set('tab', key);
+        if (key !== 'school-transfers') next.delete('transferId');
+        return next;
+      })}
       items={[
         { key: 'users', label: 'Người dùng', children: usersTab },
         ...(['SUPER_ADMIN', 'CLUSTER_ADMIN', 'SCHOOL_ADMIN'].includes(me?.role) ? [{ key: 'school-transfers', label: 'Chuyển trường', children: <SchoolTransfers /> }] : []),

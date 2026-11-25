@@ -17,7 +17,7 @@ const openStudentTransferDialog = async (page) => {
 
 test('admin transfers a student through the UI and reloads persisted class history', async ({ page }) => {
   await page.goto('/login');
-  await page.getByLabel('Email', { exact: true }).fill('admin0@test.invalid');
+  await page.getByLabel('Email', { exact: true }).fill('admin1@test.invalid');
   await page.getByLabel('Mật khẩu', { exact: true }).fill('Phase0@Test123');
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
@@ -27,10 +27,11 @@ test('admin transfers a student through the UI and reloads persisted class histo
   const authorization = response.request().headers().authorization;
   const headers = { authorization };
   const classes = await (await page.request.get('/v1/api/classes', { headers })).json();
-  const original = classes.data.find(item => item.name === 'QA Class 0');
+  const original = classes.data.find(item => item.name === 'QA Class 1');
   const created = await page.request.post('/v1/api/classes', { headers, data: { name: 'QA Transfer destination', schoolId: original.schoolId, academicYearId: original.academicYearId._id, gradeLevel: 10 } });
   expect(created.status()).toBe(201);
-  await openStudentTransferDialog(page);
+  const row = page.getByRole('row').filter({ hasText: 'peer1@test.invalid' });
+  await row.getByRole('button', { name: 'Chuyển lớp', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Lớp đích', { exact: true }).click();
   await page.getByText('QA Transfer destination — 2026-2027', { exact: true }).click();
@@ -42,7 +43,7 @@ test('admin transfers a student through the UI and reloads persisted class histo
   expect((await saved).status()).toBe(200);
   await expect(dialog).not.toBeVisible();
   await page.reload();
-  await openStudentTransferDialog(page);
-  await expect(page.getByRole('dialog')).toContainText('QA Class 0 → QA Transfer destination');
+  await page.getByRole('row').filter({ hasText: 'peer1@test.invalid' }).getByRole('button', { name: 'Chuyển lớp', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText('QA Class 1 → QA Transfer destination');
   await expect(page.getByRole('dialog')).toContainText('Kiểm thử chuyển lớp');
 });

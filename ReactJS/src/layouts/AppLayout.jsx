@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Layout, Menu, Button, Drawer, Grid, Dropdown, Tooltip } from 'antd';
+import { Layout, Menu, Button, Drawer, Grid, Dropdown } from 'antd';
 import {
   AppstoreOutlined,
   DashboardOutlined,
@@ -10,7 +10,6 @@ import {
   CheckSquareOutlined,
   FormOutlined,
   DollarOutlined,
-  BellOutlined,
   NotificationOutlined,
   FileTextOutlined,
   UserOutlined,
@@ -32,6 +31,7 @@ import {
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import PageHeader from '../components/layout/PageHeader';
+import NotificationBell from '../components/NotificationBell';
 import { getPageMetadata } from '../constants/page-metadata';
 import { logout } from '../store/auth.slice';
 import { ROLES, ROLE_LABELS } from '../constants/roles';
@@ -444,11 +444,7 @@ const AppLayout = () => {
                 </div>
               </div>
               <div className="dashboard-header-actions">
-                <Tooltip title="Thông báo" placement="bottom">
-                  <Button className="dashboard-notification-button" aria-label="Thông báo" onClick={() => navigate('/announcements')}>
-                    <BellOutlined aria-hidden="true" />
-                  </Button>
-                </Tooltip>
+                <NotificationBell user={user} />
                 <Dropdown menu={accountMenu} trigger={['click']} placement="bottomRight">
                   <button className="dashboard-account-button" type="button" title="Mở menu tài khoản">
                     <span className="dashboard-account-avatar"><img src={accountAvatar} alt="" /><span aria-hidden="true">{getInitials(user?.name)}</span></span>
