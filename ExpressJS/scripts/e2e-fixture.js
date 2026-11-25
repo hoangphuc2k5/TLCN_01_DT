@@ -76,6 +76,9 @@ async function start() {
     await Role.create({ code: `QA_LOCAL_${i}`, name: `QA Local Role ${i}`, level: 35, schoolId: school._id, permissions: [{ resource: 'grades', actions: ['view'] }] });
     const year = await Year.create({ schoolId: school._id, name: '2026-2027', startDate: '2026-08-01', endDate: '2027-06-01' });
     const cls = await Class.create({ schoolId: school._id, academicYearId: year._id, name: `QA Class ${i}`, gradeLevel: 10 });
+    const transferClass = i === 0
+      ? await Class.create({ schoolId: school._id, academicYearId: year._id, name: 'QA Transfer Class 0', gradeLevel: 10 })
+      : null;
     const subject = await Subject.create({ schoolId: school._id, name: 'QA Math', code: 'MATH' });
     const user = (name, role, extra = {}) => User.create({ name: `${name} ${i}`, email: `${name}${i}@test.invalid`, password, role, schoolId: school._id, clusterId: cluster._id, ...extra });
     const teacher = await user('teacher', 'SUBJECT_TEACHER');
@@ -85,6 +88,9 @@ async function start() {
     await user('security', 'SUBJECT_TEACHER');
     const student = await user('student', 'STUDENT', { classId: cls._id, code: `QA-ST${i}` });
     const peer = await user('peer', 'STUDENT', { classId: cls._id, code: `QA-PEER${i}` });
+    const transferStudent = transferClass
+      ? await user('transfer', 'STUDENT', { classId: transferClass._id, code: 'QA-TR0' })
+      : null;
     await user('parent', 'PARENT', { parentOf: [student._id] });
     await user('reader', 'QA_READER');
     await user('creator', 'QA_CREATOR');
@@ -98,7 +104,7 @@ async function start() {
     await require("../src/models/teacher/parent-meeting.model").create({ schoolId: school._id, classId: cls._id, academicYearId: year._id, organizerId: teacher._id, title: `QA Parent Meeting ${i}`, scheduledAt: '2026-10-01T09:00:00.000Z', meetingUrl: 'https://meet.example.test/qa', agenda: 'Term review', status: 'SCHEDULED' });
     await require("../src/models/common/campus/club.model").create({ schoolId: school._id, name: `QA Science Club ${i}`, description: 'Fixture club', capacity: 20, coordinatorId: admin._id, status: 'OPEN' });
     await require("../src/models/admin/timetable.model").create({ schoolId: school._id, classId: cls._id, academicYearId: year._id, status: 'APPROVED', slots: [{ dayOfWeek: 1, period: 1, teacherId: teacher._id, subjectId: subject._id, room: `QA Room ${i}` }] });
-    for (const pupil of [student, peer]) {
+    for (const pupil of [student, peer, ...(transferStudent ? [transferStudent] : [])]) {
       await require("../src/models/teacher/grade.model").create({ schoolId: school._id, classId: cls._id, subjectId: subject._id, academicYearId: year._id, studentId: pupil._id, teacherId: teacher._id, average: 8 });
       await require("../src/models/finance/fee-invoice.model").create({ schoolId: school._id, studentId: pupil._id, academicYearId: year._id, title: `QA Tuition ${pupil.name}`, amount: 100, dueDate: '2027-01-01' });
     }
