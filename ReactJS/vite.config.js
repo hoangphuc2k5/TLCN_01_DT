@@ -5,16 +5,15 @@ import react from '@vitejs/plugin-react-swc'
 export default defineConfig({
   plugins: [react()],
   build: {
-    chunkSizeWarningLimit: 550,
+    chunkSizeWarningLimit: 650,
     rollupOptions: {
       output: {
         manualChunks(id) {
           const normalizedId = id.replaceAll('\\', '/');
           const antdComponent = normalizedId.match(/\/node_modules\/antd\/es\/([^/]+)\//)?.[1];
           if (antdComponent) {
-            if (['form', 'date-picker'].includes(antdComponent)) return 'vendor-antd-form-core';
-            if (['input', 'input-number', 'select', 'upload', 'radio', 'checkbox'].includes(antdComponent)) {
-              return 'vendor-antd-fields';
+            if (['form', 'date-picker', 'input', 'input-number', 'select', 'upload', 'radio', 'checkbox'].includes(antdComponent)) {
+              return 'vendor-antd-form-fields';
             }
             if (['table', 'tree', 'list', 'pagination'].includes(antdComponent)) return 'vendor-antd-data';
           }
